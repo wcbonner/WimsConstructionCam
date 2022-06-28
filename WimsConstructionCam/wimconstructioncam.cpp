@@ -25,12 +25,13 @@
 #include <sys/stat.h>
 #include <sys/statfs.h>
 #include <sys/types.h>
+#include <sys/wait.h> // wait()
 #include <unistd.h> // For close()
 #include <utime.h>
 #include <vector>
 
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220625-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220628-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 /////////////////////////////////////////////////////////////////////////////
 std::string timeToISO8601(const time_t& TheTime)
@@ -291,7 +292,7 @@ int main(int argc, char** argv)
 {
     printf("hello from %s!\n", "WimsConstructionCam");
 	std::cout << "raspistill --nopreview --thumb none --width 1920 --height 1080 --timeout 57600000 --timelapse 60000 --output DCIM/img%05d.jpg" << std::endl;
-	std::cout << "ffmpeg.exe -hide_banner -r 30 -i D:\DCIM\20220626\0628-%03d.JPG -vf drawtext=fontfile=C\\:/WINDOWS/Fonts/consola.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=main_w-text_w-50:text=WimsWorld,drawtext=fontfile=C\\:/WINDOWS/Fonts/consola.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=50:text=%{metadata\\:DateTimeOriginal} -c:v libx265 -crf 23 -preset veryfast -movflags +faststart -bf 2 -g 15 -pix_fmt yuv420p -n C:\Users\Wim\Videos\20220626-1080p30.mp4" << std::endl;
+	//std::cout << "ffmpeg.exe -hide_banner -r 30 -i D:\DCIM\20220626\0628-%03d.JPG -vf drawtext=fontfile=C\\:/WINDOWS/Fonts/consola.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=main_w-text_w-50:text=WimsWorld,drawtext=fontfile=C\\:/WINDOWS/Fonts/consola.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=50:text=%{metadata\\:DateTimeOriginal} -c:v libx265 -crf 23 -preset veryfast -movflags +faststart -bf 2 -g 15 -pix_fmt yuv420p -n C:\Users\Wim\Videos\20220626-1080p30.mp4" << std::endl;
 	std::string DestinationDir("/home/wim/DCIM/");
 	for (;;)
 	{
@@ -333,133 +334,99 @@ int main(int argc, char** argv)
 	typedef void (*SignalHandlerPointer)(int);
 	SignalHandlerPointer previousHandler = signal(SIGINT, SignalHandlerSIGINT);
 	bRun = true;
-	for (int OutputFolderNum = 100; (OutputFolderNum < 1000) && bRun; OutputFolderNum++)
+	while (bRun)
 	{
-		for (int OutputImageNum = 1 + GetLastImageNum(OutputFolderNum); (OutputImageNum < 10000) && bRun; OutputImageNum++)
+		time_t LoopStartTime;
+		time(&LoopStartTime);
+		//GenerateFreeSpace(1300000000ll, DestinationDir);
+		std::string ImageDirectory(GetImageDirectory(DestinationDir, LoopStartTime));
+		std::ostringstream OutputFormat;
+		std::ostringstream VideoFileName;
+		std::ostringstream FrameStart;
+		std::ostringstream Timeout;
+		// Minutes in Day = 60 * 24 = 1440
+		int MinutesLeftInDay = 1440;
+		struct tm UTC;
+		if (0 != localtime_r(&LoopStartTime, &UTC))
 		{
-			GenerateFreeSpace(1300000000ll, OutputFolderNum);
-			std::string OutputFilename(GenerateLogFileName(OutputImageNum, OutputFolderNum));
-			if (0 != mkfifo("/tmp/Wim_C920_FFMPEG", S_IRWXU))
-				std::cerr << "[" << getTimeISO8601() << "] FiFo NOT created Successfully" << std::endl;
-			else
-				std::cerr << "[" << getTimeISO8601() << "] FiFo created Successfully" << std::endl;
-			/* Attempt to fork */
-			pid_t pid = fork();
-			if (pid == -1)
+			int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
+			MinutesLeftInDay = 1440 - CurrentMinuteInDay;
+			Timeout << MinutesLeftInDay * 60 * 1000;
+			OutputFormat.fill('0');
+			OutputFormat << ImageDirectory;
+			OutputFormat.width(2);
+			OutputFormat << UTC.tm_mon + 1;
+			OutputFormat.width(2);
+			OutputFormat << UTC.tm_mday;
+			OutputFormat << "\%04d.jpg";
+			FrameStart << GetLastImageNum(ImageDirectory) + 1;
+			VideoFileName.fill('0');
+			VideoFileName << ImageDirectory;
+			VideoFileName.width(4);
+			VideoFileName << UTC.tm_year + 1900;
+			VideoFileName.width(2);
+			VideoFileName << UTC.tm_mon + 1;
+			VideoFileName.width(2);
+			VideoFileName << UTC.tm_mday;
+			VideoFileName << ".mp4";
+		}
+		else
+			bRun = false;
+
+		/* Attempt to fork */
+		pid_t pid = fork();
+		if (pid == 0)
+		{
+			/* A zero PID indicates that this is the child process */
+			/* Replace the child fork with a new process */
+			if (execlp("raspistill", "raspistill", "--nopreview", "--thumb", "none", "--width", "1920", "--height", "1080", "--timeout", Timeout.str().c_str(), "--timelapse", "60000", "--output", OutputFormat.str().c_str(), "--framestart", FrameStart.str().c_str(), NULL) == -1)
 			{
-				std::cerr << "Fork error! Exiting." << std::endl;  /* something went wrong */
+				std::cerr << "execlp Error! Exiting." << std::endl;
 				exit(1);
 			}
-			else if (pid == 0)
+		}
+		else if (pid > 0)
+		{
+			/* A positive (non-negative) PID indicates the parent process */
+			int raspistill_exit_status;
+			wait(&raspistill_exit_status);				/* Wait for child process to end */
+			std::cerr << "[" << getTimeISO8601() << "] raspistill exited with a  " << raspistill_exit_status << " value" << std::endl;
+		}
+		else
+		{
+			std::cerr << "Fork error! Exiting." << std::endl;  /* something went wrong */
+			bRun = false;
+		}
+		pid = fork();
+		if (pid == 0)
+		{
+			/* A zero PID indicates that this is the child process */
+			/* Replace the child fork with a new process */
+			//  -n C:\Users\Wim\Videos\20220626-1080p30.mp4" << std::endl;
+			if (execlp("ffmpeg", "ffmpeg", "--hide_banner", 
+				"-r", "30", 
+				"-i", OutputFormat.str().c_str(), 
+				"-vf", "drawtext=fontfile=C\\:/WINDOWS/Fonts/consola.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=main_w-text_w-50:text=WimsConstructionCam,drawtext=fontfile=C\\:/WINDOWS/Fonts/consola.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=50:text=%{metadata\\:DateTimeOriginal}", 
+				"-c:v", "libx265", 
+				"-crf", "23", 
+				"-preset", "veryfast", 
+				"-movflags", "+faststart", "-bf", "2", "-g", "15", "-pix_fmt", "yuv420p", "-n", VideoFileName.str().c_str(), NULL) == -1)
 			{
-				std::ostringstream ssMetaDataTitle;
-				ssMetaDataTitle << "title=Wim's BoneCam " << getTimeISO8601();
-				std::string ssAddress("rtp://192.168.0.10:8090/");
-				if (Broadcast)
-					ssAddress = std::string("rtp://239.8.8.8:8090/");
-				/* A zero PID indicates that this is the child process */
-				/* Replace the child fork with a new process */
-				if (force_format == 4)
-				{
-					ssAddress = std::string("udp://192.168.0.10:8090/");
-					if (execlp("ffmpeg", "ffmpeg", "-nostdin", "-i", "/tmp/Wim_C920_FFMPEG", "-vcodec", "copy", "-f", "mjpeg", ssAddress.c_str(), "-metadata", ssMetaDataTitle.str().c_str(), "-vcodec", "copy", "-f", "mjpeg", OutputFilename.c_str(), NULL) == -1)
-					{
-						std::cerr << "execlp Error! Exiting." << std::endl;
-						exit(1);
-					}
-				}
-				else
-				{
-					if (execlp("ffmpeg", "ffmpeg", "-nostdin", "-i", "/tmp/Wim_C920_FFMPEG", "-vcodec", "copy", "-f", "rtp", ssAddress.c_str(), "-metadata", ssMetaDataTitle.str().c_str(), "-vcodec", "copy", OutputFilename.c_str(), NULL) == -1)
-					{
-						std::cerr << "execlp Error! Exiting." << std::endl;
-						exit(1);
-					}
-				}
+				std::cerr << "execlp Error! Exiting." << std::endl;
+				exit(1);
 			}
-			else
-			{
-				/* A positive (non-negative) PID indicates the parent process */
-				open_device();
-				init_device();
-				start_capturing();
-				//mainloop();
-				int pipe_fd = open("/tmp/Wim_C920_FFMPEG", O_WRONLY);
-				if (pipe_fd <= 0)
-					std::cerr << "[" << getTimeISO8601() << "] FiFo NOT opened Successfully" << std::endl;
-				else
-				{
-					std::cerr << "[" << getTimeISO8601() << "] FiFo opened Successfully" << std::endl;
-					time_t CurrentTime;
-					time(&CurrentTime);
-					time_t FileStartTime = CurrentTime;
-					while ((difftime(CurrentTime, FileStartTime) < (60 * 60)) && (bRun))
-					{
-						fd_set fds;
-						struct timeval tv;
-						int r;
-
-						FD_ZERO(&fds);
-						FD_SET(fd, &fds);
-
-						/* Timeout. */
-						tv.tv_sec = 2;
-						tv.tv_usec = 0;
-
-						r = select(fd + 1, &fds, NULL, NULL, &tv);
-						if (-1 == r)
-						{
-							if (EINTR == errno)
-								continue;
-							errno_exit("select");
-						}
-						if (0 == r)
-						{
-							std::cerr << "select timeout" << std::endl;
-							exit(EXIT_FAILURE);
-						}
-						struct v4l2_buffer buf;
-					WIMLABEL:
-						CLEAR(buf);
-						buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-						buf.memory = V4L2_MEMORY_MMAP;
-
-						if (-1 == xioctl(fd, VIDIOC_DQBUF, &buf))
-						{
-							switch (errno)
-							{
-							case EAGAIN:
-								goto WIMLABEL;
-							case EIO:
-								/* Could ignore EIO, see spec. */
-								/* fall through */
-							default:
-								errno_exit("VIDIOC_DQBUF");
-							}
-						}
-						else
-						{
-							assert(buf.index < n_buffers);
-							write(pipe_fd, buffers[buf.index].start, buf.bytesused);
-						}
-						if (-1 == xioctl(fd, VIDIOC_QBUF, &buf))
-							errno_exit("VIDIOC_QBUF");
-						time(&CurrentTime);
-					}
-					stop_capturing();
-					uninit_device();
-					close_device();
-					close(pipe_fd);		/* Close side of pipe I'm writing to, to get the child to recognize it's gone away */
-					std::cerr << "\n[" << getTimeISO8601() << "] Pipe Closed, Waiting for FFMPEG to exit" << std::endl;
-				}
-				int ffmpeg_exit_status;
-				wait(&ffmpeg_exit_status);				/* Wait for child process to end */
-				std::cerr << "[" << getTimeISO8601() << "] FFMPEG exited with a  " << ffmpeg_exit_status << " value" << std::endl;
-				if (0 == remove("/tmp/Wim_C920_FFMPEG"))
-					std::cerr << "[" << getTimeISO8601() << "] FiFo removed Successfully" << std::endl;
-				else
-					std::cerr << "[" << getTimeISO8601() << "] FiFo NOT removed Successfully" << std::endl;
-			}
+		}
+		else if (pid > 0)
+		{
+			/* A positive (non-negative) PID indicates the parent process */
+			int ffmpeg_exit_status;
+			wait(&ffmpeg_exit_status);				/* Wait for child process to end */
+			std::cerr << "[" << getTimeISO8601() << "] ffmpeg exited with a  " << ffmpeg_exit_status << " value" << std::endl;
+		}
+		else
+		{
+			std::cerr << "Fork error! Exiting." << std::endl;  /* something went wrong */
+			bRun = false;
 		}
 	}
 	// remove our special Ctrl-C signal handler and restore previous one
