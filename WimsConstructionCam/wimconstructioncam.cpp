@@ -33,6 +33,7 @@
 /////////////////////////////////////////////////////////////////////////////
 static const std::string ProgramVersionString("WimConstructionCam Version 1.20220628-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
+int TimeoutMinutes = 0;
 /////////////////////////////////////////////////////////////////////////////
 std::string timeToISO8601(const time_t& TheTime)
 {
@@ -308,13 +309,15 @@ static void usage(int argc, char** argv)
 	std::cout << "    -h | --help          Print this message" << std::endl;
 	std::cout << "    -v | --verbose level stdout verbosity level [" << ConsoleVerbosity << "]" << std::endl;
 	std::cout << "    -d | --destination location pictures will be stored [" << ConsoleVerbosity << "]" << std::endl;
+	std::cout << "    -t | --time minutes of stills to capture [" << TimeoutMinutes << "]" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:";
+static const char short_options[] = "hv:d:t:";
 static const struct option long_options[] = {
 		{ "help",   no_argument,       NULL, 'h' },
 		{ "verbose",required_argument, NULL, 'v' },
 		{ "destination",	required_argument, NULL, 'd' },
+		{ "time",required_argument, NULL, 't' },
 		{ 0, 0, 0, 0 }
 };
 /////////////////////////////////////////////////////////////////////////////
@@ -357,6 +360,11 @@ int main(int argc, char** argv)
 		case 'd':
 			DestinationDir = std::string(optarg);
 			break;
+		case 't':
+			try { TimeoutMinutes = std::stoi(optarg); }
+			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
+			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
+			break;			
 		default:
 			usage(argc, argv);
 			exit(EXIT_FAILURE);
@@ -385,7 +393,10 @@ int main(int argc, char** argv)
 		{
 			int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
 			MinutesLeftInDay = 1440 - CurrentMinuteInDay;
-			Timeout << MinutesLeftInDay * 60 * 1000;
+			if (TimeoutMinutes == 0)
+				Timeout << MinutesLeftInDay * 60 * 1000;
+			else 
+				Timeout << TimeoutMinutes * 60 * 1000;
 			OutputFormat.fill('0');
 			OutputFormat << ImageDirectory << "/";
 			OutputFormat.width(2);
@@ -437,6 +448,20 @@ int main(int argc, char** argv)
 				//	"--framestart", FrameStart.str().c_str(),
 				//	NULL) == -1)
 
+				if (ConsoleVerbosity > 0)
+				{
+					std::cout << "[" << getTimeISO8601() << "]  execlp: ";
+					std::cout << "raspistill" << " ";
+					std::cout << "--nopreview" << " ";
+					std::cout << "--thumb" << " " << "none" << " ";
+					std::cout << "--width" << " " << "1920" << " ";
+					std::cout << "--height" << " " << "1080" << " ";
+					std::cout << "--timeout" << " " << Timeout.str().c_str() << " ";
+					std::cout << "--timelapse" << " " << "60000" << " ";
+					std::cout << "--output" << " " << OutputFormat.str().c_str() << " ";
+					std::cout << "--framestart" << " " << FrameStart.str().c_str() << " ";
+					std::cout << std::endl;
+				}
 				// https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStill.c
 				// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
 				if (execlp("raspistill", "raspistill",
@@ -450,7 +475,7 @@ int main(int argc, char** argv)
 					"--framestart", FrameStart.str().c_str(), 
 					NULL) == -1)
 				{
-					std::cerr << "execlp Error! raspistill" << std::endl;
+					std::cerr << "[" << getTimeISO8601() << "] execlp Error! raspistill" << std::endl;
 					bRun = false;
 				}
 			}
@@ -461,10 +486,12 @@ int main(int argc, char** argv)
 				wait(&raspistill_exit_status);				/* Wait for child process to end */
 				if (raspistill_exit_status != 0)
 					std::cerr << "[" << getTimeISO8601() << "] raspistill exited with a  " << raspistill_exit_status << " value" << std::endl;
+				else if (ConsoleVerbosity > 0)
+					std::cout << "[" << getTimeISO8601() << "] raspistill exited with a  " << raspistill_exit_status << " value" << std::endl;
 			}
 			else
 			{
-				std::cerr << "Fork error! raspistill." << std::endl;  /* something went wrong */
+				std::cerr << "[" << getTimeISO8601() << "] Fork error! raspistill." << std::endl;  /* something went wrong */
 				bRun = false;
 			}
 			if (bRun)
@@ -475,7 +502,7 @@ int main(int argc, char** argv)
 					/* A zero PID indicates that this is the child process */
 					/* Replace the child fork with a new process */
 					if (execlp("ffmpeg", "ffmpeg", 
-						"--hide_banner",
+						"-hide_banner",
 						"-r", "30",
 						"-i", OutputFormat.str().c_str(),
 						"-vf", "drawtext=fontfile=DejaVuSansMono.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=main_w-text_w-50:text=WimsConstructionCam,drawtext=fontfile=DejaVuSansMono.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=50:text=%{metadata\\:DateTimeOriginal}",
