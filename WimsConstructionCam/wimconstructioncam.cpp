@@ -23,7 +23,7 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/statfs.h>
+#include <sys/statvfs.h>
 #include <sys/types.h>
 #include <sys/wait.h> // wait()
 #include <unistd.h> // For close()
@@ -148,10 +148,25 @@ std::string timeToExcelLocal(const time_t& TheTime)
 	return(ExcelDate.str());
 }
 /////////////////////////////////////////////////////////////////////////////
+bool ValidateDirectory(std::string& DirectoryName)
+{
+	bool rval = false;
+	// I want to make sure the directory name does not end with a "/"
+	while (DirectoryName.back() == '/')
+		DirectoryName.erase(DirectoryName.back());
+	//TODO: I want to make sure the directory exists
+	struct statvfs buffer2;
+	if (0 == statvfs(DirectoryName.c_str(), &buffer2))
+		rval = true;
+	//TODO: I want to make sure the directory is writable by the current user
+	return(rval);
+}
+/////////////////////////////////////////////////////////////////////////////
 std::string GetImageDirectory(const std::string DestinationDir, const time_t& TheTime)
 {
+	// returns valid image directory name without trailing "/"
 	std::ostringstream OutputDirectoryName;
-	OutputDirectoryName << DestinationDir;
+	OutputDirectoryName << DestinationDir << "/";
 	struct tm UTC;
 	if (0 != localtime_r(&TheTime, &UTC))
 	{
@@ -161,11 +176,10 @@ std::string GetImageDirectory(const std::string DestinationDir, const time_t& Th
 		OutputDirectoryName << UTC.tm_mon + 1;
 		OutputDirectoryName.width(2);
 		OutputDirectoryName << UTC.tm_mday;
-		OutputDirectoryName << "/";
 	}
 
-	struct stat buffer;
-	if (0 != stat(OutputDirectoryName.str().c_str(), &buffer))
+	struct statvfs buffer;
+	if (0 != statvfs(OutputDirectoryName.str().c_str(), &buffer))
 		//if (!(buffer.st_mode & _S_IFDIR))
 	{
 		if (0 == mkdir(OutputDirectoryName.str().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
@@ -181,8 +195,8 @@ std::string GetImageDirectory(const std::string DestinationDir, const time_t& Th
 int GetLastImageNum(const std::string DestinationDir)
 {
 	int LastImageNum = 0;
-	struct statfs64 buffer2;
-	if (0 == statfs64(DestinationDir.c_str(), &buffer2))
+	struct statvfs buffer2;
+	if (0 == statvfs(DestinationDir.c_str(), &buffer2))
 	{
 		DIR* dp;
 		if ((dp = opendir(DestinationDir.c_str())) != NULL)
@@ -204,27 +218,26 @@ int GetLastImageNum(const std::string DestinationDir)
 	return(LastImageNum);
 }
 /////////////////////////////////////////////////////////////////////////////
-void GenerateFreeSpace(const unsigned long long MinFreeSpace, const int OutputFolderNum = 100)
+void GenerateFreeSpace(const unsigned long long MinFreeSpace, const std::string DestinationDir)
 {
 	std::ostringstream OutputDirectoryName;
-	OutputDirectoryName << "/media/BONEBOOT/DCIM/";
-	OutputDirectoryName.fill('0');
-	OutputDirectoryName.width(3);
-	OutputDirectoryName << OutputFolderNum;
-	OutputDirectoryName << "WIMBO";
-	struct statfs64 buffer2;
-	if (0 == statfs64(OutputDirectoryName.str().c_str(), &buffer2))
+	OutputDirectoryName << DestinationDir;
+	struct statvfs buffer2;
+	if (0 == statvfs(OutputDirectoryName.str().c_str(), &buffer2))
 	{
-		std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " optimal transfer block size: " << buffer2.f_bsize << std::endl;
-		std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " total data blocks in file system: " << buffer2.f_blocks << std::endl;
-		std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " free blocks in fs: " << buffer2.f_bfree << std::endl;
-		std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " free blocks avail to non-superuser: " << buffer2.f_bavail << std::endl;
-		std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " Drive Size: " << buffer2.f_bsize * buffer2.f_blocks << " Free Space: " << buffer2.f_bsize * buffer2.f_bavail << std::endl;
+		if (ConsoleVerbosity > 0)
+		{
+			std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " optimal transfer block size: " << buffer2.f_bsize << std::endl;
+			std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " total data blocks in file system: " << buffer2.f_blocks << std::endl;
+			std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " free blocks in fs: " << buffer2.f_bfree << std::endl;
+			std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " free blocks avail to non-superuser: " << buffer2.f_bavail << std::endl;
+			std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " Drive Size: " << buffer2.f_bsize * buffer2.f_blocks << " Free Space: " << buffer2.f_bsize * buffer2.f_bavail << std::endl;
+		}
 		DIR* dp;
 		if ((dp = opendir(OutputDirectoryName.str().c_str())) != NULL)
 		{
-			//std::map<time_t, string> files;
 			std::deque<std::string> files;
+			std::deque<std::string> directories;
 			struct dirent* dirp;
 			while ((dirp = readdir(dp)) != NULL)
 				if (DT_REG == dirp->d_type)
@@ -232,26 +245,44 @@ void GenerateFreeSpace(const unsigned long long MinFreeSpace, const int OutputFo
 					std::string filename = OutputDirectoryName.str() + "/" + std::string(dirp->d_name);
 					files.push_back(filename);
 				}
+				else if (DT_DIR == dirp->d_type)
+				{
+					if (!std::string(dirp->d_name).compare("..") && !std::string(dirp->d_name).compare("."))
+					{
+						std::string dirname = OutputDirectoryName.str() + "/" + std::string(dirp->d_name);
+						directories.push_back(dirname);
+					}
+				}
 			closedir(dp);
 			if (!files.empty())
 				sort(files.begin(), files.end());
 			//for (std::map<time_t, string>::const_iterator filename = files.begin(); filename != files.end(); filename++)
 			//	cout << "[" << timeToISO8601(LogFileTime) << "] " << filename->second << endl;
-			while ((!files.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))	// This loop will make sure that there's 32MB of free space on the drive.
+			while ((!files.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))	// This loop will make sure that there's free space on the drive.
 			{
 				struct stat buffer;
 				if (0 == stat(files.begin()->c_str(), &buffer))
 					if (0 == remove(files.begin()->c_str()))
-						std::cout << "[" << getTimeISO8601() << "] File Deleted: " << *files.begin() << "(" << buffer.st_size << ")" << std::endl;
+						if (ConsoleVerbosity > 0)
+							std::cout << "[" << getTimeISO8601() << "] File Deleted: " << *files.begin() << "(" << buffer.st_size << ")" << std::endl;
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_ctime: " << buffer.st_ctime << endl;
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_mtime: " << buffer.st_mtime << endl;
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_atime: " << buffer.st_atime << endl;
 				//files[buffer.st_mtime] = dirp->d_name;
 				files.pop_front();
-				if (0 != statfs64(OutputDirectoryName.str().c_str(), &buffer2))
+				if (0 != statvfs(OutputDirectoryName.str().c_str(), &buffer2))
 					break;
 				//for (std::vector<string>::const_iterator filename = files.begin(); filename != files.end(); filename++)
 				//	cout << "[" << timeToISO8601(LogFileTime) << "] " << *filename << endl;
+			}
+			if (!directories.empty())
+				sort(directories.begin(), directories.end());
+			while ((!directories.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))	// This loop will make sure that there's free space on the drive.
+			{
+				GenerateFreeSpace(MinFreeSpace, *directories.begin());
+				directories.pop_front();
+				if (0 != statvfs(OutputDirectoryName.str().c_str(), &buffer2))
+					break;
 			}
 		}
 	}
@@ -287,13 +318,24 @@ static const struct option long_options[] = {
 		{ 0, 0, 0, 0 }
 };
 /////////////////////////////////////////////////////////////////////////////
-
+// Here's some web pages related to sunrise/sunset calculations since there's no reason to be taking pictures in the dark.
+// https://gml.noaa.gov/grad/solcalc/calcdetails.html
+// https://gml.noaa.gov/grad/solcalc/
+// https://gml.noaa.gov/grad/solcalc/sunrise.html
+/////////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv)
 {
-    printf("hello from %s!\n", "WimsConstructionCam");
-	std::cout << "raspistill --nopreview --thumb none --width 1920 --height 1080 --timeout 57600000 --timelapse 60000 --output DCIM/img%05d.jpg" << std::endl;
-	//std::cout << "ffmpeg.exe -hide_banner -r 30 -i D:\DCIM\20220626\0628-%03d.JPG -vf drawtext=fontfile=C\\:/WINDOWS/Fonts/consola.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=main_w-text_w-50:text=WimsWorld,drawtext=fontfile=C\\:/WINDOWS/Fonts/consola.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=50:text=%{metadata\\:DateTimeOriginal} -c:v libx265 -crf 23 -preset veryfast -movflags +faststart -bf 2 -g 15 -pix_fmt yuv420p -n C:\Users\Wim\Videos\20220626-1080p30.mp4" << std::endl;
-	std::string DestinationDir("/home/wim/DCIM/");
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	if (ConsoleVerbosity > 0)
+	{
+		std::cout << "[" << getTimeISO8601() << "] " << ProgramVersionString << std::endl;
+	}
+	else
+		std::cerr << ProgramVersionString << " (starting)" << std::endl;
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	tzset();
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	std::string DestinationDir("/home/wim/DCIM");
 	for (;;)
 	{
 		int idx;
@@ -321,15 +363,6 @@ int main(int argc, char** argv)
 		}
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	if (ConsoleVerbosity > 0)
-	{
-		std::cout << "[" << getTimeISO8601() << "] " << ProgramVersionString << std::endl;
-	}
-	else
-		std::cerr << ProgramVersionString << " (starting)" << std::endl;
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	tzset();
-	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
 	typedef void (*SignalHandlerPointer)(int);
 	SignalHandlerPointer previousHandler = signal(SIGINT, SignalHandlerSIGINT);
@@ -338,12 +371,13 @@ int main(int argc, char** argv)
 	{
 		time_t LoopStartTime;
 		time(&LoopStartTime);
-		//GenerateFreeSpace(1300000000ll, DestinationDir);
+		// largest file in sample was 1,310,523, multiply by minutes in day 1440, 1887153120, round up to 2000000000 or 2GB.
+		GenerateFreeSpace(2000000000ll, DestinationDir); 
 		std::string ImageDirectory(GetImageDirectory(DestinationDir, LoopStartTime));
-		std::ostringstream OutputFormat;
-		std::ostringstream VideoFileName;
-		std::ostringstream FrameStart;
-		std::ostringstream Timeout;
+		std::ostringstream OutputFormat;	// raspistill outputname format string
+		std::ostringstream VideoFileName;	// ffmpeg output video name
+		std::ostringstream FrameStart;		// first filename for raspistill to use in current loop
+		std::ostringstream Timeout;			// how many milliseconds raspistill will run
 		// Minutes in Day = 60 * 24 = 1440
 		int MinutesLeftInDay = 1440;
 		struct tm UTC;
@@ -353,7 +387,7 @@ int main(int argc, char** argv)
 			MinutesLeftInDay = 1440 - CurrentMinuteInDay;
 			Timeout << MinutesLeftInDay * 60 * 1000;
 			OutputFormat.fill('0');
-			OutputFormat << ImageDirectory;
+			OutputFormat << ImageDirectory << "/";
 			OutputFormat.width(2);
 			OutputFormat << UTC.tm_mon + 1;
 			OutputFormat.width(2);
@@ -361,7 +395,7 @@ int main(int argc, char** argv)
 			OutputFormat << "\%04d.jpg";
 			FrameStart << GetLastImageNum(ImageDirectory) + 1;
 			VideoFileName.fill('0');
-			VideoFileName << ImageDirectory;
+			VideoFileName << ImageDirectory << "/";
 			VideoFileName.width(4);
 			VideoFileName << UTC.tm_year + 1900;
 			VideoFileName.width(2);
@@ -373,60 +407,106 @@ int main(int argc, char** argv)
 		else
 			bRun = false;
 
-		/* Attempt to fork */
-		pid_t pid = fork();
-		if (pid == 0)
+		if (ConsoleVerbosity > 0)
 		{
-			/* A zero PID indicates that this is the child process */
-			/* Replace the child fork with a new process */
-			if (execlp("raspistill", "raspistill", "--nopreview", "--thumb", "none", "--width", "1920", "--height", "1080", "--timeout", Timeout.str().c_str(), "--timelapse", "60000", "--output", OutputFormat.str().c_str(), "--framestart", FrameStart.str().c_str(), NULL) == -1)
+			std::cout << "[" << getTimeISO8601() << "]  OutputFormat: " << OutputFormat.str() << std::endl;
+			std::cout << "[" << getTimeISO8601() << "] VideoFileName: " << VideoFileName.str() << std::endl;
+			std::cout << "[" << getTimeISO8601() << "]    FrameStart: " << FrameStart.str() << std::endl;
+			std::cout << "[" << getTimeISO8601() << "]       Timeout: " << Timeout.str() << std::endl;
+		}
+
+		if (bRun)
+		{
+			/* Attempt to fork */
+			pid_t pid = fork();
+			if (pid == 0)
 			{
-				std::cerr << "execlp Error! Exiting." << std::endl;
-				exit(1);
+				/* A zero PID indicates that this is the child process */
+				/* Replace the child fork with a new process */
+
+				// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
+				// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
+				//if (execlp("libcamera-still", "libcamera-still",
+				//	"--nopreview",
+				//	"--thumb", "none",
+				//	"--width", "1920",
+				//	"--height", "1080",
+				//	"--timeout", Timeout.str().c_str(),
+				//	"--timelapse", "60000",
+				//	"--output", OutputFormat.str().c_str(),
+				//	"--framestart", FrameStart.str().c_str(),
+				//	NULL) == -1)
+
+				// https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStill.c
+				// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
+				if (execlp("raspistill", "raspistill",
+					"--nopreview", 
+					"--thumb", "none", 
+					"--width", "1920", 
+					"--height", "1080", 
+					"--timeout", Timeout.str().c_str(), 
+					"--timelapse", "60000", 
+					"--output", OutputFormat.str().c_str(), 
+					"--framestart", FrameStart.str().c_str(), 
+					NULL) == -1)
+				{
+					std::cerr << "execlp Error! raspistill" << std::endl;
+					bRun = false;
+				}
 			}
-		}
-		else if (pid > 0)
-		{
-			/* A positive (non-negative) PID indicates the parent process */
-			int raspistill_exit_status;
-			wait(&raspistill_exit_status);				/* Wait for child process to end */
-			std::cerr << "[" << getTimeISO8601() << "] raspistill exited with a  " << raspistill_exit_status << " value" << std::endl;
-		}
-		else
-		{
-			std::cerr << "Fork error! Exiting." << std::endl;  /* something went wrong */
-			bRun = false;
-		}
-		pid = fork();
-		if (pid == 0)
-		{
-			/* A zero PID indicates that this is the child process */
-			/* Replace the child fork with a new process */
-			//  -n C:\Users\Wim\Videos\20220626-1080p30.mp4" << std::endl;
-			if (execlp("ffmpeg", "ffmpeg", "--hide_banner", 
-				"-r", "30", 
-				"-i", OutputFormat.str().c_str(), 
-				"-vf", "drawtext=fontfile=C\\:/WINDOWS/Fonts/consola.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=main_w-text_w-50:text=WimsConstructionCam,drawtext=fontfile=C\\:/WINDOWS/Fonts/consola.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=50:text=%{metadata\\:DateTimeOriginal}", 
-				"-c:v", "libx265", 
-				"-crf", "23", 
-				"-preset", "veryfast", 
-				"-movflags", "+faststart", "-bf", "2", "-g", "15", "-pix_fmt", "yuv420p", "-n", VideoFileName.str().c_str(), NULL) == -1)
+			else if (pid > 0)
 			{
-				std::cerr << "execlp Error! Exiting." << std::endl;
-				exit(1);
+				/* A positive (non-negative) PID indicates the parent process */
+				int raspistill_exit_status;
+				wait(&raspistill_exit_status);				/* Wait for child process to end */
+				if (raspistill_exit_status != 0)
+					std::cerr << "[" << getTimeISO8601() << "] raspistill exited with a  " << raspistill_exit_status << " value" << std::endl;
 			}
-		}
-		else if (pid > 0)
-		{
-			/* A positive (non-negative) PID indicates the parent process */
-			int ffmpeg_exit_status;
-			wait(&ffmpeg_exit_status);				/* Wait for child process to end */
-			std::cerr << "[" << getTimeISO8601() << "] ffmpeg exited with a  " << ffmpeg_exit_status << " value" << std::endl;
-		}
-		else
-		{
-			std::cerr << "Fork error! Exiting." << std::endl;  /* something went wrong */
-			bRun = false;
+			else
+			{
+				std::cerr << "Fork error! raspistill." << std::endl;  /* something went wrong */
+				bRun = false;
+			}
+			if (bRun)
+			{
+				pid = fork();
+				if (pid == 0)
+				{
+					/* A zero PID indicates that this is the child process */
+					/* Replace the child fork with a new process */
+					if (execlp("ffmpeg", "ffmpeg", 
+						"--hide_banner",
+						"-r", "30",
+						"-i", OutputFormat.str().c_str(),
+						"-vf", "drawtext=fontfile=DejaVuSansMono.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=main_w-text_w-50:text=WimsConstructionCam,drawtext=fontfile=DejaVuSansMono.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=50:text=%{metadata\\:DateTimeOriginal}",
+						"-c:v", "libx265",
+						"-crf", "23",
+						"-preset", "veryfast",
+						"-movflags", "+faststart", 
+						"-bf", "2", 
+						"-g", "15", 
+						"-pix_fmt", "yuv420p", 
+						"-n", 
+						VideoFileName.str().c_str(), 
+						NULL) == -1)
+					{
+						std::cerr << "execlp Error! ffmpeg." << std::endl;
+						bRun = false;
+					}
+				}
+				else if (pid > 0)
+				{
+					/* A positive (non-negative) PID indicates the parent process */
+					int ffmpeg_exit_status;
+					wait(&ffmpeg_exit_status);				/* Wait for child process to end */
+					std::cerr << "[" << getTimeISO8601() << "] ffmpeg exited with a  " << ffmpeg_exit_status << " value" << std::endl;
+				}
+				else
+				{
+					std::cerr << "Fork error! ffmpeg." << std::endl;  /* something went wrong */
+					bRun = false;
+				}
+			}
 		}
 	}
 	// remove our special Ctrl-C signal handler and restore previous one
