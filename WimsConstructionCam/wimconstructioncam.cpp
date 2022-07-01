@@ -306,6 +306,7 @@ void SignalHandlerSIGHUP(int signal)
 	std::cerr << "***************** SIGHUP: Caught HangUp, finishing loop and quitting. *****************" << std::endl;
 }
 /////////////////////////////////////////////////////////////////////////////
+std::string DestinationDir("/home/wim/DCIM");
 static void usage(int argc, char** argv)
 {
 	std::cout << "Usage: " << argv[0] << " [options]" << std::endl;
@@ -313,7 +314,7 @@ static void usage(int argc, char** argv)
 	std::cout << "  Options:" << std::endl;
 	std::cout << "    -h | --help          Print this message" << std::endl;
 	std::cout << "    -v | --verbose level stdout verbosity level [" << ConsoleVerbosity << "]" << std::endl;
-	std::cout << "    -d | --destination location pictures will be stored [" << ConsoleVerbosity << "]" << std::endl;
+	std::cout << "    -d | --destination location pictures will be stored [" << DestinationDir << "]" << std::endl;
 	std::cout << "    -t | --time minutes of stills to capture [" << TimeoutMinutes << "]" << std::endl;
 	std::cout << std::endl;
 }
@@ -343,7 +344,6 @@ int main(int argc, char** argv)
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	tzset();
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	std::string DestinationDir("/home/wim/DCIM");
 	for (;;)
 	{
 		int idx;
@@ -444,7 +444,7 @@ int main(int argc, char** argv)
 
 				if (ConsoleVerbosity > 0)
 				{
-					std::cout << "[" << getTimeISO8601() << "]  execlp: ";
+					std::cout << "[" << getTimeISO8601() << "]        execlp: ";
 					std::cout << CameraProgram << " ";
 					std::cout << "--nopreview" << " ";
 					std::cout << "--thumb" << " " << "none" << " ";
