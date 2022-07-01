@@ -1,0 +1,10 @@
+#!/bin/sh
+# POSTINST script for wimsconstructioncam
+
+echo "\033[36m HI I'M A POSTINST SCRIPT `date +"%s"` \033[39m"
+mkdir --parents /var/log/DCIM/
+systemctl daemon-reload
+systemctl enable wimsconstructioncam.service
+systemctl start wimsconstructioncam.service
+
+exit 0

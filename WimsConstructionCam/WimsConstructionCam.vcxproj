@@ -78,6 +78,12 @@
     <ClCompile Include="wimconstructioncam.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="makefile" />
+    <None Include="WimsConstructionCam\DEBIAN\control" />
+    <None Include="WimsConstructionCam\DEBIAN\postinst" />
+    <None Include="WimsConstructionCam\DEBIAN\postrm" />
+    <None Include="WimsConstructionCam\DEBIAN\prerm" />
+    <None Include="WimsConstructionCam\usr\local\lib\systemd\system\wimsconstructioncam.service" />
   </ItemGroup>
   <ItemDefinitionGroup />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

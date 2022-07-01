@@ -1,0 +1,21 @@
+# Contents of /etc/systemd/system/wimconstructioncam.service
+[Unit]
+Description=WimsConstructionCam service
+After=network-online.target
+Requires=
+StartLimitBurst=5
+StartLimitIntervalSec=33
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+Environment="VERBOSITY=0"
+Environment="LOGDIR=/var/log/DCIM"
+Environment="EXTRAARGS="
+ExecStartPre=/bin/mkdir -p ${LOGDIR}
+ExecStart=/usr/local/bin/wimsconstructioncam -v ${VERBOSITY} --destination ${LOGDIR} $EXTRAARGS
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target

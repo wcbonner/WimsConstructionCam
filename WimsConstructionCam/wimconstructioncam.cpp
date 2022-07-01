@@ -31,7 +31,7 @@
 #include <vector>
 
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220628-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220701-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 /////////////////////////////////////////////////////////////////////////////
@@ -529,7 +529,7 @@ int main(int argc, char** argv)
 						"-hide_banner",
 						"-r", "30",
 						"-i", OutputFormat.str().c_str(),
-						"-vf", "drawtext=fontfile=DejaVuSansMono.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=main_w-text_w-50:text=WimsConstructionCam,drawtext=fontfile=DejaVuSansMono.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=50:text=%{metadata\\\\:DateTimeOriginal}",
+						"-vf", "drawtext=font=sans:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=main_w-text_w-30:text=WimsConstructionCam,drawtext=font=mono:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=30:text=%{metadata\\\\:DateTimeOriginal}",
 						"-c:v", "libx265",
 						"-crf", "23",
 						"-preset", "veryfast",
