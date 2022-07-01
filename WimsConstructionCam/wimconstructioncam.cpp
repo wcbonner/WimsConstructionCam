@@ -212,6 +212,11 @@ int GetLastImageNum(const std::string DestinationDir)
 			{
 				sort(files.begin(), files.end());
 				std::string LastFile(files.back());
+				while (LastFile.find(".mp4") != std::string::npos)
+				{
+					files.pop_back();
+					LastFile = files.back();
+				}
 				LastImageNum = atoi(LastFile.substr(4, 4).c_str());
 			}
 		}
@@ -435,36 +440,25 @@ int main(int argc, char** argv)
 				/* A zero PID indicates that this is the child process */
 				/* Replace the child fork with a new process */
 
-				// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
-				// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
-				//if (execlp("libcamera-still", "libcamera-still",
-				//	"--nopreview",
-				//	"--thumb", "none",
-				//	"--width", "1920",
-				//	"--height", "1080",
-				//	"--timeout", Timeout.str().c_str(),
-				//	"--timelapse", "60000",
-				//	"--output", OutputFormat.str().c_str(),
-				//	"--framestart", FrameStart.str().c_str(),
-				//	NULL) == -1)
+				std::string CameraProgram("raspistill");
 
 				if (ConsoleVerbosity > 0)
 				{
 					std::cout << "[" << getTimeISO8601() << "]  execlp: ";
-					std::cout << "raspistill" << " ";
+					std::cout << CameraProgram << " ";
 					std::cout << "--nopreview" << " ";
 					std::cout << "--thumb" << " " << "none" << " ";
 					std::cout << "--width" << " " << "1920" << " ";
 					std::cout << "--height" << " " << "1080" << " ";
-					std::cout << "--timeout" << " " << Timeout.str().c_str() << " ";
+					std::cout << "--timeout" << " " << Timeout.str() << " ";
 					std::cout << "--timelapse" << " " << "60000" << " ";
-					std::cout << "--output" << " " << OutputFormat.str().c_str() << " ";
-					std::cout << "--framestart" << " " << FrameStart.str().c_str() << " ";
+					std::cout << "--output" << " " << OutputFormat.str() << " ";
+					std::cout << "--framestart" << " " << FrameStart.str() << " ";
 					std::cout << std::endl;
 				}
 				// https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStill.c
 				// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
-				if (execlp("raspistill", "raspistill",
+				if (execlp(CameraProgram.c_str(), CameraProgram.c_str(),
 					"--nopreview", 
 					"--thumb", "none", 
 					"--width", "1920", 
@@ -475,23 +469,53 @@ int main(int argc, char** argv)
 					"--framestart", FrameStart.str().c_str(), 
 					NULL) == -1)
 				{
-					std::cerr << "[" << getTimeISO8601() << "] execlp Error! raspistill" << std::endl;
-					bRun = false;
+					std::cerr << "[" << getTimeISO8601() << "] execlp Error! " << CameraProgram << std::endl;
+					CameraProgram = "libcamera-still";
+					if (ConsoleVerbosity > 0)
+					{
+						std::cout << "[" << getTimeISO8601() << "]  execlp: ";
+						std::cout << CameraProgram << " ";
+						std::cout << "--nopreview" << " ";
+						std::cout << "--thumb" << " " << "none" << " ";
+						std::cout << "--width" << " " << "1920" << " ";
+						std::cout << "--height" << " " << "1080" << " ";
+						std::cout << "--timeout" << " " << Timeout.str() << " ";
+						std::cout << "--timelapse" << " " << "60000" << " ";
+						std::cout << "--output" << " " << OutputFormat.str() << " ";
+						std::cout << "--framestart" << " " << FrameStart.str() << " ";
+						std::cout << std::endl;
+					}
+					// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
+					// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
+					if (execlp(CameraProgram.c_str(), CameraProgram.c_str(),
+						"--nopreview",
+						"--thumb", "none",
+						"--width", "1920",
+						"--height", "1080",
+						"--timeout", Timeout.str().c_str(),
+						"--timelapse", "60000",
+						"--output", OutputFormat.str().c_str(),
+						"--framestart", FrameStart.str().c_str(),
+						NULL) == -1)
+					{
+						std::cerr << "[" << getTimeISO8601() << "] execlp Error! " << CameraProgram << std::endl;
+						bRun = false;
+					}
 				}
 			}
 			else if (pid > 0)
 			{
 				/* A positive (non-negative) PID indicates the parent process */
-				int raspistill_exit_status;
-				wait(&raspistill_exit_status);				/* Wait for child process to end */
-				if (raspistill_exit_status != 0)
-					std::cerr << "[" << getTimeISO8601() << "] raspistill exited with a  " << raspistill_exit_status << " value" << std::endl;
+				int CameraProgram_exit_status;
+				wait(&CameraProgram_exit_status);				/* Wait for child process to end */
+				if (CameraProgram_exit_status != 0)
+					std::cerr << "[" << getTimeISO8601() << "] CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
 				else if (ConsoleVerbosity > 0)
-					std::cout << "[" << getTimeISO8601() << "] raspistill exited with a  " << raspistill_exit_status << " value" << std::endl;
+					std::cout << "[" << getTimeISO8601() << "] CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
 			}
 			else
 			{
-				std::cerr << "[" << getTimeISO8601() << "] Fork error! raspistill." << std::endl;  /* something went wrong */
+				std::cerr << "[" << getTimeISO8601() << "] Fork error! CameraProgram." << std::endl;  /* something went wrong */
 				bRun = false;
 			}
 			if (bRun)
@@ -505,7 +529,7 @@ int main(int argc, char** argv)
 						"-hide_banner",
 						"-r", "30",
 						"-i", OutputFormat.str().c_str(),
-						"-vf", "drawtext=fontfile=DejaVuSansMono.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=main_w-text_w-50:text=WimsConstructionCam,drawtext=fontfile=DejaVuSansMono.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=50:text=%{metadata\\:DateTimeOriginal}",
+						"-vf", "drawtext=fontfile=DejaVuSansMono.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=main_w-text_w-50:text=WimsConstructionCam,drawtext=fontfile=DejaVuSansMono.ttf:fontcolor=white:fontsize=80:y=main_h-text_h-50:x=50:text=%{metadata\\\\:DateTimeOriginal}",
 						"-c:v", "libx265",
 						"-crf", "23",
 						"-preset", "veryfast",
