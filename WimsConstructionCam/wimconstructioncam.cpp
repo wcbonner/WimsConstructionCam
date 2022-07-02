@@ -31,7 +31,7 @@
 #include <vector>
 
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220701-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220702-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 /////////////////////////////////////////////////////////////////////////////
@@ -412,6 +412,9 @@ int main(int argc, char** argv)
 			FrameStart << GetLastImageNum(ImageDirectory) + 1;
 			VideoFileName.fill('0');
 			VideoFileName << ImageDirectory << "/";
+			char MyHostName[255] = { 0 }; // hostname used for data recordkeeping
+			if (gethostname(MyHostName, sizeof(MyHostName)) == 0)
+				VideoFileName << MyHostName << "-";
 			VideoFileName.width(4);
 			VideoFileName << UTC.tm_year + 1900;
 			VideoFileName.width(2);
