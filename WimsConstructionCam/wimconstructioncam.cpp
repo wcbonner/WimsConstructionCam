@@ -34,6 +34,8 @@
 static const std::string ProgramVersionString("WimConstructionCam Version 1.20220702-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
+float Latitude = 47.670;
+float Longitude = -122.382;
 /////////////////////////////////////////////////////////////////////////////
 std::string timeToISO8601(const time_t& TheTime)
 {
@@ -316,14 +318,18 @@ static void usage(int argc, char** argv)
 	std::cout << "    -v | --verbose level stdout verbosity level [" << ConsoleVerbosity << "]" << std::endl;
 	std::cout << "    -d | --destination location pictures will be stored [" << DestinationDir << "]" << std::endl;
 	std::cout << "    -t | --time minutes of stills to capture [" << TimeoutMinutes << "]" << std::endl;
+	std::cout << "    -l | --lat latitude for sunrise/sunset [" << Latitude << "]" << std::endl;
+	std::cout << "    -L | --lon longitude for sunrise/sunset [" << Longitude << "]" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:t:";
+static const char short_options[] = "hv:d:t:l:L:";
 static const struct option long_options[] = {
 		{ "help",   no_argument,       NULL, 'h' },
 		{ "verbose",required_argument, NULL, 'v' },
 		{ "destination",	required_argument, NULL, 'd' },
 		{ "time",required_argument, NULL, 't' },
+		{ "lat",required_argument, NULL, 't' },
+		{ "lon",required_argument, NULL, 't' },
 		{ 0, 0, 0, 0 }
 };
 /////////////////////////////////////////////////////////////////////////////
@@ -370,6 +376,16 @@ int main(int argc, char** argv)
 			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
 			break;			
+		case 'l':
+			try { Latitude = std::stof(optarg); }
+			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
+			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
+			break;
+		case 'L':
+			try { Longitude = std::stof(optarg); }
+			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
+			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
+			break;
 		default:
 			usage(argc, argv);
 			exit(EXIT_FAILURE);
