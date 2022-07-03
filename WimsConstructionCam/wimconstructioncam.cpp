@@ -31,11 +31,12 @@
 #include <vector>
 
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220702-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220703-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 float Latitude = 47.670;
 float Longitude = -122.382;
+int GigabytesFreeSpace = 2;
 /////////////////////////////////////////////////////////////////////////////
 std::string timeToISO8601(const time_t& TheTime)
 {
@@ -226,8 +227,9 @@ int GetLastImageNum(const std::string DestinationDir)
 	return(LastImageNum);
 }
 /////////////////////////////////////////////////////////////////////////////
-void GenerateFreeSpace(const unsigned long long MinFreeSpace, const std::string DestinationDir)
+void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDir)
 {
+	unsigned long long MinFreeSpace = (unsigned long long)(MinFreeSpaceGB) << 30ll;
 	std::ostringstream OutputDirectoryName;
 	OutputDirectoryName << DestinationDir;
 	struct statvfs buffer2;
@@ -287,7 +289,7 @@ void GenerateFreeSpace(const unsigned long long MinFreeSpace, const std::string 
 				sort(directories.begin(), directories.end());
 			while ((!directories.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))	// This loop will make sure that there's free space on the drive.
 			{
-				GenerateFreeSpace(MinFreeSpace, *directories.begin());
+				GenerateFreeSpace(MinFreeSpaceGB, *directories.begin());
 				directories.pop_front();
 				if (0 != statvfs(OutputDirectoryName.str().c_str(), &buffer2))
 					break;
@@ -317,16 +319,18 @@ static void usage(int argc, char** argv)
 	std::cout << "    -h | --help          Print this message" << std::endl;
 	std::cout << "    -v | --verbose level stdout verbosity level [" << ConsoleVerbosity << "]" << std::endl;
 	std::cout << "    -d | --destination location pictures will be stored [" << DestinationDir << "]" << std::endl;
+	std::cout << "    -f | --freespace gigabytes free space per day [" << GigabytesFreeSpace << "]" << std::endl;
 	std::cout << "    -t | --time minutes of stills to capture [" << TimeoutMinutes << "]" << std::endl;
 	std::cout << "    -l | --lat latitude for sunrise/sunset [" << Latitude << "]" << std::endl;
 	std::cout << "    -L | --lon longitude for sunrise/sunset [" << Longitude << "]" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:t:l:L:";
+static const char short_options[] = "hv:d:f:t:l:L:";
 static const struct option long_options[] = {
 		{ "help",   no_argument,       NULL, 'h' },
 		{ "verbose",required_argument, NULL, 'v' },
 		{ "destination",	required_argument, NULL, 'd' },
+		{ "freespace",required_argument, NULL, 'f' },
 		{ "time",required_argument, NULL, 't' },
 		{ "lat",required_argument, NULL, 't' },
 		{ "lon",required_argument, NULL, 't' },
@@ -371,11 +375,16 @@ int main(int argc, char** argv)
 		case 'd':
 			DestinationDir = std::string(optarg);
 			break;
+		case 'f':
+			try { GigabytesFreeSpace = std::stoi(optarg); }
+			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
+			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
+			break;
 		case 't':
 			try { TimeoutMinutes = std::stoi(optarg); }
 			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
-			break;			
+			break;
 		case 'l':
 			try { Latitude = std::stof(optarg); }
 			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
@@ -401,7 +410,7 @@ int main(int argc, char** argv)
 		time_t LoopStartTime;
 		time(&LoopStartTime);
 		// largest file in sample was 1,310,523, multiply by minutes in day 1440, 1887153120, round up to 2000000000 or 2GB.
-		GenerateFreeSpace(2000000000ll, DestinationDir); 
+		GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
 		std::string ImageDirectory(GetImageDirectory(DestinationDir, LoopStartTime));
 		std::ostringstream OutputFormat;	// raspistill outputname format string
 		std::ostringstream VideoFileName;	// ffmpeg output video name
