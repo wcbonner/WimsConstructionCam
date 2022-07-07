@@ -2,6 +2,7 @@
 #include <arpa/inet.h>
 #include <cfloat>
 #include <climits>
+#define _USE_MATH_DEFINES
 #include <cmath>
 #include <csignal>
 #include <cstdio>
@@ -29,14 +30,13 @@
 #include <unistd.h> // For close()
 #include <utime.h>
 #include <vector>
-
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220703-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220707-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 float Latitude = 47.670;
 float Longitude = -122.382;
-int GigabytesFreeSpace = 2;
+int GigabytesFreeSpace = 8;
 /////////////////////////////////////////////////////////////////////////////
 std::string timeToISO8601(const time_t& TheTime)
 {
@@ -151,6 +151,34 @@ std::string timeToExcelLocal(const time_t& TheTime)
 	}
 	return(ExcelDate.str());
 }
+/////////////////////////////////////////////////////////////////////////////
+double radians(const double degrees)
+{
+	return((degrees * M_PI) / 180.0);
+}
+double degrees(const double radians)
+{
+	return((radians * 180.0) / M_PI);
+}
+#ifdef DAYLLIGHT
+bool isDayTime(const time_t& TheTime, const double SunDeclin = 47.670, double Longitude = -122.382)
+{
+	struct tm LocalTime;
+	if (0 != localtime_r(&TheTime, &LocalTime))
+	{
+		double JulianDay = D2 + 2415018.5 + E2 - $B$5 / 24;
+		double JulianCentury = (JulianDay - 2451545) / 36525;
+		double MeanObliqEcliptic = 23 + (26 + ((21.448 - G2 * (46.815 + G2 * (0.00059 - G2 * 0.001813)))) / 60) / 60;
+		double ObliqCorr = MeanObliqEcliptic + 0.00256 * cos(radians(125.04 - 1934.136 * JulianCentury));
+		double var_y = tan(radians(R2 / 2)) * tan(radians(R2 / 2));
+		double EquationOfTime = 4 * degrees(var_y * sin(2 * radians(GeomMeanLongSun)) - 2 * EccentEarthOrbit * sin(radians(GeomMeanAnomSun)) + 4 * EccentEarthOrbit * var_y * sin(radians(GeomMeanAnomSun)) * sin(2 * radians(GeomMeanLongSun)) - 0.5 * var_y * var_y * sin(4 * radians(GeomMeanLongSun)) - 1.25 * EccentEarthOrbit * EccentEarthOrbit * sin(2 * radians(GeomMeanAnomSun)));
+		double HASunriseDeg = degrees(acos(cos(radians(90.833)) / (cos(radians(Latitude)) * cos(radians(SunDeclin))) - tan(radians(Latitude)) * tan(radians(SunDeclin))));
+		double SolarNoon = (720 - 4 * Longitude - EquationOfTime + LocalTime.tm_gmtoff / 60) / 1440;
+		double SunriseTime = SolarNoon - HASunriseDeg * 4 / 1440;
+		double SunsetTime = SolarNoon + HASunriseDeg * 4 / 1440;
+	}
+}
+#endif
 /////////////////////////////////////////////////////////////////////////////
 bool ValidateDirectory(std::string& DirectoryName)
 {
@@ -298,6 +326,142 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 	}
 }
 /////////////////////////////////////////////////////////////////////////////
+bool CreateDailyMovie(const std::string DailyDirectory)
+{
+	bool rval = false;
+	DIR* dp;
+	if ((dp = opendir(DailyDirectory.c_str())) != NULL)
+	{
+		std::deque<std::string> JPGfiles;
+		std::deque<std::string> MP4files;
+		struct dirent* dirp;
+		while ((dirp = readdir(dp)) != NULL)
+			if (DT_REG == dirp->d_type)
+			{
+				std::string filename = DailyDirectory + "/" + std::string(dirp->d_name);
+				if (filename.find(".jpg") != std::string::npos)
+					JPGfiles.push_back(filename);
+				else if (filename.find(".mp4") != std::string::npos)
+					MP4files.push_back(filename);
+			}
+		closedir(dp);
+		if (MP4files.empty())
+		{
+			if (!JPGfiles.empty())
+				sort(JPGfiles.begin(), JPGfiles.end());
+			std::string LastLPGFile(JPGfiles.back());
+			struct stat buffer;
+			if (0 == stat(LastLPGFile.c_str(), &buffer))
+			{
+				struct tm UTC;
+				if (0 != localtime_r(&buffer.st_mtim.tv_sec, &UTC))
+				{
+					std::ostringstream StillFormat;	// raspistill outputname format string
+					StillFormat.fill('0');
+					StillFormat << DailyDirectory << "/";
+					StillFormat.width(2);
+					StillFormat << UTC.tm_mon + 1;
+					StillFormat.width(2);
+					StillFormat << UTC.tm_mday;
+					StillFormat << "\%04d.jpg";
+
+					std::ostringstream VideoFileName;	// ffmpeg output video name
+					VideoFileName.fill('0');
+					VideoFileName << DailyDirectory << "/";
+					VideoFileName.width(4);
+					VideoFileName << UTC.tm_year + 1900;
+					VideoFileName.width(2);
+					VideoFileName << UTC.tm_mon + 1;
+					VideoFileName.width(2);
+					VideoFileName << UTC.tm_mday;
+					char MyHostName[HOST_NAME_MAX] = { 0 }; // hostname used for data recordkeeping
+					if (gethostname(MyHostName, sizeof(MyHostName)) == 0)
+						VideoFileName << "-" << MyHostName;
+					VideoFileName << ".mp4";
+					if (ConsoleVerbosity > 0)
+					{
+						std::cout << "[" << getTimeISO8601() << "]   StillFormat: " << StillFormat.str() << std::endl;
+						std::cout << "[" << getTimeISO8601() << "] VideoFileName: " << VideoFileName.str() << std::endl;
+					}
+					else
+					{
+						std::cerr << "   StillFormat: " << StillFormat.str() << std::endl;
+						std::cerr << " VideoFileName: " << VideoFileName.str() << std::endl;
+					}
+					pid_t pid_FFMPEG = fork();
+					if (pid_FFMPEG == 0)
+					{
+						/* A zero PID indicates that this is the child process */
+						/* Replace the child fork with a new process */
+						if (execlp("ffmpeg", "ffmpeg",
+							"-hide_banner",
+							"-r", "30",
+							"-i", StillFormat.str().c_str(),
+							"-vf", "drawtext=font=sans:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=main_w-text_w-30:text=WimsConstructionCam,drawtext=font=mono:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=30:text=%{metadata\\\\:DateTimeOriginal}",
+							"-c:v", "libx265",
+							"-crf", "23",
+							"-preset", "veryfast",
+							"-movflags", "+faststart",
+							"-bf", "2",
+							"-g", "15",
+							"-pix_fmt", "yuv420p",
+							"-n",
+							VideoFileName.str().c_str(),
+							NULL) == -1)
+						{
+							std::cerr << "execlp Error! ffmpeg." << std::endl;
+						}
+					}
+					else if (pid_FFMPEG > 0)
+					{
+						/* A positive (non-negative) PID indicates the parent process */
+						int ffmpeg_exit_status = 0;
+						wait(&ffmpeg_exit_status);				/* Wait for child process to end */
+						if (ConsoleVerbosity > 0)
+							std::cout << "[" << getTimeISO8601() << "] ffmpeg exited with a  " << ffmpeg_exit_status << " value" << std::endl;
+						else if (ffmpeg_exit_status != 0)
+							std::cerr << "ffmpeg exited with a  " << ffmpeg_exit_status << " value" << std::endl;
+						else
+							rval = true;
+					}
+					else
+					{
+						std::cerr << "Fork error! ffmpeg." << std::endl;  /* something went wrong */
+					}
+				}
+			}
+		}
+	}
+	return(rval);
+}
+void CreateAllDailyMovies(const std::string DestinationDir)
+{
+	DIR* dp;
+	if ((dp = opendir(DestinationDir.c_str())) != NULL)
+	{
+		std::deque<std::string> Subdirectories;
+		struct dirent* dirp;
+		while ((dirp = readdir(dp)) != NULL)
+			if (DT_DIR == dirp->d_type)
+			{
+				std::string DirectoryName(dirp->d_name);
+				if ((DirectoryName.compare("..") == 0) || (DirectoryName.compare(".") == 0))
+					continue;
+				else
+				{
+					std::string dirname = DestinationDir + "/" + std::string(dirp->d_name);
+					Subdirectories.push_back(dirname);
+				}
+			}
+		closedir(dp);
+		while (!Subdirectories.empty())
+		{
+			CreateDailyMovie(Subdirectories.front());
+			Subdirectories.pop_front();
+		}
+	}
+}
+/////////////////////////////////////////////////////////////////////////////
 volatile bool bRun = true; // This is declared volatile so that the compiler won't optimized it out of loops later in the code
 void SignalHandlerSIGINT(int signal)
 {
@@ -401,6 +565,8 @@ int main(int argc, char** argv)
 		}
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
+	CreateAllDailyMovies(DestinationDir);
+	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
 	typedef void (*SignalHandlerPointer)(int);
 	SignalHandlerPointer previousHandler = signal(SIGINT, SignalHandlerSIGINT);
@@ -413,7 +579,6 @@ int main(int argc, char** argv)
 		GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
 		std::string ImageDirectory(GetImageDirectory(DestinationDir, LoopStartTime));
 		std::ostringstream OutputFormat;	// raspistill outputname format string
-		std::ostringstream VideoFileName;	// ffmpeg output video name
 		std::ostringstream FrameStart;		// first filename for raspistill to use in current loop
 		std::ostringstream Timeout;			// how many milliseconds raspistill will run
 		// Minutes in Day = 60 * 24 = 1440
@@ -435,18 +600,6 @@ int main(int argc, char** argv)
 			OutputFormat << UTC.tm_mday;
 			OutputFormat << "\%04d.jpg";
 			FrameStart << GetLastImageNum(ImageDirectory) + 1;
-			VideoFileName.fill('0');
-			VideoFileName << ImageDirectory << "/";
-			char MyHostName[255] = { 0 }; // hostname used for data recordkeeping
-			if (gethostname(MyHostName, sizeof(MyHostName)) == 0)
-				VideoFileName << MyHostName << "-";
-			VideoFileName.width(4);
-			VideoFileName << UTC.tm_year + 1900;
-			VideoFileName.width(2);
-			VideoFileName << UTC.tm_mon + 1;
-			VideoFileName.width(2);
-			VideoFileName << UTC.tm_mday;
-			VideoFileName << ".mp4";
 		}
 		else
 			bRun = false;
@@ -454,7 +607,6 @@ int main(int argc, char** argv)
 		if (ConsoleVerbosity > 0)
 		{
 			std::cout << "[" << getTimeISO8601() << "]  OutputFormat: " << OutputFormat.str() << std::endl;
-			std::cout << "[" << getTimeISO8601() << "] VideoFileName: " << VideoFileName.str() << std::endl;
 			std::cout << "[" << getTimeISO8601() << "]    FrameStart: " << FrameStart.str() << std::endl;
 			std::cout << "[" << getTimeISO8601() << "]       Timeout: " << Timeout.str() << std::endl;
 		}
@@ -534,7 +686,7 @@ int main(int argc, char** argv)
 			else if (pid > 0)
 			{
 				/* A positive (non-negative) PID indicates the parent process */
-				int CameraProgram_exit_status;
+				int CameraProgram_exit_status = 0;
 				wait(&CameraProgram_exit_status);				/* Wait for child process to end */
 				if (CameraProgram_exit_status != 0)
 					std::cerr << "[" << getTimeISO8601() << "] CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
@@ -547,45 +699,7 @@ int main(int argc, char** argv)
 				bRun = false;
 			}
 			if (bRun)
-			{
-				pid = fork();
-				if (pid == 0)
-				{
-					/* A zero PID indicates that this is the child process */
-					/* Replace the child fork with a new process */
-					if (execlp("ffmpeg", "ffmpeg", 
-						"-hide_banner",
-						"-r", "30",
-						"-i", OutputFormat.str().c_str(),
-						"-vf", "drawtext=font=sans:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=main_w-text_w-30:text=WimsConstructionCam,drawtext=font=mono:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=30:text=%{metadata\\\\:DateTimeOriginal}",
-						"-c:v", "libx265",
-						"-crf", "23",
-						"-preset", "veryfast",
-						"-movflags", "+faststart", 
-						"-bf", "2", 
-						"-g", "15", 
-						"-pix_fmt", "yuv420p", 
-						"-n", 
-						VideoFileName.str().c_str(), 
-						NULL) == -1)
-					{
-						std::cerr << "execlp Error! ffmpeg." << std::endl;
-						bRun = false;
-					}
-				}
-				else if (pid > 0)
-				{
-					/* A positive (non-negative) PID indicates the parent process */
-					int ffmpeg_exit_status;
-					wait(&ffmpeg_exit_status);				/* Wait for child process to end */
-					std::cerr << "[" << getTimeISO8601() << "] ffmpeg exited with a  " << ffmpeg_exit_status << " value" << std::endl;
-				}
-				else
-				{
-					std::cerr << "Fork error! ffmpeg." << std::endl;  /* something went wrong */
-					bRun = false;
-				}
-			}
+				bRun = CreateDailyMovie(ImageDirectory);
 		}
 	}
 	// remove our special Ctrl-C signal handler and restore previous one
