@@ -151,6 +151,15 @@ std::string timeToExcelLocal(const time_t& TheTime)
 	}
 	return(ExcelDate.str());
 }
+std::string getTimeExcelLocal(void)
+{
+	time_t timer;
+	time(&timer);
+	std::string isostring(timeToExcelLocal(timer));
+	std::string rval;
+	rval.assign(isostring.begin(), isostring.end());
+	return(rval);
+}
 /////////////////////////////////////////////////////////////////////////////
 double radians(const double degrees)
 {
@@ -184,13 +193,71 @@ bool ValidateDirectory(std::string& DirectoryName)
 {
 	bool rval = false;
 	// I want to make sure the directory name does not end with a "/"
-	while (DirectoryName.back() == '/')
+	while ((!DirectoryName.empty()) && (DirectoryName.back() == '/'))
 		DirectoryName.erase(DirectoryName.back());
-	//TODO: I want to make sure the directory exists
-	struct statvfs buffer2;
-	if (0 == statvfs(DirectoryName.c_str(), &buffer2))
-		rval = true;
-	//TODO: I want to make sure the directory is writable by the current user
+	// https://linux.die.net/man/2/stat
+	struct stat StatBuffer;
+	if (0 == stat(DirectoryName.c_str(), &StatBuffer))
+		if (S_ISDIR(StatBuffer.st_mode))
+		{
+#define USE_ACCESS
+#ifndef USE_ACCESS
+			std::ostringstream TemporaryFilename;
+			TemporaryFilename << DirectoryName << "/WimsCam.tmp";
+			std::ofstream TheTemporaryFile(TemporaryFilename.str());
+			if (TheTemporaryFile.is_open())
+			{
+				TheTemporaryFile.close();
+				remove(TemporaryFilename.str().c_str());
+				rval = true;
+			}
+#else
+			// https://linux.die.net/man/2/access
+			if (0 == access(DirectoryName.c_str(), R_OK | W_OK))
+				rval = true;
+			else
+			{
+				switch (errno)
+				{
+				case EACCES:
+					std::cerr << DirectoryName << " (" << errno << ") The requested access would be denied to the file, or search permission is denied for one of the directories in the path prefix of pathname." << std::endl;
+					break;
+				case ELOOP:
+					std::cerr << DirectoryName << " (" << errno << ") Too many symbolic links were encountered in resolving pathname." << std::endl;
+					break;
+				case ENAMETOOLONG:
+					std::cerr << DirectoryName << " (" << errno << ") pathname is too long." << std::endl;
+					break;
+				case ENOENT:
+					std::cerr << DirectoryName << " (" << errno << ") A component of pathname does not exist or is a dangling symbolic link." << std::endl;
+					break;
+				case ENOTDIR:
+					std::cerr << DirectoryName << " (" << errno << ") A component used as a directory in pathname is not, in fact, a directory." << std::endl;
+					break;
+				case EROFS:
+					std::cerr << DirectoryName << " (" << errno << ") Write permission was requested for a file on a read-only file system." << std::endl;
+					break;
+				case EFAULT:
+					std::cerr << DirectoryName << " (" << errno << ") pathname points outside your accessible address space." << std::endl;
+					break;
+				case EINVAL:
+					std::cerr << DirectoryName << " (" << errno << ") mode was incorrectly specified." << std::endl;
+					break;
+				case EIO:
+					std::cerr << DirectoryName << " (" << errno << ") An I/O error occurred." << std::endl;
+					break;
+				case ENOMEM:
+					std::cerr << DirectoryName << " (" << errno << ") Insufficient kernel memory was available." << std::endl;
+					break;
+				case ETXTBSY:
+					std::cerr << DirectoryName << " (" << errno << ") Write access was requested to an executable which is being executed." << std::endl;
+					break;
+				default:
+					std::cerr << DirectoryName << " (" << errno << ") An unknown error." << std::endl;
+				}
+			}
+#endif // USE_ACCESS
+		}
 	return(rval);
 }
 /////////////////////////////////////////////////////////////////////////////
@@ -217,7 +284,7 @@ std::string GetImageDirectory(const std::string DestinationDir, const time_t& Th
 		if (0 == mkdir(OutputDirectoryName.str().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
 		{
 			if (ConsoleVerbosity > 0)
-				std::cout << "[" << getTimeISO8601() << "] Directory Created: " << OutputDirectoryName.str() << std::endl;
+				std::cout << "[" << getTimeExcelLocal() << "] Directory Created: " << OutputDirectoryName.str() << std::endl;
 			else
 				std::cerr << "Directory Created : " << OutputDirectoryName.str() << std::endl;
 		}
@@ -265,11 +332,11 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 	{
 		if (ConsoleVerbosity > 0)
 		{
-			std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " optimal transfer block size: " << buffer2.f_bsize << std::endl;
-			std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " total data blocks in file system: " << buffer2.f_blocks << std::endl;
-			std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " free blocks in fs: " << buffer2.f_bfree << std::endl;
-			std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " free blocks avail to non-superuser: " << buffer2.f_bavail << std::endl;
-			std::cout << "[" << getTimeISO8601() << "] " << OutputDirectoryName.str() << " Drive Size: " << buffer2.f_bsize * buffer2.f_blocks << " Free Space: " << buffer2.f_bsize * buffer2.f_bavail << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "] " << OutputDirectoryName.str() << " optimal transfer block size: " << buffer2.f_bsize << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "] " << OutputDirectoryName.str() << " total data blocks in file system: " << buffer2.f_blocks << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "] " << OutputDirectoryName.str() << " free blocks in fs: " << buffer2.f_bfree << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "] " << OutputDirectoryName.str() << " free blocks avail to non-superuser: " << buffer2.f_bavail << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "] " << OutputDirectoryName.str() << " Drive Size: " << buffer2.f_bsize * buffer2.f_blocks << " Free Space: " << buffer2.f_bsize * buffer2.f_bavail << std::endl;
 		}
 		DIR* dp;
 		if ((dp = opendir(OutputDirectoryName.str().c_str())) != NULL)
@@ -302,7 +369,7 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 				if (0 == stat(files.begin()->c_str(), &buffer))
 					if (0 == remove(files.begin()->c_str()))
 						if (ConsoleVerbosity > 0)
-							std::cout << "[" << getTimeISO8601() << "] File Deleted: " << *files.begin() << "(" << buffer.st_size << ")" << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "] File Deleted: " << *files.begin() << "(" << buffer.st_size << ")" << std::endl;
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_ctime: " << buffer.st_ctime << endl;
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_mtime: " << buffer.st_mtime << endl;
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_atime: " << buffer.st_atime << endl;
@@ -349,9 +416,8 @@ bool CreateDailyMovie(const std::string DailyDirectory)
 		{
 			if (!JPGfiles.empty())
 				sort(JPGfiles.begin(), JPGfiles.end());
-			std::string LastLPGFile(JPGfiles.back());
 			struct stat buffer;
-			if (0 == stat(LastLPGFile.c_str(), &buffer))
+			if (0 == stat(JPGfiles.front().c_str(), &buffer))
 			{
 				struct tm UTC;
 				if (0 != localtime_r(&buffer.st_mtim.tv_sec, &UTC))
@@ -380,12 +446,14 @@ bool CreateDailyMovie(const std::string DailyDirectory)
 					VideoFileName << ".mp4";
 					if (ConsoleVerbosity > 0)
 					{
-						std::cout << "[" << getTimeISO8601() << "]   StillFormat: " << StillFormat.str() << std::endl;
-						std::cout << "[" << getTimeISO8601() << "] VideoFileName: " << VideoFileName.str() << std::endl;
+						std::cout << "[" << getTimeExcelLocal() << "]   StillFormat: " << StillFormat.str() << std::endl;
+						std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << JPGfiles.size() << std::endl;
+						std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << VideoFileName.str() << std::endl;
 					}
 					else
 					{
 						std::cerr << "   StillFormat: " << StillFormat.str() << std::endl;
+						std::cerr << "    File Count: " << JPGfiles.size() << std::endl;
 						std::cerr << " VideoFileName: " << VideoFileName.str() << std::endl;
 					}
 					pid_t pid_FFMPEG = fork();
@@ -418,11 +486,22 @@ bool CreateDailyMovie(const std::string DailyDirectory)
 						int ffmpeg_exit_status = 0;
 						wait(&ffmpeg_exit_status);				/* Wait for child process to end */
 						if (ConsoleVerbosity > 0)
-							std::cout << "[" << getTimeISO8601() << "] ffmpeg exited with a  " << ffmpeg_exit_status << " value" << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "] ffmpeg exited with a " << ffmpeg_exit_status << " value" << std::endl;
 						else if (ffmpeg_exit_status != 0)
-							std::cerr << "ffmpeg exited with a  " << ffmpeg_exit_status << " value" << std::endl;
-						else
+							std::cerr << "ffmpeg exited with a " << ffmpeg_exit_status << " value" << std::endl;
+						if (ffmpeg_exit_status == 0)
+						{
 							rval = true;
+							// change file date on mp4 file to match the last jpg file
+							struct stat LastJPGStatBuffer;
+							if (0 == stat(JPGfiles.back().c_str(), &LastJPGStatBuffer))
+							{
+								struct utimbuf MP4TimeToSet;
+								MP4TimeToSet.actime = LastJPGStatBuffer.st_mtim.tv_sec;
+								MP4TimeToSet.modtime = LastJPGStatBuffer.st_mtim.tv_sec;
+								utime(VideoFileName.str().c_str(), &MP4TimeToSet);
+							}
+						}
 					}
 					else
 					{
@@ -511,7 +590,7 @@ int main(int argc, char** argv)
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	if (ConsoleVerbosity > 0)
 	{
-		std::cout << "[" << getTimeISO8601() << "] " << ProgramVersionString << std::endl;
+		std::cout << "[" << getTimeExcelLocal() << "] " << ProgramVersionString << std::endl;
 	}
 	else
 		std::cerr << ProgramVersionString << " (starting)" << std::endl;
@@ -520,6 +599,7 @@ int main(int argc, char** argv)
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	for (;;)
 	{
+		std::string TempString;
 		int idx;
 		int c = getopt_long(argc, argv, short_options, long_options, &idx);
 		if (-1 == c)
@@ -537,7 +617,9 @@ int main(int argc, char** argv)
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
 			break;
 		case 'd':
-			DestinationDir = std::string(optarg);
+			TempString = std::string(optarg);
+			if (ValidateDirectory(TempString))
+				DestinationDir = TempString;
 			break;
 		case 'f':
 			try { GigabytesFreeSpace = std::stoi(optarg); }
@@ -606,9 +688,9 @@ int main(int argc, char** argv)
 
 		if (ConsoleVerbosity > 0)
 		{
-			std::cout << "[" << getTimeISO8601() << "]  OutputFormat: " << OutputFormat.str() << std::endl;
-			std::cout << "[" << getTimeISO8601() << "]    FrameStart: " << FrameStart.str() << std::endl;
-			std::cout << "[" << getTimeISO8601() << "]       Timeout: " << Timeout.str() << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]  OutputFormat: " << OutputFormat.str() << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]    FrameStart: " << FrameStart.str() << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]       Timeout: " << Timeout.str() << std::endl;
 		}
 
 		if (bRun)
@@ -624,7 +706,7 @@ int main(int argc, char** argv)
 
 				if (ConsoleVerbosity > 0)
 				{
-					std::cout << "[" << getTimeISO8601() << "]        execlp: ";
+					std::cout << "[" << getTimeExcelLocal() << "]        execlp: ";
 					std::cout << CameraProgram << " ";
 					std::cout << "--nopreview" << " ";
 					std::cout << "--thumb" << " " << "none" << " ";
@@ -649,11 +731,11 @@ int main(int argc, char** argv)
 					"--framestart", FrameStart.str().c_str(), 
 					NULL) == -1)
 				{
-					std::cerr << "[" << getTimeISO8601() << "] execlp Error! " << CameraProgram << std::endl;
+					std::cerr << " execlp Error! " << CameraProgram << std::endl;
 					CameraProgram = "libcamera-still";
 					if (ConsoleVerbosity > 0)
 					{
-						std::cout << "[" << getTimeISO8601() << "]  execlp: ";
+						std::cout << "[" << getTimeExcelLocal() << "]  execlp: ";
 						std::cout << CameraProgram << " ";
 						std::cout << "--nopreview" << " ";
 						std::cout << "--thumb" << " " << "none" << " ";
@@ -678,7 +760,7 @@ int main(int argc, char** argv)
 						"--framestart", FrameStart.str().c_str(),
 						NULL) == -1)
 					{
-						std::cerr << "[" << getTimeISO8601() << "] execlp Error! " << CameraProgram << std::endl;
+						std::cerr << " execlp Error! " << CameraProgram << std::endl;
 						bRun = false;
 					}
 				}
@@ -689,13 +771,13 @@ int main(int argc, char** argv)
 				int CameraProgram_exit_status = 0;
 				wait(&CameraProgram_exit_status);				/* Wait for child process to end */
 				if (CameraProgram_exit_status != 0)
-					std::cerr << "[" << getTimeISO8601() << "] CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
+					std::cerr << " CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
 				else if (ConsoleVerbosity > 0)
-					std::cout << "[" << getTimeISO8601() << "] CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
+					std::cout << "[" << getTimeExcelLocal() << "] CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
 			}
 			else
 			{
-				std::cerr << "[" << getTimeISO8601() << "] Fork error! CameraProgram." << std::endl;  /* something went wrong */
+				std::cerr << " Fork error! CameraProgram." << std::endl;  /* something went wrong */
 				bRun = false;
 			}
 			if (bRun)
