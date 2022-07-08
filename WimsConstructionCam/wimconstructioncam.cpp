@@ -412,100 +412,119 @@ bool CreateDailyMovie(const std::string DailyDirectory)
 					MP4files.push_back(filename);
 			}
 		closedir(dp);
-		if (MP4files.empty())
+		if (!JPGfiles.empty())
 		{
-			if (!JPGfiles.empty())
-				sort(JPGfiles.begin(), JPGfiles.end());
-			struct stat buffer;
-			if (0 == stat(JPGfiles.front().c_str(), &buffer))
+			sort(JPGfiles.begin(), JPGfiles.end());
+			// What follows is a simple test that if there are newer images 
+			// than the video files, empty the deque of video files and create 
+			// a video file, possibly overwriting an older video.
+			if (!MP4files.empty())
 			{
-				struct tm UTC;
-				if (0 != localtime_r(&buffer.st_mtim.tv_sec, &UTC))
+				sort(MP4files.begin(), MP4files.end());
+				struct stat LastJPGStat;
+				if (0 == stat(JPGfiles.back().c_str(), &LastJPGStat))
 				{
-					std::ostringstream StillFormat;	// raspistill outputname format string
-					StillFormat.fill('0');
-					StillFormat << DailyDirectory << "/";
-					StillFormat.width(2);
-					StillFormat << UTC.tm_mon + 1;
-					StillFormat.width(2);
-					StillFormat << UTC.tm_mday;
-					StillFormat << "\%04d.jpg";
+					struct stat LastMP4Stat;
+					if (0 == stat(MP4files.back().c_str(), &LastMP4Stat))
+					{
+						if (LastJPGStat.st_mtim.tv_sec > LastMP4Stat.st_mtim.tv_sec)
+							MP4files.clear();
+					}
+				}
+			}
+			if (MP4files.empty())
+			{
+				struct stat FirstJPGStat;
+				if (0 == stat(JPGfiles.front().c_str(), &FirstJPGStat))
+				{
+					struct tm UTC;
+					if (0 != localtime_r(&FirstJPGStat.st_mtim.tv_sec, &UTC))
+					{
+						std::ostringstream StillFormat;	// raspistill outputname format string
+						StillFormat.fill('0');
+						StillFormat << DailyDirectory << "/";
+						StillFormat.width(2);
+						StillFormat << UTC.tm_mon + 1;
+						StillFormat.width(2);
+						StillFormat << UTC.tm_mday;
+						StillFormat << "\%04d.jpg";
 
-					std::ostringstream VideoFileName;	// ffmpeg output video name
-					VideoFileName.fill('0');
-					VideoFileName << DailyDirectory << "/";
-					VideoFileName.width(4);
-					VideoFileName << UTC.tm_year + 1900;
-					VideoFileName.width(2);
-					VideoFileName << UTC.tm_mon + 1;
-					VideoFileName.width(2);
-					VideoFileName << UTC.tm_mday;
-					char MyHostName[HOST_NAME_MAX] = { 0 }; // hostname used for data recordkeeping
-					if (gethostname(MyHostName, sizeof(MyHostName)) == 0)
-						VideoFileName << "-" << MyHostName;
-					VideoFileName << ".mp4";
-					if (ConsoleVerbosity > 0)
-					{
-						std::cout << "[" << getTimeExcelLocal() << "]   StillFormat: " << StillFormat.str() << std::endl;
-						std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << JPGfiles.size() << std::endl;
-						std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << VideoFileName.str() << std::endl;
-					}
-					else
-					{
-						std::cerr << "   StillFormat: " << StillFormat.str() << std::endl;
-						std::cerr << "    File Count: " << JPGfiles.size() << std::endl;
-						std::cerr << " VideoFileName: " << VideoFileName.str() << std::endl;
-					}
-					pid_t pid_FFMPEG = fork();
-					if (pid_FFMPEG == 0)
-					{
-						/* A zero PID indicates that this is the child process */
-						/* Replace the child fork with a new process */
-						if (execlp("ffmpeg", "ffmpeg",
-							"-hide_banner",
-							"-r", "30",
-							"-i", StillFormat.str().c_str(),
-							"-vf", "drawtext=font=sans:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=main_w-text_w-30:text=WimsConstructionCam,drawtext=font=mono:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=30:text=%{metadata\\\\:DateTimeOriginal}",
-							"-c:v", "libx265",
-							"-crf", "23",
-							"-preset", "veryfast",
-							"-movflags", "+faststart",
-							"-bf", "2",
-							"-g", "15",
-							"-pix_fmt", "yuv420p",
-							"-n",
-							VideoFileName.str().c_str(),
-							NULL) == -1)
-						{
-							std::cerr << "execlp Error! ffmpeg." << std::endl;
-						}
-					}
-					else if (pid_FFMPEG > 0)
-					{
-						/* A positive (non-negative) PID indicates the parent process */
-						int ffmpeg_exit_status = 0;
-						wait(&ffmpeg_exit_status);				/* Wait for child process to end */
+						std::ostringstream VideoFileName;	// ffmpeg output video name
+						VideoFileName.fill('0');
+						VideoFileName << DailyDirectory << "/";
+						VideoFileName.width(4);
+						VideoFileName << UTC.tm_year + 1900;
+						VideoFileName.width(2);
+						VideoFileName << UTC.tm_mon + 1;
+						VideoFileName.width(2);
+						VideoFileName << UTC.tm_mday;
+						char MyHostName[HOST_NAME_MAX] = { 0 }; // hostname used for data recordkeeping
+						if (gethostname(MyHostName, sizeof(MyHostName)) == 0)
+							VideoFileName << "-" << MyHostName;
+						VideoFileName << ".mp4";
 						if (ConsoleVerbosity > 0)
-							std::cout << "[" << getTimeExcelLocal() << "] ffmpeg exited with a " << ffmpeg_exit_status << " value" << std::endl;
-						else if (ffmpeg_exit_status != 0)
-							std::cerr << "ffmpeg exited with a " << ffmpeg_exit_status << " value" << std::endl;
-						if (ffmpeg_exit_status == 0)
 						{
-							rval = true;
-							// change file date on mp4 file to match the last jpg file
-							struct stat LastJPGStatBuffer;
-							if (0 == stat(JPGfiles.back().c_str(), &LastJPGStatBuffer))
+							std::cout << "[" << getTimeExcelLocal() << "]   StillFormat: " << StillFormat.str() << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << JPGfiles.size() << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << VideoFileName.str() << std::endl;
+						}
+						else
+						{
+							std::cerr << "   StillFormat: " << StillFormat.str() << std::endl;
+							std::cerr << "    File Count: " << JPGfiles.size() << std::endl;
+							std::cerr << " VideoFileName: " << VideoFileName.str() << std::endl;
+						}
+						pid_t pid_FFMPEG = fork();
+						if (pid_FFMPEG == 0)
+						{
+							/* A zero PID indicates that this is the child process */
+							/* Replace the child fork with a new process */
+							if (execlp("ffmpeg", "ffmpeg",
+								"-hide_banner",
+								"-r", "30",
+								"-i", StillFormat.str().c_str(),
+								"-vf", "drawtext=font=sans:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=main_w-text_w-30:text=WimsConstructionCam,drawtext=font=mono:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=30:text=%{metadata\\\\:DateTimeOriginal}",
+								"-c:v", "libx265",
+								"-crf", "23",
+								"-preset", "veryfast",
+								"-movflags", "+faststart",
+								"-bf", "2",
+								"-g", "15",
+								"-pix_fmt", "yuv420p",
+								"-y",
+								VideoFileName.str().c_str(),
+								NULL) == -1)
 							{
-								struct utimbuf MP4TimeToSet;
-								MP4TimeToSet.actime = LastJPGStatBuffer.st_mtim.tv_sec;
-								MP4TimeToSet.modtime = LastJPGStatBuffer.st_mtim.tv_sec;
-								utime(VideoFileName.str().c_str(), &MP4TimeToSet);
+								std::cerr << "execlp Error! ffmpeg." << std::endl;
 							}
 						}
-					}
-					else
-					{
-						std::cerr << "Fork error! ffmpeg." << std::endl;  /* something went wrong */
+						else if (pid_FFMPEG > 0)
+						{
+							/* A positive (non-negative) PID indicates the parent process */
+							int ffmpeg_exit_status = 0;
+							wait(&ffmpeg_exit_status);				/* Wait for child process to end */
+							if (ConsoleVerbosity > 0)
+								std::cout << "[" << getTimeExcelLocal() << "] ffmpeg exited with a " << ffmpeg_exit_status << " value" << std::endl;
+							else if (ffmpeg_exit_status != 0)
+								std::cerr << "ffmpeg exited with a " << ffmpeg_exit_status << " value" << std::endl;
+							if (ffmpeg_exit_status == 0)
+							{
+								rval = true;
+								// change file date on mp4 file to match the last jpg file
+								struct stat LastJPGStatBuffer;
+								if (0 == stat(JPGfiles.back().c_str(), &LastJPGStatBuffer))
+								{
+									struct utimbuf MP4TimeToSet;
+									MP4TimeToSet.actime = LastJPGStatBuffer.st_mtim.tv_sec;
+									MP4TimeToSet.modtime = LastJPGStatBuffer.st_mtim.tv_sec;
+									utime(VideoFileName.str().c_str(), &MP4TimeToSet);
+								}
+							}
+						}
+						else
+						{
+							std::cerr << "Fork error! ffmpeg." << std::endl;  /* something went wrong */
+						}
 					}
 				}
 			}
@@ -528,8 +547,25 @@ void CreateAllDailyMovies(const std::string DestinationDir)
 					continue;
 				else
 				{
-					std::string dirname = DestinationDir + "/" + std::string(dirp->d_name);
-					Subdirectories.push_back(dirname);
+					// this time stuff is a hack so that if I'm restarting during the day I don't create the video for today.
+					time_t TheTime;
+					time(&TheTime);
+					struct tm UTC;
+					if (0 != localtime_r(&TheTime, &UTC))
+					{
+						std::ostringstream TodaysDirectoryName;
+						TodaysDirectoryName.fill('0');
+						TodaysDirectoryName << UTC.tm_year + 1900;
+						TodaysDirectoryName.width(2);
+						TodaysDirectoryName << UTC.tm_mon + 1;
+						TodaysDirectoryName.width(2);
+						TodaysDirectoryName << UTC.tm_mday;
+						if (DirectoryName.compare(TodaysDirectoryName.str()) != 0)
+						{
+							std::string FullPath = DestinationDir + "/" + DirectoryName;
+							Subdirectories.push_back(FullPath);
+						}
+					}
 				}
 			}
 		closedir(dp);
@@ -735,7 +771,7 @@ int main(int argc, char** argv)
 					CameraProgram = "libcamera-still";
 					if (ConsoleVerbosity > 0)
 					{
-						std::cout << "[" << getTimeExcelLocal() << "]  execlp: ";
+						std::cout << "[" << getTimeExcelLocal() << "]        execlp: ";
 						std::cout << CameraProgram << " ";
 						std::cout << "--nopreview" << " ";
 						std::cout << "--thumb" << " " << "none" << " ";
