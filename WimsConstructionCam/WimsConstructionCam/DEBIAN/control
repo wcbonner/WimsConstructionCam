@@ -7,5 +7,5 @@ Essential: no
 Installed-Size: 95
 Maintainer: wcbonner@users.noreply.github.com
 Description: Records TimeLapse Pictures at one minute intervals and turns them into a daily video
-Depends: ffmpeg
+Depends: ffmpeg, libcamera-apps-lite | libraspberrypi-bin
 Homepage: https://github.com/wcbonner/WimsConstructionCam

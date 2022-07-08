@@ -1,7 +1,8 @@
+CXX ?= g++
 
 WimsConstructionCam/usr/local/bin/wimconstructioncam: wimconstructioncam.cpp
-	mkdir -p WimsConstructionCam/usr/local/bin
-	g++ -Wno-psabi -O3 -std=c++11 wimconstructioncam.cpp -o WimsConstructionCam/usr/local/bin/wimconstructioncam
+	mkdir -p $(shell dirname $@)
+	$(CXX) -Wno-psabi -O3 -std=c++11 $? -o$@
 
 deb: WimsConstructionCam/usr/local/bin/wimconstructioncam WimsConstructionCam/DEBIAN/control WimsConstructionCam/usr/local/lib/systemd/system/wimconstructioncam.service
 	# Set architecture for the resulting .deb to the actually built architecture
