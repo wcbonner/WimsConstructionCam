@@ -774,6 +774,7 @@ int main(int argc, char** argv)
 						std::cout << "[" << getTimeExcelLocal() << "]        execlp: ";
 						std::cout << CameraProgram << " ";
 						std::cout << "--nopreview" << " ";
+						std::cout << "--continue-autofocus" << " ";
 						std::cout << "--thumb" << " " << "none" << " ";
 						std::cout << "--width" << " " << "1920" << " ";
 						std::cout << "--height" << " " << "1080" << " ";
@@ -787,6 +788,7 @@ int main(int argc, char** argv)
 					// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
 					if (execlp(CameraProgram.c_str(), CameraProgram.c_str(),
 						"--nopreview",
+						"--continue-autofocus",
 						"--thumb", "none",
 						"--width", "1920",
 						"--height", "1080",
