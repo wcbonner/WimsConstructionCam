@@ -1,7 +1,7 @@
 #!/bin/sh
 # POSTRM script for wimsconstructioncam
 
-echo "\033[36m HI I'M A POSTRM SCRIPT `date +"%s"` \033[39m"
+echo "$(tput setaf 3) HI I'M A POSTRM SCRIPT `date +"%s"` $(tput sgr0)"
 systemctl daemon-reload
 
 exit 0

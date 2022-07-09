@@ -11,7 +11,7 @@ Type=simple
 Restart=always
 RestartSec=5
 Environment="VERBOSITY=0"
-Environment="LOGDIR=/var/log/DCIM"
+Environment="LOGDIR=/media/`hostname`/DCIM/"
 Environment="EXTRAARGS="
 ExecStartPre=/bin/mkdir -p ${LOGDIR}
 ExecStart=/usr/local/bin/wimsconstructioncam -v ${VERBOSITY} --destination ${LOGDIR} $EXTRAARGS
