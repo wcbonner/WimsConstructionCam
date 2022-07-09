@@ -31,7 +31,7 @@
 #include <utime.h>
 #include <vector>
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220708-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220709-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 float Latitude = 47.670;
@@ -487,8 +487,8 @@ bool CreateDailyMovie(const std::string DailyDirectory)
 							mycommand.push_back("-vf"); mycommand.push_back("drawtext=font=sans:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=main_w-text_w-30:text=WimsConstructionCam,drawtext=font=mono:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=30:text=%{metadata\\\\:DateTimeOriginal}");
 							mycommand.push_back("-c:v"); mycommand.push_back("libx265");
 							mycommand.push_back("-crf"); mycommand.push_back("23");
-							mycommand.push_back("--preset"); mycommand.push_back("veryfast");
-							mycommand.push_back("--movflags"); mycommand.push_back("+faststart");
+							mycommand.push_back("-preset"); mycommand.push_back("veryfast");
+							mycommand.push_back("-movflags"); mycommand.push_back("+faststart");
 							mycommand.push_back("-bf"); mycommand.push_back("2");
 							mycommand.push_back("-g"); mycommand.push_back("15");
 							mycommand.push_back("-pix_fmt"); mycommand.push_back("yuv420p");
