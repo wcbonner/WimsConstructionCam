@@ -31,7 +31,7 @@
 #include <utime.h>
 #include <vector>
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220707-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220708-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 float Latitude = 47.670;
@@ -479,23 +479,35 @@ bool CreateDailyMovie(const std::string DailyDirectory)
 						{
 							/* A zero PID indicates that this is the child process */
 							/* Replace the child fork with a new process */
-							if (execlp("ffmpeg", "ffmpeg",
-								"-hide_banner",
-								"-r", "30",
-								"-i", StillFormat.str().c_str(),
-								"-vf", "drawtext=font=sans:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=main_w-text_w-30:text=WimsConstructionCam,drawtext=font=mono:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=30:text=%{metadata\\\\:DateTimeOriginal}",
-								"-c:v", "libx265",
-								"-crf", "23",
-								"-preset", "veryfast",
-								"-movflags", "+faststart",
-								"-bf", "2",
-								"-g", "15",
-								"-pix_fmt", "yuv420p",
-								"-y",
-								VideoFileName.str().c_str(),
-								NULL) == -1)
+							std::vector<std::string> mycommand;
+							mycommand.push_back("ffmpeg");
+							mycommand.push_back("-hide_banner");
+							mycommand.push_back("-r"); mycommand.push_back("30");
+							mycommand.push_back("-i"); mycommand.push_back(StillFormat.str());
+							mycommand.push_back("-vf"); mycommand.push_back("drawtext=font=sans:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=main_w-text_w-30:text=WimsConstructionCam,drawtext=font=mono:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=30:text=%{metadata\\\\:DateTimeOriginal}");
+							mycommand.push_back("-c:v"); mycommand.push_back("libx265");
+							mycommand.push_back("-crf"); mycommand.push_back("23");
+							mycommand.push_back("--preset"); mycommand.push_back("veryfast");
+							mycommand.push_back("--movflags"); mycommand.push_back("+faststart");
+							mycommand.push_back("-bf"); mycommand.push_back("2");
+							mycommand.push_back("-g"); mycommand.push_back("15");
+							mycommand.push_back("-pix_fmt"); mycommand.push_back("yuv420p");
+							mycommand.push_back("-y");
+							mycommand.push_back(VideoFileName.str());
+							if (ConsoleVerbosity > 0)
 							{
-								std::cerr << "execlp Error! ffmpeg." << std::endl;
+								std::cout << "[" << getTimeExcelLocal() << "]        execlp:";
+								for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+									std::cout << " " << *iter;
+								std::cout << std::endl;
+							}
+							std::vector<char*> args;
+							for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
+								args.push_back((char*)arg->c_str());
+							args.push_back(NULL);
+							if (execvp(args[0], &args[0]) == -1)
+							{
+								std::cerr << " execvp Error! " << args[0] << std::endl;
 							}
 						}
 						else if (pid_FFMPEG > 0)
@@ -737,68 +749,50 @@ int main(int argc, char** argv)
 			{
 				/* A zero PID indicates that this is the child process */
 				/* Replace the child fork with a new process */
-
-				std::string CameraProgram("raspistill");
-
+				std::vector<std::string> mycommand;
+				mycommand.push_back("raspistill");
+				mycommand.push_back("--nopreview");
+				mycommand.push_back("--thumb"); mycommand.push_back("none");
+				mycommand.push_back("--width"); mycommand.push_back("1920");
+				mycommand.push_back("--height"); mycommand.push_back("1080");
+				mycommand.push_back("--timeout"); mycommand.push_back(Timeout.str());
+				mycommand.push_back("--timelapse"); mycommand.push_back("60000");
+				mycommand.push_back("--output"); mycommand.push_back(OutputFormat.str());
+				mycommand.push_back("--framestart"); mycommand.push_back(FrameStart.str());
 				if (ConsoleVerbosity > 0)
 				{
-					std::cout << "[" << getTimeExcelLocal() << "]        execlp: ";
-					std::cout << CameraProgram << " ";
-					std::cout << "--nopreview" << " ";
-					std::cout << "--thumb" << " " << "none" << " ";
-					std::cout << "--width" << " " << "1920" << " ";
-					std::cout << "--height" << " " << "1080" << " ";
-					std::cout << "--timeout" << " " << Timeout.str() << " ";
-					std::cout << "--timelapse" << " " << "60000" << " ";
-					std::cout << "--output" << " " << OutputFormat.str() << " ";
-					std::cout << "--framestart" << " " << FrameStart.str() << " ";
+					std::cout << "[" << getTimeExcelLocal() << "]        execlp:";
+					for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+						std::cout << " " << *iter;
 					std::cout << std::endl;
 				}
+				std::vector<char*> args;
+				for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
+					args.push_back((char*)arg->c_str());
+				args.push_back(NULL);
 				// https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStill.c
 				// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
-				if (execlp(CameraProgram.c_str(), CameraProgram.c_str(),
-					"--nopreview", 
-					"--thumb", "none", 
-					"--width", "1920", 
-					"--height", "1080", 
-					"--timeout", Timeout.str().c_str(), 
-					"--timelapse", "60000", 
-					"--output", OutputFormat.str().c_str(), 
-					"--framestart", FrameStart.str().c_str(), 
-					NULL) == -1)
+				if (execvp(args[0], &args[0]) == -1)
 				{
-					std::cerr << " execlp Error! " << CameraProgram << std::endl;
-					CameraProgram = "libcamera-still";
+					std::cerr << " execvp Error! " << args[0] << std::endl;
+					mycommand.front() = "libcamera-still";
+					mycommand.push_back("--continue-autofocus");
 					if (ConsoleVerbosity > 0)
 					{
-						std::cout << "[" << getTimeExcelLocal() << "]        execlp: ";
-						std::cout << CameraProgram << " ";
-						std::cout << "--nopreview" << " ";
-						std::cout << "--continue-autofocus" << " ";
-						std::cout << "--thumb" << " " << "none" << " ";
-						std::cout << "--width" << " " << "1920" << " ";
-						std::cout << "--height" << " " << "1080" << " ";
-						std::cout << "--timeout" << " " << Timeout.str() << " ";
-						std::cout << "--timelapse" << " " << "60000" << " ";
-						std::cout << "--output" << " " << OutputFormat.str() << " ";
-						std::cout << "--framestart" << " " << FrameStart.str() << " ";
+						std::cout << "[" << getTimeExcelLocal() << "]        execlp:";
+						for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+							std::cout << " " << *iter;
 						std::cout << std::endl;
 					}
+					args.clear();
+					for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+						args.push_back((char*)iter->c_str());
+					args.push_back(NULL);
 					// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
 					// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
-					if (execlp(CameraProgram.c_str(), CameraProgram.c_str(),
-						"--nopreview",
-						"--continue-autofocus",
-						"--thumb", "none",
-						"--width", "1920",
-						"--height", "1080",
-						"--timeout", Timeout.str().c_str(),
-						"--timelapse", "60000",
-						"--output", OutputFormat.str().c_str(),
-						"--framestart", FrameStart.str().c_str(),
-						NULL) == -1)
+					if (execvp(args[0], &args[0]) == -1)
 					{
-						std::cerr << " execlp Error! " << CameraProgram << std::endl;
+						std::cerr << " execvp Error! " << args[0] << std::endl;
 						bRun = false;
 					}
 				}
