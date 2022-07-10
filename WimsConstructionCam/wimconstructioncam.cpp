@@ -30,12 +30,18 @@
 #include <unistd.h> // For close()
 #include <utime.h>
 #include <vector>
+#include <gps.h>        // apt install libgps-dev
+#include <libgpsmm.h>   // apt install libgps-dev
+
+// GPSD Client HOWTO https://gpsd.io/client-howto.html#_c_examples
+// https://www.ubuntupit.com/best-gps-tools-for-linux/
+// https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220709-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220710-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
-double Latitude = 47.669894;
-double Longitude = -122.382389;
+double Latitude = 0;
+double Longitude = 0;
 int GigabytesFreeSpace = 8;
 /////////////////////////////////////////////////////////////////////////////
 std::string timeToISO8601(const time_t& TheTime)
@@ -255,30 +261,89 @@ bool getSunriseSunset(time_t& Sunrise, time_t& Sunset, const time_t& TheTime, co
 	struct tm LocalTime;
 	if (0 != localtime_r(&TheTime, &LocalTime))
 	{
-		double JulianDay = Time2JulianDate(TheTime); // F
-		double JulianCentury = (JulianDay - 2451545) / 36525;	// G
-		double GeomMeanLongSun = fmod(280.46646 + JulianCentury * (36000.76983 + JulianCentury * 0.0003032), 360);	// I
-		double GeomMeanAnomSun = 357.52911 + JulianCentury * (35999.05029 - 0.0001537 * JulianCentury);	// J
-		double EccentEarthOrbit = 0.016708634 - JulianCentury * (0.000042037 + 0.0000001267 * JulianCentury);	// K
-		double SunEqOfCtr = sin(radians(GeomMeanAnomSun)) * (1.914602 - JulianCentury * (0.004817 + 0.000014 * JulianCentury)) + sin(radians(2 * GeomMeanAnomSun)) * (0.019993 - 0.000101 * JulianCentury) + sin(radians(3 * GeomMeanAnomSun)) * 0.000289; // L
-		double SunTrueLong = GeomMeanLongSun + SunEqOfCtr;	// M
-		double SunAppLong = SunTrueLong - 0.00569 - 0.00478 * sin(radians(125.04 - 1934.136 * JulianCentury));	// P
-		double MeanObliqEcliptic = 23 + (26 + ((21.448 - JulianCentury * (46.815 + JulianCentury * (0.00059 - JulianCentury * 0.001813)))) / 60) / 60;	// Q
-		double ObliqCorr = MeanObliqEcliptic + 0.00256 * cos(radians(125.04 - 1934.136 * JulianCentury));	// R
-		double SunDeclin = degrees(asin(sin(radians(ObliqCorr)) * sin(radians(SunAppLong))));	// T
-		double var_y = tan(radians(ObliqCorr / 2)) * tan(radians(ObliqCorr / 2));	// U
-		double EquationOfTime = 4 * degrees(var_y * sin(2 * radians(GeomMeanLongSun)) - 2 * EccentEarthOrbit * sin(radians(GeomMeanAnomSun)) + 4 * EccentEarthOrbit * var_y * sin(radians(GeomMeanAnomSun)) * sin(2 * radians(GeomMeanLongSun)) - 0.5 * var_y * var_y * sin(4 * radians(GeomMeanLongSun)) - 1.25 * EccentEarthOrbit * EccentEarthOrbit * sin(2 * radians(GeomMeanAnomSun))); // V
-		double HASunriseDeg = degrees(acos(cos(radians(90.833)) / (cos(radians(Latitude)) * cos(radians(SunDeclin))) - tan(radians(Latitude)) * tan(radians(SunDeclin)))); // W
-		double SolarNoon = (720 - 4 * Longitude - EquationOfTime + LocalTime.tm_gmtoff / 60) / 1440; // X
-		double SunriseTime = SolarNoon - HASunriseDeg * 4 / 1440;	// Y
-		double SunsetTime = SolarNoon + HASunriseDeg * 4 / 1440;	// Z
-		LocalTime.tm_hour = 0;
-		LocalTime.tm_min = 0;
-		LocalTime.tm_sec = 0;
-		time_t Midnight = mktime(&LocalTime);
-		Sunrise = Midnight + SunriseTime * 86400;
-		Sunset = Midnight + SunsetTime * 86400;
+		// if we don't have a valid latitude or longitude, declare sunrise to be midnight, and sunset one second before midnight
+		if ((Latitude == 0) || (Longitude == 0))
+		{
+			LocalTime.tm_hour = 0;
+			LocalTime.tm_min = 0;
+			LocalTime.tm_sec = 0;
+			Sunrise = mktime(&LocalTime);
+			Sunset = Sunrise + 24*60*60 - 1;
+		}
+		else
+		{
+			double JulianDay = Time2JulianDate(TheTime); // F
+			double JulianCentury = (JulianDay - 2451545) / 36525;	// G
+			double GeomMeanLongSun = fmod(280.46646 + JulianCentury * (36000.76983 + JulianCentury * 0.0003032), 360);	// I
+			double GeomMeanAnomSun = 357.52911 + JulianCentury * (35999.05029 - 0.0001537 * JulianCentury);	// J
+			double EccentEarthOrbit = 0.016708634 - JulianCentury * (0.000042037 + 0.0000001267 * JulianCentury);	// K
+			double SunEqOfCtr = sin(radians(GeomMeanAnomSun)) * (1.914602 - JulianCentury * (0.004817 + 0.000014 * JulianCentury)) + sin(radians(2 * GeomMeanAnomSun)) * (0.019993 - 0.000101 * JulianCentury) + sin(radians(3 * GeomMeanAnomSun)) * 0.000289; // L
+			double SunTrueLong = GeomMeanLongSun + SunEqOfCtr;	// M
+			double SunAppLong = SunTrueLong - 0.00569 - 0.00478 * sin(radians(125.04 - 1934.136 * JulianCentury));	// P
+			double MeanObliqEcliptic = 23 + (26 + ((21.448 - JulianCentury * (46.815 + JulianCentury * (0.00059 - JulianCentury * 0.001813)))) / 60) / 60;	// Q
+			double ObliqCorr = MeanObliqEcliptic + 0.00256 * cos(radians(125.04 - 1934.136 * JulianCentury));	// R
+			double SunDeclin = degrees(asin(sin(radians(ObliqCorr)) * sin(radians(SunAppLong))));	// T
+			double var_y = tan(radians(ObliqCorr / 2)) * tan(radians(ObliqCorr / 2));	// U
+			double EquationOfTime = 4 * degrees(var_y * sin(2 * radians(GeomMeanLongSun)) - 2 * EccentEarthOrbit * sin(radians(GeomMeanAnomSun)) + 4 * EccentEarthOrbit * var_y * sin(radians(GeomMeanAnomSun)) * sin(2 * radians(GeomMeanLongSun)) - 0.5 * var_y * var_y * sin(4 * radians(GeomMeanLongSun)) - 1.25 * EccentEarthOrbit * EccentEarthOrbit * sin(2 * radians(GeomMeanAnomSun))); // V
+			double HASunriseDeg = degrees(acos(cos(radians(90.833)) / (cos(radians(Latitude)) * cos(radians(SunDeclin))) - tan(radians(Latitude)) * tan(radians(SunDeclin)))); // W
+			double SolarNoon = (720 - 4 * Longitude - EquationOfTime + LocalTime.tm_gmtoff / 60) / 1440; // X
+			double SunriseTime = SolarNoon - HASunriseDeg * 4 / 1440;	// Y
+			double SunsetTime = SolarNoon + HASunriseDeg * 4 / 1440;	// Z
+			LocalTime.tm_hour = 0;
+			LocalTime.tm_min = 0;
+			LocalTime.tm_sec = 0;
+			time_t Midnight = mktime(&LocalTime);
+			Sunrise = Midnight + SunriseTime * 86400;
+			Sunset = Midnight + SunsetTime * 86400;
+		}
 		rval = true;
+	}
+	return(rval);
+}
+/////////////////////////////////////////////////////////////////////////////
+bool getLatLon(double& Latitude, double& Longitude)
+{
+	bool rval = false;
+	gpsmm gps_rec("localhost", DEFAULT_GPSD_PORT);
+	if (gps_rec.stream(WATCH_ENABLE | WATCH_JSON) == NULL)
+		std::cerr << "No GPSD running." << std::endl;
+	else
+	{
+#if GPSD_API_MAJOR_VERSION < 9
+		timestamp_t last_timestamp = 0;
+#else
+		timespec_t last_timestamp;
+		timespec_get(&last_timestamp, TIME_UTC);
+#endif
+		bool doloop = true;
+		while (doloop)
+		{
+			struct gps_data_t* newdata;
+			if (!gps_rec.waiting(50000000))
+				continue;
+			if ((newdata = gps_rec.read()) == NULL)
+			{
+				std::cerr << "GPSD read error." << std::endl;
+				doloop = false;
+			}
+			else
+			{
+				if (newdata->set & MODE_SET)
+					if ((newdata->fix.mode > 2) && (newdata->set & LATLON_SET) && (newdata->set & TIME_SET))
+					{
+						Latitude = newdata->fix.latitude;
+						Longitude = newdata->fix.longitude;
+						rval = true;
+						if (ConsoleVerbosity > 0)
+						{
+							//std::cout << "[" << getTimeExcelLocal() << "]  Fix Time: " << timeToISO8601(newdata->fix.time) << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "]  Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "] Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
+						}
+						doloop = false;
+					}
+			}
+		}
 	}
 	return(rval);
 }
@@ -739,6 +804,8 @@ int main(int argc, char** argv)
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	tzset();
 	///////////////////////////////////////////////////////////////////////////////////////////////
+	getLatLon(Latitude, Longitude);
+	///////////////////////////////////////////////////////////////////////////////////////////////
 	for (;;)
 	{
 		std::string TempString;
@@ -799,9 +866,11 @@ int main(int argc, char** argv)
 	{
 		time_t LoopStartTime, SunriseNOAA, SunsetNOAA;
 		time(&LoopStartTime);
-		getSunriseSunset(SunriseNOAA, SunsetNOAA, LoopStartTime, Latitude, Longitude);
-		SunriseNOAA -= 60 * 30; // Start half an hour before calculated Sunrise
-		SunsetNOAA += 60 * 30;	// End half an hour after calculated Sunset
+		if (getSunriseSunset(SunriseNOAA, SunsetNOAA, LoopStartTime, Latitude, Longitude))
+		{
+			SunriseNOAA -= 60 * 30; // Start half an hour before calculated Sunrise
+			SunsetNOAA += 60 * 30;	// End half an hour after calculated Sunset
+		}
 		if (ConsoleVerbosity > 1)
 		{
 			double JulianDay = JulianDate2JulianDay(Time2JulianDate(LoopStartTime));
@@ -834,29 +903,27 @@ int main(int argc, char** argv)
 			std::cout << "[" << getTimeExcelLocal() << "]         NOAA Sunset: " << timeToExcelLocal(SunsetNOAA) << std::endl;
 		}
 
-		if (0 > difftime(LoopStartTime, SunriseNOAA))
+		if (LoopStartTime < SunriseNOAA)
 		{
 			// if before sunrise we wait for sunrise, then loop back to the top
 			if (ConsoleVerbosity > 0)
-			{
-				std::cout << "[" << getTimeExcelLocal() << "]        NOAA Sunrise: " << timeToExcelLocal(SunriseNOAA) << std::endl;
-				std::cout << "[" << getTimeExcelLocal() << "] Current time is before Sunrise, sleeping for " << difftime(LoopStartTime, SunriseNOAA)/60 << " minutes" << std::endl;
-			}
-			sleep(difftime(LoopStartTime, SunriseNOAA));
+				std::cout << "[" << getTimeExcelLocal() << "] Sunrise: " << timeToExcelLocal(SunriseNOAA) << " sleeping for " << (SunriseNOAA - LoopStartTime) / 60 << " minutes" << std::endl;
+			else 
+				std::cerr << "Sunrise: " << timeToExcelLocal(SunriseNOAA) << " sleeping for " << (SunriseNOAA - LoopStartTime) / 60 << " minutes" << std::endl;
+			sleep(SunriseNOAA - LoopStartTime);
 		}
-		else if (0 > difftime(SunsetNOAA, LoopStartTime))
+		else if (LoopStartTime > SunsetNOAA)
 		{
 			// If after Sunset we want to sleep till tomorrow
 			struct tm UTC;
 			if (0 != localtime_r(&LoopStartTime, &UTC))
 			{
 				int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
-				int MinutesLeftInDay = 1440 - CurrentMinuteInDay;
+				int MinutesLeftInDay = 24*60 - CurrentMinuteInDay;
 				if (ConsoleVerbosity > 0)
-				{
-					std::cout << "[" << getTimeExcelLocal() << "]        NOAA Sunset: " << timeToExcelLocal(SunriseNOAA) << std::endl;
-					std::cout << "[" << getTimeExcelLocal() << "] Current time is after Sunset, sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
-				}
+					std::cout << "[" << getTimeExcelLocal() << "] Sunset: " << timeToExcelLocal(SunsetNOAA) << " sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
+				else
+					std::cerr << "Sunset: " << timeToExcelLocal(SunsetNOAA) << " sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
 				sleep(MinutesLeftInDay * 60);
 			}
 		}
@@ -953,7 +1020,7 @@ int main(int argc, char** argv)
 						// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
 						if (execvp(args[0], &args[0]) == -1)
 						{
-							std::cerr << " execvp Error! " << args[0] << std::endl;
+							std::cerr << "execvp Error! " << args[0] << std::endl;
 							bRun = false;
 						}
 					}
@@ -964,7 +1031,7 @@ int main(int argc, char** argv)
 					int CameraProgram_exit_status = 0;
 					wait(&CameraProgram_exit_status);				/* Wait for child process to end */
 					if (CameraProgram_exit_status != 0)
-						std::cerr << " CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
+						std::cerr << "CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
 					else if (ConsoleVerbosity > 0)
 						std::cout << "[" << getTimeExcelLocal() << "] CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
 				}
