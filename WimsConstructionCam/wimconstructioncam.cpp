@@ -34,8 +34,8 @@
 static const std::string ProgramVersionString("WimConstructionCam Version 1.20220709-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
-float Latitude = 47.670;
-float Longitude = -122.382;
+double Latitude = 47.669894;
+double Longitude = -122.382389;
 int GigabytesFreeSpace = 8;
 /////////////////////////////////////////////////////////////////////////////
 std::string timeToISO8601(const time_t& TheTime)
@@ -169,25 +169,119 @@ double degrees(const double radians)
 {
 	return((radians * 180.0) / M_PI);
 }
-#ifdef DAYLLIGHT
-bool isDayTime(const time_t& TheTime, const double SunDeclin = 47.670, double Longitude = -122.382)
+double Time2JulianDate(const time_t& TheTime)
 {
+	double JulianDay = 0;
+	struct tm UTC;
+	if (0 != gmtime_r(&TheTime, &UTC))
+	{
+		// https://en.wikipedia.org/wiki/Julian_day
+		// JDN = (1461 × (Y + 4800 + (M ? 14)/12))/4 +(367 × (M ? 2 ? 12 × ((M ? 14)/12)))/12 ? (3 × ((Y + 4900 + (M - 14)/12)/100))/4 + D ? 32075
+		JulianDay = (1461 * ((UTC.tm_year + 1900) + 4800 + ((UTC.tm_mon + 1) - 14) / 12)) / 4
+			+ (367 * ((UTC.tm_mon + 1) - 2 - 12 * (((UTC.tm_mon + 1) - 14) / 12))) / 12
+			- (3 * (((UTC.tm_year + 1900) + 4900 + ((UTC.tm_mon + 1) - 14) / 12) / 100)) / 4
+			+ (UTC.tm_mday)
+			- 32075;
+		// JD = JDN + (hour-12)/24 + minute/1440 + second/86400
+		double partialday = (static_cast<double>((UTC.tm_hour - 12)) / 24) + (static_cast<double>(UTC.tm_min) / 1440.0) + (static_cast<double>(UTC.tm_sec) / 86400.0);
+		JulianDay += partialday;
+	}
+	return(JulianDay);
+}
+time_t JulianDate2Time(const double JulianDate)
+{
+	time_t TheTime = (JulianDate - 2440587.5) * 86400;
+	return(TheTime);
+}
+double JulianDate2JulianDay(const double JulianDate)
+{
+	double n = JulianDate - 2451545.0 + 0.0008;
+	return(n);
+}
+/////////////////////////////////////////////////////////////////////////////
+// These equations all come from https://en.wikipedia.org/wiki/Sunrise_equation
+double getMeanSolarTime(const double JulianDay, const double longitude)
+{
+	// an approximation of mean solar time expressed as a Julian day with the day fraction.
+	double MeanSolarTime = JulianDay - (longitude / 360);
+	return (MeanSolarTime);
+}
+double getSolarMeanAnomaly(const double MeanSolarTime)
+{
+	double SolarMeanAnomaly = fmod(357.5291 + 0.98560028 * MeanSolarTime, 360);
+	return(SolarMeanAnomaly);
+}
+double getEquationOfTheCenter(const double SolarMeanAnomaly)
+{
+	double EquationOfTheCenter = 1.9148 * sin(radians(SolarMeanAnomaly)) + 0.0200 * sin(radians(2 * SolarMeanAnomaly)) + 0.0003 * sin(radians(3 * SolarMeanAnomaly));
+	return(EquationOfTheCenter);
+}
+double getEclipticLongitude(const double SolarMeanAnomaly, const double EquationOfTheCenter)
+{
+	double EclipticLongitude = fmod(SolarMeanAnomaly + EquationOfTheCenter + 180 + 102.9372, 360);
+	return(EclipticLongitude);
+}
+double getSolarTransit(const double MeanSolarTime, const double SolarMeanAnomaly, const double EclipticLongitude)
+{
+	// the Julian date for the local true solar transit (or solar noon).
+	double SolarTransit = 2451545.0 + MeanSolarTime + 0.0053 * sin(radians(SolarMeanAnomaly)) - 0.0069 * sin(radians(2 * EclipticLongitude));
+	return(SolarTransit);
+}
+double getDeclinationOfTheSun(const double EclipticLongitude)
+{
+	double DeclinationOfTheSun = sin(radians(EclipticLongitude)) * sin(radians(23.44));
+	return(DeclinationOfTheSun);
+}
+double getHourAngle(const double Latitude, const double DeclinationOfTheSun)
+{
+	double HourAngle = (sin(radians(-0.83)) - sin(radians(Latitude)) * sin(radians(DeclinationOfTheSun))) / (cos(radians(Latitude)) * cos(radians(DeclinationOfTheSun)));
+	return(HourAngle);
+}
+double getSunrise(const double SolarTransit, const double HourAngle)
+{
+	double Sunrise = SolarTransit - (HourAngle / 360);
+	return(Sunrise);
+}
+double getSunset(const double SolarTransit, const double HourAngle)
+{
+	double Sunset = SolarTransit + (HourAngle / 360);
+	return(Sunset);
+}
+/////////////////////////////////////////////////////////////////////////////
+// From NOAA Spreadsheet https://gml.noaa.gov/grad/solcalc/calcdetails.html
+bool getSunriseSunset(time_t& Sunrise, time_t& Sunset, const time_t& TheTime, const double Latitude, double Longitude)
+{
+	bool rval = false;
 	struct tm LocalTime;
 	if (0 != localtime_r(&TheTime, &LocalTime))
 	{
-		double JulianDay = D2 + 2415018.5 + E2 - $B$5 / 24;
-		double JulianCentury = (JulianDay - 2451545) / 36525;
-		double MeanObliqEcliptic = 23 + (26 + ((21.448 - G2 * (46.815 + G2 * (0.00059 - G2 * 0.001813)))) / 60) / 60;
-		double ObliqCorr = MeanObliqEcliptic + 0.00256 * cos(radians(125.04 - 1934.136 * JulianCentury));
-		double var_y = tan(radians(R2 / 2)) * tan(radians(R2 / 2));
-		double EquationOfTime = 4 * degrees(var_y * sin(2 * radians(GeomMeanLongSun)) - 2 * EccentEarthOrbit * sin(radians(GeomMeanAnomSun)) + 4 * EccentEarthOrbit * var_y * sin(radians(GeomMeanAnomSun)) * sin(2 * radians(GeomMeanLongSun)) - 0.5 * var_y * var_y * sin(4 * radians(GeomMeanLongSun)) - 1.25 * EccentEarthOrbit * EccentEarthOrbit * sin(2 * radians(GeomMeanAnomSun)));
-		double HASunriseDeg = degrees(acos(cos(radians(90.833)) / (cos(radians(Latitude)) * cos(radians(SunDeclin))) - tan(radians(Latitude)) * tan(radians(SunDeclin))));
-		double SolarNoon = (720 - 4 * Longitude - EquationOfTime + LocalTime.tm_gmtoff / 60) / 1440;
-		double SunriseTime = SolarNoon - HASunriseDeg * 4 / 1440;
-		double SunsetTime = SolarNoon + HASunriseDeg * 4 / 1440;
+		double JulianDay = Time2JulianDate(TheTime); // F
+		double JulianCentury = (JulianDay - 2451545) / 36525;	// G
+		double GeomMeanLongSun = fmod(280.46646 + JulianCentury * (36000.76983 + JulianCentury * 0.0003032), 360);	// I
+		double GeomMeanAnomSun = 357.52911 + JulianCentury * (35999.05029 - 0.0001537 * JulianCentury);	// J
+		double EccentEarthOrbit = 0.016708634 - JulianCentury * (0.000042037 + 0.0000001267 * JulianCentury);	// K
+		double SunEqOfCtr = sin(radians(GeomMeanAnomSun)) * (1.914602 - JulianCentury * (0.004817 + 0.000014 * JulianCentury)) + sin(radians(2 * GeomMeanAnomSun)) * (0.019993 - 0.000101 * JulianCentury) + sin(radians(3 * GeomMeanAnomSun)) * 0.000289; // L
+		double SunTrueLong = GeomMeanLongSun + SunEqOfCtr;	// M
+		double SunAppLong = SunTrueLong - 0.00569 - 0.00478 * sin(radians(125.04 - 1934.136 * JulianCentury));	// P
+		double MeanObliqEcliptic = 23 + (26 + ((21.448 - JulianCentury * (46.815 + JulianCentury * (0.00059 - JulianCentury * 0.001813)))) / 60) / 60;	// Q
+		double ObliqCorr = MeanObliqEcliptic + 0.00256 * cos(radians(125.04 - 1934.136 * JulianCentury));	// R
+		double SunDeclin = degrees(asin(sin(radians(ObliqCorr)) * sin(radians(SunAppLong))));	// T
+		double var_y = tan(radians(ObliqCorr / 2)) * tan(radians(ObliqCorr / 2));	// U
+		double EquationOfTime = 4 * degrees(var_y * sin(2 * radians(GeomMeanLongSun)) - 2 * EccentEarthOrbit * sin(radians(GeomMeanAnomSun)) + 4 * EccentEarthOrbit * var_y * sin(radians(GeomMeanAnomSun)) * sin(2 * radians(GeomMeanLongSun)) - 0.5 * var_y * var_y * sin(4 * radians(GeomMeanLongSun)) - 1.25 * EccentEarthOrbit * EccentEarthOrbit * sin(2 * radians(GeomMeanAnomSun))); // V
+		double HASunriseDeg = degrees(acos(cos(radians(90.833)) / (cos(radians(Latitude)) * cos(radians(SunDeclin))) - tan(radians(Latitude)) * tan(radians(SunDeclin)))); // W
+		double SolarNoon = (720 - 4 * Longitude - EquationOfTime + LocalTime.tm_gmtoff / 60) / 1440; // X
+		double SunriseTime = SolarNoon - HASunriseDeg * 4 / 1440;	// Y
+		double SunsetTime = SolarNoon + HASunriseDeg * 4 / 1440;	// Z
+		LocalTime.tm_hour = 0;
+		LocalTime.tm_min = 0;
+		LocalTime.tm_sec = 0;
+		time_t Midnight = mktime(&LocalTime);
+		Sunrise = Midnight + SunriseTime * 86400;
+		Sunset = Midnight + SunsetTime * 86400;
+		rval = true;
 	}
+	return(rval);
 }
-#endif
 /////////////////////////////////////////////////////////////////////////////
 bool ValidateDirectory(std::string& DirectoryName)
 {
@@ -703,80 +797,129 @@ int main(int argc, char** argv)
 	bRun = true;
 	while (bRun)
 	{
-		time_t LoopStartTime;
+		time_t LoopStartTime, SunriseNOAA, SunsetNOAA;
 		time(&LoopStartTime);
-		// largest file in sample was 1,310,523, multiply by minutes in day 1440, 1887153120, round up to 2000000000 or 2GB.
-		GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
-		std::string ImageDirectory(GetImageDirectory(DestinationDir, LoopStartTime));
-		std::ostringstream OutputFormat;	// raspistill outputname format string
-		std::ostringstream FrameStart;		// first filename for raspistill to use in current loop
-		std::ostringstream Timeout;			// how many milliseconds raspistill will run
-		// Minutes in Day = 60 * 24 = 1440
-		int MinutesLeftInDay = 1440;
-		struct tm UTC;
-		if (0 != localtime_r(&LoopStartTime, &UTC))
+		getSunriseSunset(SunriseNOAA, SunsetNOAA, LoopStartTime, Latitude, Longitude);
+		SunriseNOAA -= 60 * 30; // Start half an hour before calculated Sunrise
+		SunsetNOAA += 60 * 30;	// End half an hour after calculated Sunset
+		if (ConsoleVerbosity > 1)
 		{
-			int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
-			MinutesLeftInDay = 1440 - CurrentMinuteInDay;
-			if (TimeoutMinutes == 0)
-				Timeout << MinutesLeftInDay * 60 * 1000;
-			else 
-				Timeout << TimeoutMinutes * 60 * 1000;
-			OutputFormat.fill('0');
-			OutputFormat << ImageDirectory << "/";
-			OutputFormat.width(2);
-			OutputFormat << UTC.tm_mon + 1;
-			OutputFormat.width(2);
-			OutputFormat << UTC.tm_mday;
-			OutputFormat << "\%04d.jpg";
-			FrameStart << GetLastImageNum(ImageDirectory) + 1;
+			double JulianDay = JulianDate2JulianDay(Time2JulianDate(LoopStartTime));
+			double MeanSolarTime = getMeanSolarTime(JulianDay, Longitude);
+			double SolarMeanAnomaly = getSolarMeanAnomaly(MeanSolarTime);
+			double EquationOfTheCenter = getEquationOfTheCenter(SolarMeanAnomaly);
+			double EclipticLongitude = getEclipticLongitude(SolarMeanAnomaly, EquationOfTheCenter);
+			double SolarTransit = getSolarTransit(MeanSolarTime, SolarMeanAnomaly, EclipticLongitude);
+			double DeclinationOfTheSun = getDeclinationOfTheSun(EclipticLongitude);
+			double HourAngle = getHourAngle(Latitude, DeclinationOfTheSun);
+			double Sunrise = getSunrise(SolarTransit, HourAngle);
+			double Sunset = getSunset(SolarTransit, HourAngle);
+			std::cout.precision(std::numeric_limits<double>::max_digits10);
+			std::cout << "[" << getTimeExcelLocal() << "]         Julian Date: " << Time2JulianDate(LoopStartTime) << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]           Unix Time: " << LoopStartTime << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]         Julian Date: " << timeToExcelLocal(JulianDate2Time(Time2JulianDate(LoopStartTime))) << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]            Latitude: " << Latitude << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]           Longitude: " << Longitude << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]          Julian Day: " << JulianDay << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]       MeanSolarTime: " << MeanSolarTime << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]    SolarMeanAnomaly: " << SolarMeanAnomaly << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "] EquationOfTheCenter: " << EquationOfTheCenter << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]   EclipticLongitude: " << EclipticLongitude << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]        SolarTransit: " << timeToExcelLocal(JulianDate2Time(SolarTransit)) << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "] DeclinationOfTheSun: " << DeclinationOfTheSun << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]           HourAngle: " << HourAngle << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]             Sunrise: " << timeToExcelLocal(JulianDate2Time(Sunrise)) << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]              Sunset: " << timeToExcelLocal(JulianDate2Time(Sunset)) << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]        NOAA Sunrise: " << timeToExcelLocal(SunriseNOAA) << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]         NOAA Sunset: " << timeToExcelLocal(SunsetNOAA) << std::endl;
 		}
-		else
-			bRun = false;
 
-		if (ConsoleVerbosity > 0)
+		if (0 > difftime(LoopStartTime, SunriseNOAA))
 		{
-			std::cout << "[" << getTimeExcelLocal() << "]  OutputFormat: " << OutputFormat.str() << std::endl;
-			std::cout << "[" << getTimeExcelLocal() << "]    FrameStart: " << FrameStart.str() << std::endl;
-			std::cout << "[" << getTimeExcelLocal() << "]       Timeout: " << Timeout.str() << std::endl;
-		}
-
-		if (bRun)
-		{
-			/* Attempt to fork */
-			pid_t pid = fork();
-			if (pid == 0)
+			// if before sunrise we wait for sunrise, then loop back to the top
+			if (ConsoleVerbosity > 0)
 			{
-				/* A zero PID indicates that this is the child process */
-				/* Replace the child fork with a new process */
-				std::vector<std::string> mycommand;
-				mycommand.push_back("raspistill");
-				mycommand.push_back("--nopreview");
-				mycommand.push_back("--thumb"); mycommand.push_back("none");
-				mycommand.push_back("--width"); mycommand.push_back("1920");
-				mycommand.push_back("--height"); mycommand.push_back("1080");
-				mycommand.push_back("--timeout"); mycommand.push_back(Timeout.str());
-				mycommand.push_back("--timelapse"); mycommand.push_back("60000");
-				mycommand.push_back("--output"); mycommand.push_back(OutputFormat.str());
-				mycommand.push_back("--framestart"); mycommand.push_back(FrameStart.str());
+				std::cout << "[" << getTimeExcelLocal() << "]        NOAA Sunrise: " << timeToExcelLocal(SunriseNOAA) << std::endl;
+				std::cout << "[" << getTimeExcelLocal() << "] Current time is before Sunrise, sleeping for " << difftime(LoopStartTime, SunriseNOAA)/60 << " minutes" << std::endl;
+			}
+			sleep(difftime(LoopStartTime, SunriseNOAA));
+		}
+		else if (0 > difftime(SunsetNOAA, LoopStartTime))
+		{
+			// If after Sunset we want to sleep till tomorrow
+			struct tm UTC;
+			if (0 != localtime_r(&LoopStartTime, &UTC))
+			{
+				int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
+				int MinutesLeftInDay = 1440 - CurrentMinuteInDay;
 				if (ConsoleVerbosity > 0)
 				{
-					std::cout << "[" << getTimeExcelLocal() << "]        execlp:";
-					for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-						std::cout << " " << *iter;
-					std::cout << std::endl;
+					std::cout << "[" << getTimeExcelLocal() << "]        NOAA Sunset: " << timeToExcelLocal(SunriseNOAA) << std::endl;
+					std::cout << "[" << getTimeExcelLocal() << "] Current time is after Sunset, sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
 				}
-				std::vector<char*> args;
-				for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
-					args.push_back((char*)arg->c_str());
-				args.push_back(NULL);
-				// https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStill.c
-				// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
-				if (execvp(args[0], &args[0]) == -1)
+				sleep(MinutesLeftInDay * 60);
+			}
+		}
+		else
+		{
+			// largest file in sample was 1,310,523, multiply by minutes in day 1440, 1887153120, round up to 2000000000 or 2GB.
+			GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
+			std::string ImageDirectory(GetImageDirectory(DestinationDir, LoopStartTime));
+			std::ostringstream OutputFormat;	// raspistill outputname format string
+			std::ostringstream FrameStart;		// first filename for raspistill to use in current loop
+			std::ostringstream Timeout;			// how many milliseconds raspistill will run
+			// Minutes in Day = 60 * 24 = 1440
+			int MinutesLeftInDay = 1440;
+			struct tm UTC;
+			if (0 != localtime_r(&LoopStartTime, &UTC))
+			{
+				int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
+				struct tm SunsetTM;
+				if (0 != localtime_r(&SunsetNOAA, &SunsetTM))
+					MinutesLeftInDay = (SunsetTM.tm_hour * 60 + SunsetTM.tm_min) - CurrentMinuteInDay;
+				else
+					MinutesLeftInDay = 1440 - CurrentMinuteInDay;
+				if (TimeoutMinutes == 0)
+					Timeout << MinutesLeftInDay * 60 * 1000;
+				else
+					Timeout << TimeoutMinutes * 60 * 1000;
+				OutputFormat.fill('0');
+				OutputFormat << ImageDirectory << "/";
+				OutputFormat.width(2);
+				OutputFormat << UTC.tm_mon + 1;
+				OutputFormat.width(2);
+				OutputFormat << UTC.tm_mday;
+				OutputFormat << "\%04d.jpg";
+				FrameStart << GetLastImageNum(ImageDirectory) + 1;
+			}
+			else
+				bRun = false;
+
+			if (ConsoleVerbosity > 0)
+			{
+				std::cout << "[" << getTimeExcelLocal() << "]  OutputFormat: " << OutputFormat.str() << std::endl;
+				std::cout << "[" << getTimeExcelLocal() << "]    FrameStart: " << FrameStart.str() << std::endl;
+				std::cout << "[" << getTimeExcelLocal() << "]       Timeout: " << Timeout.str() << std::endl;
+			}
+
+			if (bRun)
+			{
+				/* Attempt to fork */
+				pid_t pid = fork();
+				if (pid == 0)
 				{
-					std::cerr << " execvp Error! " << args[0] << std::endl;
-					mycommand.front() = "libcamera-still";
-					mycommand.push_back("--continue-autofocus");
+					/* A zero PID indicates that this is the child process */
+					/* Replace the child fork with a new process */
+					std::vector<std::string> mycommand;
+					mycommand.push_back("raspistill");
+					mycommand.push_back("--nopreview");
+					mycommand.push_back("--thumb"); mycommand.push_back("none");
+					mycommand.push_back("--width"); mycommand.push_back("1920");
+					mycommand.push_back("--height"); mycommand.push_back("1080");
+					mycommand.push_back("--timeout"); mycommand.push_back(Timeout.str());
+					mycommand.push_back("--timelapse"); mycommand.push_back("60000");
+					mycommand.push_back("--output"); mycommand.push_back(OutputFormat.str());
+					mycommand.push_back("--framestart"); mycommand.push_back(FrameStart.str());
 					if (ConsoleVerbosity > 0)
 					{
 						std::cout << "[" << getTimeExcelLocal() << "]        execlp:";
@@ -784,36 +927,55 @@ int main(int argc, char** argv)
 							std::cout << " " << *iter;
 						std::cout << std::endl;
 					}
-					args.clear();
-					for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-						args.push_back((char*)iter->c_str());
+					std::vector<char*> args;
+					for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
+						args.push_back((char*)arg->c_str());
 					args.push_back(NULL);
-					// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
-					// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
+					// https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStill.c
+					// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
 					if (execvp(args[0], &args[0]) == -1)
 					{
 						std::cerr << " execvp Error! " << args[0] << std::endl;
-						bRun = false;
+						mycommand.front() = "libcamera-still";
+						mycommand.push_back("--continue-autofocus");
+						if (ConsoleVerbosity > 0)
+						{
+							std::cout << "[" << getTimeExcelLocal() << "]        execlp:";
+							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+								std::cout << " " << *iter;
+							std::cout << std::endl;
+						}
+						args.clear();
+						for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+							args.push_back((char*)iter->c_str());
+						args.push_back(NULL);
+						// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
+						// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
+						if (execvp(args[0], &args[0]) == -1)
+						{
+							std::cerr << " execvp Error! " << args[0] << std::endl;
+							bRun = false;
+						}
 					}
 				}
+				else if (pid > 0)
+				{
+					/* A positive (non-negative) PID indicates the parent process */
+					int CameraProgram_exit_status = 0;
+					wait(&CameraProgram_exit_status);				/* Wait for child process to end */
+					if (CameraProgram_exit_status != 0)
+						std::cerr << " CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
+					else if (ConsoleVerbosity > 0)
+						std::cout << "[" << getTimeExcelLocal() << "] CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
+				}
+				else
+				{
+					std::cerr << " Fork error! CameraProgram." << std::endl;  /* something went wrong */
+					bRun = false;
+				}
+				if (bRun)
+					bRun = CreateDailyMovie(ImageDirectory);
 			}
-			else if (pid > 0)
-			{
-				/* A positive (non-negative) PID indicates the parent process */
-				int CameraProgram_exit_status = 0;
-				wait(&CameraProgram_exit_status);				/* Wait for child process to end */
-				if (CameraProgram_exit_status != 0)
-					std::cerr << " CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
-				else if (ConsoleVerbosity > 0)
-					std::cout << "[" << getTimeExcelLocal() << "] CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
-			}
-			else
-			{
-				std::cerr << " Fork error! CameraProgram." << std::endl;  /* something went wrong */
-				bRun = false;
-			}
-			if (bRun)
-				bRun = CreateDailyMovie(ImageDirectory);
 		}
 	}
 	// remove our special Ctrl-C signal handler and restore previous one
