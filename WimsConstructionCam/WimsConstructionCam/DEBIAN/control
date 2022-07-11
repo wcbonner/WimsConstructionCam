@@ -2,7 +2,7 @@ Package: WimsConstructionCam
 Version: 1.20220711-1
 Section: custom
 Priority: optional
-Architecture: arm64
+Architecture: armhf
 Essential: no
 Installed-Size: 95
 Maintainer: wcbonner@users.noreply.github.com
