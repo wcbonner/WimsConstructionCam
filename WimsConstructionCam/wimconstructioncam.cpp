@@ -315,16 +315,19 @@ bool getLatLon(double& Latitude, double& Longitude)
 		timespec_t last_timestamp;
 		timespec_get(&last_timestamp, TIME_UTC);
 #endif
-		bool doloop = true;
-		while (doloop)
+		int doloop = 0;
+		while (doloop < 5)
 		{
 			struct gps_data_t* newdata;
-			if (!gps_rec.waiting(50000000))
+			if (!gps_rec.waiting(1000000)) // wait 1 second, time is in microseconds
+			{
+				doloop++;
 				continue;
+			}
 			if ((newdata = gps_rec.read()) == NULL)
 			{
 				std::cerr << "GPSD read error." << std::endl;
-				doloop = false;
+				doloop += 10;
 			}
 			else
 			{
@@ -340,7 +343,7 @@ bool getLatLon(double& Latitude, double& Longitude)
 							std::cout << "[" << getTimeExcelLocal() << "]  Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << std::endl;
 							std::cout << "[" << getTimeExcelLocal() << "] Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
 						}
-						doloop = false;
+						doloop+=10;
 					}
 			}
 		}
@@ -782,8 +785,8 @@ static const struct option long_options[] = {
 		{ "destination",	required_argument, NULL, 'd' },
 		{ "freespace",required_argument, NULL, 'f' },
 		{ "time",required_argument, NULL, 't' },
-		{ "lat",required_argument, NULL, 't' },
-		{ "lon",required_argument, NULL, 't' },
+		{ "lat",required_argument, NULL, 'l' },
+		{ "lon",required_argument, NULL, 'L' },
 		{ 0, 0, 0, 0 }
 };
 /////////////////////////////////////////////////////////////////////////////
@@ -803,8 +806,6 @@ int main(int argc, char** argv)
 		std::cerr << ProgramVersionString << " (starting)" << std::endl;
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	tzset();
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	getLatLon(Latitude, Longitude);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	for (;;)
 	{
@@ -841,12 +842,12 @@ int main(int argc, char** argv)
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
 			break;
 		case 'l':
-			try { Latitude = std::stof(optarg); }
+			try { Latitude = std::stod(optarg); }
 			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
 			break;
 		case 'L':
-			try { Longitude = std::stof(optarg); }
+			try { Longitude = std::stod(optarg); }
 			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
 			break;
@@ -855,6 +856,10 @@ int main(int argc, char** argv)
 			exit(EXIT_FAILURE);
 		}
 	}
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	// If Latitude or Longitude not specified on command line try to get it from GPSD
+	if ((Latitude == 0) || (Longitude == 0))
+		getLatLon(Latitude, Longitude);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	CreateAllDailyMovies(DestinationDir);
 	///////////////////////////////////////////////////////////////////////////////////////////////
