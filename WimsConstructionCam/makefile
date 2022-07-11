@@ -1,6 +1,6 @@
 CXX ?= g++
 
-WimsConstructionCam/usr/local/bin/wimconstructioncam: wimconstructioncam.cpp
+WimsConstructionCam/usr/local/bin/wimsconstructioncam: wimsconstructioncam.cpp
 	mkdir -p $(shell dirname $@)
 	$(CXX) -Wno-psabi -O3 -std=c++11 $? -o$@ -lgps
 
