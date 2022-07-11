@@ -14,7 +14,7 @@ Environment="VERBOSITY=0"
 Environment="LOGDIR=/media/`hostname`/DCIM/"
 Environment="EXTRAARGS=--lat 47.669894 --lon -122.382389"
 ExecStartPre=/bin/mkdir -p ${LOGDIR}
-ExecStart=/usr/local/bin/wimsconstructioncam -v ${VERBOSITY} --destination ${LOGDIR} $EXTRAARGS
+ExecStart=/usr/local/bin/wimsconstructioncam -v ${VERBOSITY} --destination ${LOGDIR} ${EXTRAARGS}
 KillSignal=SIGINT
 
 [Install]

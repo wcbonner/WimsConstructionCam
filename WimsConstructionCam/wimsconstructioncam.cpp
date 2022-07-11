@@ -803,7 +803,13 @@ int main(int argc, char** argv)
 		std::cout << "[" << getTimeExcelLocal() << "] " << ProgramVersionString << std::endl;
 	}
 	else
-		std::cerr << ProgramVersionString << " (starting)" << std::endl;
+	{
+		std::ostringstream startupargs;
+		startupargs << ProgramVersionString << " (starting)" << std::endl;
+		for (auto index = 0; index < argc; index++)
+			startupargs << " " << argv[index];
+		std::cerr << startupargs.str() << std::endl;
+	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	tzset();
 	///////////////////////////////////////////////////////////////////////////////////////////////
