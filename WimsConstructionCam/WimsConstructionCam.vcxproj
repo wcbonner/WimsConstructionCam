@@ -75,7 +75,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
-    <ClCompile Include="wimconstructioncam.cpp" />
+    <ClCompile Include="wimsconstructioncam.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="makefile" />
