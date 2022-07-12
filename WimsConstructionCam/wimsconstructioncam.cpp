@@ -763,7 +763,7 @@ void SignalHandlerSIGHUP(int signal)
 	std::cerr << "***************** SIGHUP: Caught HangUp, finishing loop and quitting. *****************" << std::endl;
 }
 /////////////////////////////////////////////////////////////////////////////
-std::string DestinationDir("/home/wim/DCIM");
+std::string DestinationDir;
 static void usage(int argc, char** argv)
 {
 	std::cout << "Usage: " << argv[0] << " [options]" << std::endl;
@@ -865,6 +865,11 @@ int main(int argc, char** argv)
 			usage(argc, argv);
 			exit(EXIT_FAILURE);
 		}
+	}
+	if (DestinationDir.empty())
+	{
+		usage(argc, argv);
+		exit(EXIT_FAILURE);
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// If Latitude or Longitude not specified on command line try to get it from GPSD
