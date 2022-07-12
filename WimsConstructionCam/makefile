@@ -16,5 +16,6 @@ install-deb: deb
 clean:
 	-rm -rf WimsConstructionCam/usr/local/bin
 	-rm -f WimsConstructionCam.deb
+	git restore WimsConstructionCam/DEBIAN/control
 
 .PHONY: clean deb install-deb
