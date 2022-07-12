@@ -10,11 +10,7 @@ StartLimitIntervalSec=33
 Type=simple
 Restart=always
 RestartSec=5
-Environment="VERBOSITY=0"
-Environment="LOGDIR=/media/`hostname`/DCIM/"
-Environment="EXTRAARGS=--lat 47.669894 --lon -122.382389"
-ExecStartPre=/bin/mkdir -p ${LOGDIR}
-ExecStart=/usr/local/bin/wimsconstructioncam -v ${VERBOSITY} --destination ${LOGDIR} ${EXTRAARGS}
+ExecStart=/usr/local/bin/wimsconstructioncam -v 0 --lat 47.669894 --lon -122.382389 --destination /media/`hostname`/DCIM/
 KillSignal=SIGINT
 
 [Install]
