@@ -39,7 +39,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220714-2 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220714-3 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 double Latitude = 0;
@@ -1045,7 +1045,26 @@ int main(int argc, char** argv)
 						if (execvp(args[0], &args[0]) == -1)
 						{
 							std::cerr << "execvp Error! " << args[0] << std::endl;
-							bRun = false;
+							// One last try because the standard libcamera-still program doesn't have the --continue-autofocus option
+							mycommand.pop_back();
+							if (ConsoleVerbosity > 0)
+							{
+								std::cout << "[" << getTimeExcelLocal() << "]        execlp:";
+								for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+									std::cout << " " << *iter;
+								std::cout << std::endl;
+							}
+							args.clear();
+							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+								args.push_back((char*)iter->c_str());
+							args.push_back(NULL);
+							// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
+							// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
+							if (execvp(args[0], &args[0]) == -1)
+							{
+								std::cerr << "execvp Error! " << args[0] << std::endl;
+								bRun = false;
+							}
 						}
 					}
 				}
