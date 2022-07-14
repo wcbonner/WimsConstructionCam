@@ -39,7 +39,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220714-3 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220714-4 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 double Latitude = 0;
@@ -810,14 +810,6 @@ int main(int argc, char** argv)
 			startupargs << " " << argv[index];
 		std::cout << "[" << getTimeExcelLocal() << "] " << startupargs.str() << std::endl;
 	}
-	else
-	{
-		std::ostringstream startupargs;
-		startupargs << ProgramVersionString << " (starting)" << std::endl;
-		for (auto index = 0; index < argc; index++)
-			startupargs << " " << argv[index];
-		std::cerr << startupargs.str() << std::endl;
-	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	tzset();
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -870,6 +862,16 @@ int main(int argc, char** argv)
 			exit(EXIT_FAILURE);
 		}
 	}
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	if (ConsoleVerbosity < 1)
+	{
+		std::ostringstream startupargs;
+		startupargs << ProgramVersionString << " (starting)" << std::endl;
+		for (auto index = 0; index < argc; index++)
+			startupargs << " " << argv[index];
+		std::cerr << startupargs.str() << std::endl;
+	}
+	///////////////////////////////////////////////////////////////////////////////////////////////
 	if (DestinationDir.empty())
 	{
 		usage(argc, argv);
@@ -1026,7 +1028,10 @@ int main(int argc, char** argv)
 					// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
 					if (execvp(args[0], &args[0]) == -1)
 					{
-						std::cerr << " execvp Error! " << args[0] << std::endl;
+						std::cerr << "execvp Error: ";
+						for (auto iter = args.begin(); iter != args.end(); iter++)
+							std::cerr << *iter;
+						std::cerr << std::endl;
 						mycommand.front() = "libcamera-still";
 						mycommand.push_back("--continue-autofocus");
 						if (ConsoleVerbosity > 0)
@@ -1044,7 +1049,10 @@ int main(int argc, char** argv)
 						// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
 						if (execvp(args[0], &args[0]) == -1)
 						{
-							std::cerr << "execvp Error! " << args[0] << std::endl;
+							std::cerr << "execvp Error: ";
+							for (auto iter = args.begin(); iter != args.end(); iter++)
+								std::cerr << *iter;
+							std::cerr << std::endl;
 							// One last try because the standard libcamera-still program doesn't have the --continue-autofocus option
 							mycommand.pop_back();
 							if (ConsoleVerbosity > 0)
@@ -1062,7 +1070,10 @@ int main(int argc, char** argv)
 							// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
 							if (execvp(args[0], &args[0]) == -1)
 							{
-								std::cerr << "execvp Error! " << args[0] << std::endl;
+								std::cerr << "execvp Error: ";
+								for (auto iter = args.begin(); iter != args.end(); iter++)
+									std::cerr << *iter;
+								std::cerr << std::endl;
 								bRun = false;
 							}
 						}
