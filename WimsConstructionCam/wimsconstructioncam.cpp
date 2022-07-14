@@ -30,14 +30,16 @@
 #include <unistd.h> // For close()
 #include <utime.h>
 #include <vector>
+#ifdef _USE_GPSD
 #include <gps.h>        // apt install libgps-dev
 #include <libgpsmm.h>   // apt install libgps-dev
+#endif
 
 // GPSD Client HOWTO https://gpsd.io/client-howto.html#_c_examples
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220712-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220714-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 double Latitude = 0;
@@ -304,6 +306,7 @@ bool getSunriseSunset(time_t& Sunrise, time_t& Sunset, const time_t& TheTime, co
 bool getLatLon(double& Latitude, double& Longitude)
 {
 	bool rval = false;
+#ifdef _USE_GPSD
 	gpsmm gps_rec("localhost", DEFAULT_GPSD_PORT);
 	if (gps_rec.stream(WATCH_ENABLE | WATCH_JSON) == NULL)
 		std::cerr << "No GPSD running." << std::endl;
@@ -348,6 +351,7 @@ bool getLatLon(double& Latitude, double& Longitude)
 			}
 		}
 	}
+#endif
 	return(rval);
 }
 /////////////////////////////////////////////////////////////////////////////

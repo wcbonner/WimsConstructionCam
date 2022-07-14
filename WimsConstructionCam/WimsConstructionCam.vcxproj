@@ -78,12 +78,18 @@
     <ClCompile Include="wimsconstructioncam.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="hb1321.pdf" />
+    <None Include="hb1329.pdf" />
     <None Include="makefile" />
+    <None Include="SIM7600G-H 4G HAT (B) For Raspberry Pi, LTE Cat-4 4G _ 3G _ 2G Support, GNSS Positioning, Global Band.html" />
     <None Include="WimsConstructionCam\DEBIAN\control" />
     <None Include="WimsConstructionCam\DEBIAN\postinst" />
     <None Include="WimsConstructionCam\DEBIAN\postrm" />
     <None Include="WimsConstructionCam\DEBIAN\prerm" />
     <None Include="WimsConstructionCam\usr\local\lib\systemd\system\wimsconstructioncam.service" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Notes on build.txt" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <Link>
