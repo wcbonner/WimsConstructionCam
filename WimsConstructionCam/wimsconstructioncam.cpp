@@ -39,7 +39,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220714-4 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220715-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 double Latitude = 0;
@@ -802,15 +802,6 @@ static const struct option long_options[] = {
 int main(int argc, char** argv)
 {
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	if (ConsoleVerbosity > 0)
-	{
-		std::cout << "[" << getTimeExcelLocal() << "] " << ProgramVersionString << std::endl;
-		std::ostringstream startupargs;
-		for (auto index = 0; index < argc; index++)
-			startupargs << " " << argv[index];
-		std::cout << "[" << getTimeExcelLocal() << "] " << startupargs.str() << std::endl;
-	}
-	///////////////////////////////////////////////////////////////////////////////////////////////
 	tzset();
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	for (;;)
@@ -863,7 +854,16 @@ int main(int argc, char** argv)
 		}
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	if (ConsoleVerbosity < 1)
+	// I don't print the banner earlier because I haven't interpreted ConsoleVerbosity until I've parsed the parameters!
+	if (ConsoleVerbosity > 0)
+	{
+		std::cout << "[" << getTimeExcelLocal() << "] " << ProgramVersionString << std::endl;
+		std::ostringstream startupargs;
+		for (auto index = 0; index < argc; index++)
+			startupargs << " " << argv[index];
+		std::cout << "[" << getTimeExcelLocal() << "] " << startupargs.str() << std::endl;
+	}
+	else
 	{
 		std::ostringstream startupargs;
 		startupargs << ProgramVersionString << " (starting)" << std::endl;

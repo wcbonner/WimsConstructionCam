@@ -2,7 +2,7 @@
 [Unit]
 Description=WimsConstructionCam service
 After=network-online.target
-Requires=
+Requires=time-set.target
 StartLimitBurst=5
 StartLimitIntervalSec=33
 
