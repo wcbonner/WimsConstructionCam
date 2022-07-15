@@ -12,13 +12,10 @@ deb: WimsConstructionCam/usr/local/bin/wimsconstructioncam WimsConstructionCam/D
 	sed -i "s/Architecture: .*/Architecture: $(shell dpkg --print-architecture)/" WimsConstructionCam/DEBIAN/control
 	chmod a+x WimsConstructionCam/DEBIAN/postinst WimsConstructionCam/DEBIAN/postrm WimsConstructionCam/DEBIAN/prerm
 	dpkg-deb --build WimsConstructionCam
-
-install-deb: deb
-	apt install ./WimsConstructionCam.deb
+	dpkg-name --overwrite WimsConstructionCam.deb
 
 clean:
 	-rm -rf WimsConstructionCam/usr/local/bin
-	-rm -f WimsConstructionCam.deb
 	rm wimsconstructioncam.o
 	git restore WimsConstructionCam/DEBIAN/control
 
