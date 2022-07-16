@@ -2,7 +2,7 @@ CXX ?= g++
 
 WimsConstructionCam/usr/local/bin/wimsconstructioncam: wimsconstructioncam.o
 	mkdir -p $(shell dirname $@)
-	$(CXX) $? -o$@ -lgps
+	$(CXX) $? -o$@ 
 
 wimsconstructioncam.o: wimsconstructioncam.cpp makefile
 	$(CXX) -c -Wno-psabi -O3 -std=c++11 $? -o$@
