@@ -39,7 +39,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220715-2 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220716-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 double Latitude = 0;
@@ -933,9 +933,9 @@ int main(int argc, char** argv)
 		{
 			// if before sunrise we wait for sunrise, then loop back to the top
 			if (ConsoleVerbosity > 0)
-				std::cout << "[" << getTimeExcelLocal() << "] Sunrise: " << timeToExcelLocal(SunriseNOAA) << " sleeping for " << (SunriseNOAA - LoopStartTime) / 60 << " minutes" << std::endl;
+				std::cout << "[" << getTimeExcelLocal() << "] before Sunrise: " << timeToExcelLocal(SunriseNOAA) << " sleeping for " << (SunriseNOAA - LoopStartTime) / 60 << " minutes" << std::endl;
 			else 
-				std::cerr << "Sunrise: " << timeToExcelLocal(SunriseNOAA) << " sleeping for " << (SunriseNOAA - LoopStartTime) / 60 << " minutes" << std::endl;
+				std::cerr << "before Sunrise: " << timeToExcelLocal(SunriseNOAA) << " sleeping for " << (SunriseNOAA - LoopStartTime) / 60 << " minutes" << std::endl;
 			sleep(SunriseNOAA - LoopStartTime);
 		}
 		else if (LoopStartTime > SunsetNOAA)
@@ -947,9 +947,9 @@ int main(int argc, char** argv)
 				int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
 				int MinutesLeftInDay = 24*60 - CurrentMinuteInDay;
 				if (ConsoleVerbosity > 0)
-					std::cout << "[" << getTimeExcelLocal() << "] Sunset: " << timeToExcelLocal(SunsetNOAA) << " sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
+					std::cout << "[" << getTimeExcelLocal() << "] after Sunset: " << timeToExcelLocal(SunsetNOAA) << " sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
 				else
-					std::cerr << "Sunset: " << timeToExcelLocal(SunsetNOAA) << " sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
+					std::cerr << "after Sunset: " << timeToExcelLocal(SunsetNOAA) << " sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
 				sleep(MinutesLeftInDay * 60);
 			}
 		}
@@ -1021,6 +1021,12 @@ int main(int argc, char** argv)
 							std::cout << " " << *iter;
 						std::cout << std::endl;
 					}
+					else
+					{
+						for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+							std::cerr << *iter;
+						std::cerr << std::endl;
+					}
 					std::vector<char*> args;
 					for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
 						args.push_back((char*)arg->c_str());
@@ -1029,10 +1035,7 @@ int main(int argc, char** argv)
 					// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
 					if (execvp(args[0], &args[0]) == -1)
 					{
-						std::cerr << "execvp Error: ";
-						for (auto iter = args.begin(); iter != args.end(); iter++)
-							std::cerr << *iter;
-						std::cerr << std::endl;
+						std::cerr << "execvp Error!" << std::endl;
 						mycommand.front() = "libcamera-still";
 						mycommand.push_back("--continue-autofocus");
 						if (ConsoleVerbosity > 0)
@@ -1042,6 +1045,12 @@ int main(int argc, char** argv)
 								std::cout << " " << *iter;
 							std::cout << std::endl;
 						}
+						else
+						{
+							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+								std::cerr << *iter;
+							std::cerr << std::endl;
+						}
 						args.clear();
 						for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
 							args.push_back((char*)iter->c_str());
@@ -1050,10 +1059,7 @@ int main(int argc, char** argv)
 						// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
 						if (execvp(args[0], &args[0]) == -1)
 						{
-							std::cerr << "execvp Error: ";
-							for (auto iter = args.begin(); iter != args.end(); iter++)
-								std::cerr << *iter;
-							std::cerr << std::endl;
+							std::cerr << "execvp Error!" << std::endl;
 							// One last try because the standard libcamera-still program doesn't have the --continue-autofocus option
 							mycommand.pop_back();
 							if (ConsoleVerbosity > 0)
@@ -1063,6 +1069,12 @@ int main(int argc, char** argv)
 									std::cout << " " << *iter;
 								std::cout << std::endl;
 							}
+							else
+							{
+								for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+									std::cerr << *iter;
+								std::cerr << std::endl;
+							}
 							args.clear();
 							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
 								args.push_back((char*)iter->c_str());
@@ -1071,10 +1083,7 @@ int main(int argc, char** argv)
 							// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
 							if (execvp(args[0], &args[0]) == -1)
 							{
-								std::cerr << "execvp Error: ";
-								for (auto iter = args.begin(); iter != args.end(); iter++)
-									std::cerr << *iter;
-								std::cerr << std::endl;
+								std::cerr << "execvp Error!" << std::endl;
 								bRun = false;
 							}
 						}
