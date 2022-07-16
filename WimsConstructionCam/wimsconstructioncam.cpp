@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220716-2 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220716-3 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 double Latitude = 0;
@@ -641,7 +641,9 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 			wait(&CameraProgram_exit_status);				/* Wait for child process to end */
 			// https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStill.c
 			// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
-			if (EXIT_FAILURE == WEXITSTATUS(CameraProgram_exit_status) || (EX_SOFTWARE == WEXITSTATUS(CameraProgram_exit_status)))
+			if ((EXIT_FAILURE == WEXITSTATUS(CameraProgram_exit_status)) || 
+				(EX_SOFTWARE == WEXITSTATUS(CameraProgram_exit_status)) || 
+				(255 == WEXITSTATUS(CameraProgram_exit_status))) // ERROR: the system should be configured for the legacy camera stack
 			{
 				mycommand.front() = "libcamera-still";
 				mycommand.push_back("--continue-autofocus");
