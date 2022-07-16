@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220716-3 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220716-4 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 double Latitude = 0;
@@ -679,7 +679,8 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 					wait(&CameraProgram_exit_status);				/* Wait for child process to end */
 					// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
 					// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
-					if (EXIT_FAILURE == WEXITSTATUS(CameraProgram_exit_status))
+					if ((EXIT_FAILURE == WEXITSTATUS(CameraProgram_exit_status)) || 
+						(255 == WEXITSTATUS(CameraProgram_exit_status))) // ERROR: *** unrecognised option '--continue-autofocus' ***
 					{
 						// One last try because the standard libcamera-still program doesn't have the --continue-autofocus option
 						mycommand.pop_back();
