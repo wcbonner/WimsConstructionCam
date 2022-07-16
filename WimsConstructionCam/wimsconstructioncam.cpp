@@ -20,6 +20,7 @@
 #include <netinet/in.h>
 #include <queue>
 #include <sstream>
+#include <sysexits.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -39,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220716-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220716-2 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 double Latitude = 0;
@@ -559,6 +560,186 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 	}
 }
 /////////////////////////////////////////////////////////////////////////////
+bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, const time_t& Sunset)
+{
+	bool rval = false;
+	std::ostringstream OutputFormat;	// raspistill outputname format string
+	std::ostringstream FrameStart;		// first filename for raspistill to use in current loop
+	std::ostringstream Timeout;			// how many milliseconds raspistill will run
+	// Minutes in Day = 60 * 24 = 1440
+	int MinutesLeftInDay = 1440;
+	struct tm UTC;
+	if (0 != localtime_r(&TheTime, &UTC))
+	{
+		int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
+		struct tm SunsetTM;
+		if (0 != localtime_r(&Sunset, &SunsetTM))
+			MinutesLeftInDay = (SunsetTM.tm_hour * 60 + SunsetTM.tm_min) - CurrentMinuteInDay;
+		else
+			MinutesLeftInDay = 1440 - CurrentMinuteInDay;
+		if (TimeoutMinutes == 0)
+			Timeout << MinutesLeftInDay * 60 * 1000;
+		else
+			Timeout << TimeoutMinutes * 60 * 1000;
+		OutputFormat.fill('0');
+		OutputFormat << GetImageDirectory(DestinationDir, TheTime) << "/";
+		OutputFormat.width(2);
+		OutputFormat << UTC.tm_mon + 1;
+		OutputFormat.width(2);
+		OutputFormat << UTC.tm_mday;
+		OutputFormat << "\%04d.jpg";
+		FrameStart << GetLastImageNum(GetImageDirectory(DestinationDir, TheTime)) + 1;
+
+		if (ConsoleVerbosity > 0)
+		{
+			std::cout << "[" << getTimeExcelLocal() << "]  OutputFormat: " << OutputFormat.str() << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]    FrameStart: " << FrameStart.str() << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]       Timeout: " << Timeout.str() << std::endl;
+		}
+
+		std::vector<std::string> mycommand;
+		mycommand.push_back("raspistill");
+		mycommand.push_back("--nopreview");
+		mycommand.push_back("--thumb"); mycommand.push_back("none");
+		mycommand.push_back("--width"); mycommand.push_back("1920");
+		mycommand.push_back("--height"); mycommand.push_back("1080");
+		mycommand.push_back("--timeout"); mycommand.push_back(Timeout.str());
+		mycommand.push_back("--timelapse"); mycommand.push_back("60000");
+		mycommand.push_back("--output"); mycommand.push_back(OutputFormat.str());
+		mycommand.push_back("--framestart"); mycommand.push_back(FrameStart.str());
+		if (ConsoleVerbosity > 0)
+		{
+			std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
+			for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+				std::cout << " " << *iter;
+			std::cout << std::endl;
+		}
+		else
+		{
+			for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+				std::cerr << " " << *iter;
+			std::cerr << std::endl;
+		}
+		std::vector<char*> args;
+		for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
+			args.push_back((char*)arg->c_str());
+		args.push_back(NULL);
+
+		/* Attempt to fork */
+		pid_t pid = fork();
+		if (pid == 0)
+		{
+			/* A zero PID indicates that this is the child process */
+			/* Replace the child fork with a new process */
+			if (execvp(args[0], &args[0]) == -1)
+				exit(EXIT_FAILURE);
+		}
+		else if (pid > 0)
+		{
+			/* A positive (non-negative) PID indicates the parent process */
+			int CameraProgram_exit_status = 0;
+			wait(&CameraProgram_exit_status);				/* Wait for child process to end */
+			// https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStill.c
+			// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
+			if (EXIT_FAILURE == WEXITSTATUS(CameraProgram_exit_status) || (EX_SOFTWARE == WEXITSTATUS(CameraProgram_exit_status)))
+			{
+				mycommand.front() = "libcamera-still";
+				mycommand.push_back("--continue-autofocus");
+				if (ConsoleVerbosity > 0)
+				{
+					std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
+					for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+						std::cout << " " << *iter;
+					std::cout << std::endl;
+				}
+				else
+				{
+					for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+						std::cerr << " " << *iter;
+					std::cerr << std::endl;
+				}
+				args.clear();
+				for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+					args.push_back((char*)iter->c_str());
+				args.push_back(NULL);
+
+				pid = fork();
+				if (pid == 0)
+				{
+					/* A zero PID indicates that this is the child process */
+					/* Replace the child fork with a new process */
+					if (execvp(args[0], &args[0]) == -1)
+						exit(EXIT_FAILURE);
+				}
+				else if (pid > 0)
+				{
+					/* A positive (non-negative) PID indicates the parent process */
+					wait(&CameraProgram_exit_status);				/* Wait for child process to end */
+					// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
+					// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
+					if (EXIT_FAILURE == WEXITSTATUS(CameraProgram_exit_status))
+					{
+						// One last try because the standard libcamera-still program doesn't have the --continue-autofocus option
+						mycommand.pop_back();
+						if (ConsoleVerbosity > 0)
+						{
+							std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
+							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+								std::cout << " " << *iter;
+							std::cout << std::endl;
+						}
+						else
+						{
+							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+								std::cerr << " " << *iter;
+							std::cerr << std::endl;
+						}
+						args.clear();
+						for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+							args.push_back((char*)iter->c_str());
+						args.push_back(NULL);
+
+						pid = fork();
+						if (pid == 0)
+						{
+							/* A zero PID indicates that this is the child process */
+							/* Replace the child fork with a new process */
+							if (execvp(args[0], &args[0]) == -1)
+								exit(EXIT_FAILURE);
+						}
+						else if (pid > 0)
+						{
+							/* A positive (non-negative) PID indicates the parent process */
+							wait(&CameraProgram_exit_status);				/* Wait for child process to end */
+							if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status) && (EXIT_SUCCESS == WTERMSIG(CameraProgram_exit_status)))
+								rval = true;
+						}
+					}
+					else if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status))
+						rval = true;
+				}
+			}
+			else if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status))
+				rval = true;
+
+			if (EXIT_SUCCESS != WEXITSTATUS(CameraProgram_exit_status))
+			{
+				std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(CameraProgram_exit_status) << ")" << std::endl;
+				std::cerr << mycommand.front() << " ended with signal (" << WTERMSIG(CameraProgram_exit_status) << ")" << std::endl;
+			}
+			else if (ConsoleVerbosity > 0)
+			{
+				std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with exit (" << WEXITSTATUS(CameraProgram_exit_status) << ")" << std::endl;
+				std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with signal (" << WTERMSIG(CameraProgram_exit_status) << ")" << std::endl;
+			}
+		}
+		else
+		{
+			std::cerr << " Fork error! CameraProgram." << std::endl;  /* something went wrong */
+		}
+	}
+	return(rval);
+}
 bool CreateDailyMovie(const std::string DailyDirectory)
 {
 	bool rval = false;
@@ -640,52 +821,60 @@ bool CreateDailyMovie(const std::string DailyDirectory)
 							std::cerr << "    File Count: " << JPGfiles.size() << std::endl;
 							std::cerr << " VideoFileName: " << VideoFileName.str() << std::endl;
 						}
+
+						std::vector<std::string> mycommand;
+						mycommand.push_back("ffmpeg");
+						mycommand.push_back("-hide_banner");
+						mycommand.push_back("-r"); mycommand.push_back("30");
+						mycommand.push_back("-i"); mycommand.push_back(StillFormat.str());
+						mycommand.push_back("-vf"); mycommand.push_back("drawtext=font=sans:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=main_w-text_w-30:text=WimsConstructionCam,drawtext=font=mono:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=30:text=%{metadata\\\\:DateTimeOriginal}");
+						mycommand.push_back("-c:v"); mycommand.push_back("libx265");
+						mycommand.push_back("-crf"); mycommand.push_back("23");
+						mycommand.push_back("-preset"); mycommand.push_back("veryfast");
+						mycommand.push_back("-movflags"); mycommand.push_back("+faststart");
+						mycommand.push_back("-bf"); mycommand.push_back("2");
+						mycommand.push_back("-g"); mycommand.push_back("15");
+						mycommand.push_back("-pix_fmt"); mycommand.push_back("yuv420p");
+						mycommand.push_back("-y");
+						mycommand.push_back(VideoFileName.str());
+						if (ConsoleVerbosity > 0)
+						{
+							std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
+							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+								std::cout << " " << *iter;
+							std::cout << std::endl;
+						}
+						std::vector<char*> args;
+						for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
+							args.push_back((char*)arg->c_str());
+						args.push_back(NULL);
+
 						pid_t pid_FFMPEG = fork();
 						if (pid_FFMPEG == 0)
 						{
 							/* A zero PID indicates that this is the child process */
 							/* Replace the child fork with a new process */
-							std::vector<std::string> mycommand;
-							mycommand.push_back("ffmpeg");
-							mycommand.push_back("-hide_banner");
-							mycommand.push_back("-r"); mycommand.push_back("30");
-							mycommand.push_back("-i"); mycommand.push_back(StillFormat.str());
-							mycommand.push_back("-vf"); mycommand.push_back("drawtext=font=sans:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=main_w-text_w-30:text=WimsConstructionCam,drawtext=font=mono:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=30:text=%{metadata\\\\:DateTimeOriginal}");
-							mycommand.push_back("-c:v"); mycommand.push_back("libx265");
-							mycommand.push_back("-crf"); mycommand.push_back("23");
-							mycommand.push_back("-preset"); mycommand.push_back("veryfast");
-							mycommand.push_back("-movflags"); mycommand.push_back("+faststart");
-							mycommand.push_back("-bf"); mycommand.push_back("2");
-							mycommand.push_back("-g"); mycommand.push_back("15");
-							mycommand.push_back("-pix_fmt"); mycommand.push_back("yuv420p");
-							mycommand.push_back("-y");
-							mycommand.push_back(VideoFileName.str());
-							if (ConsoleVerbosity > 0)
-							{
-								std::cout << "[" << getTimeExcelLocal() << "]        execlp:";
-								for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-									std::cout << " " << *iter;
-								std::cout << std::endl;
-							}
-							std::vector<char*> args;
-							for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
-								args.push_back((char*)arg->c_str());
-							args.push_back(NULL);
 							if (execvp(args[0], &args[0]) == -1)
-							{
-								std::cerr << " execvp Error! " << args[0] << std::endl;
-							}
+								exit(EXIT_FAILURE);
 						}
 						else if (pid_FFMPEG > 0)
 						{
 							/* A positive (non-negative) PID indicates the parent process */
 							int ffmpeg_exit_status = 0;
 							wait(&ffmpeg_exit_status);				/* Wait for child process to end */
-							if (ConsoleVerbosity > 0)
-								std::cout << "[" << getTimeExcelLocal() << "] ffmpeg exited with a " << ffmpeg_exit_status << " value" << std::endl;
-							else if (ffmpeg_exit_status != 0)
-								std::cerr << "ffmpeg exited with a " << ffmpeg_exit_status << " value" << std::endl;
-							if (ffmpeg_exit_status == 0)
+
+							if (EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status))
+							{
+								std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
+								std::cerr << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
+							}
+							else if (ConsoleVerbosity > 0)
+							{
+								std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
+								std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
+							}
+
+							if (EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status))
 							{
 								rval = true;
 								// change file date on mp4 file to match the last jpg file
@@ -957,156 +1146,9 @@ int main(int argc, char** argv)
 		{
 			// largest file in sample was 1,310,523, multiply by minutes in day 1440, 1887153120, round up to 2000000000 or 2GB.
 			GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
-			std::string ImageDirectory(GetImageDirectory(DestinationDir, LoopStartTime));
-			std::ostringstream OutputFormat;	// raspistill outputname format string
-			std::ostringstream FrameStart;		// first filename for raspistill to use in current loop
-			std::ostringstream Timeout;			// how many milliseconds raspistill will run
-			// Minutes in Day = 60 * 24 = 1440
-			int MinutesLeftInDay = 1440;
-			struct tm UTC;
-			if (0 != localtime_r(&LoopStartTime, &UTC))
-			{
-				int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
-				struct tm SunsetTM;
-				if (0 != localtime_r(&SunsetNOAA, &SunsetTM))
-					MinutesLeftInDay = (SunsetTM.tm_hour * 60 + SunsetTM.tm_min) - CurrentMinuteInDay;
-				else
-					MinutesLeftInDay = 1440 - CurrentMinuteInDay;
-				if (TimeoutMinutes == 0)
-					Timeout << MinutesLeftInDay * 60 * 1000;
-				else
-					Timeout << TimeoutMinutes * 60 * 1000;
-				OutputFormat.fill('0');
-				OutputFormat << ImageDirectory << "/";
-				OutputFormat.width(2);
-				OutputFormat << UTC.tm_mon + 1;
-				OutputFormat.width(2);
-				OutputFormat << UTC.tm_mday;
-				OutputFormat << "\%04d.jpg";
-				FrameStart << GetLastImageNum(ImageDirectory) + 1;
-			}
-			else
-				bRun = false;
-
-			if (ConsoleVerbosity > 0)
-			{
-				std::cout << "[" << getTimeExcelLocal() << "]  OutputFormat: " << OutputFormat.str() << std::endl;
-				std::cout << "[" << getTimeExcelLocal() << "]    FrameStart: " << FrameStart.str() << std::endl;
-				std::cout << "[" << getTimeExcelLocal() << "]       Timeout: " << Timeout.str() << std::endl;
-			}
-
+			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA);
 			if (bRun)
-			{
-				/* Attempt to fork */
-				pid_t pid = fork();
-				if (pid == 0)
-				{
-					/* A zero PID indicates that this is the child process */
-					/* Replace the child fork with a new process */
-					std::vector<std::string> mycommand;
-					// mycommand.push_back("raspistill");
-					mycommand.front() = "libcamera-still"; // Quick hack to use Bullseye 
-					mycommand.push_back("--nopreview");
-					mycommand.push_back("--thumb"); mycommand.push_back("none");
-					mycommand.push_back("--width"); mycommand.push_back("1920");
-					mycommand.push_back("--height"); mycommand.push_back("1080");
-					mycommand.push_back("--timeout"); mycommand.push_back(Timeout.str());
-					mycommand.push_back("--timelapse"); mycommand.push_back("60000");
-					mycommand.push_back("--output"); mycommand.push_back(OutputFormat.str());
-					mycommand.push_back("--framestart"); mycommand.push_back(FrameStart.str());
-					if (ConsoleVerbosity > 0)
-					{
-						std::cout << "[" << getTimeExcelLocal() << "]        execlp:";
-						for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-							std::cout << " " << *iter;
-						std::cout << std::endl;
-					}
-					else
-					{
-						for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-							std::cerr << *iter;
-						std::cerr << std::endl;
-					}
-					std::vector<char*> args;
-					for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
-						args.push_back((char*)arg->c_str());
-					args.push_back(NULL);
-					// https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStill.c
-					// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
-					if (execvp(args[0], &args[0]) == -1)
-					{
-						std::cerr << "execvp Error!" << std::endl;
-						mycommand.front() = "libcamera-still";
-						mycommand.push_back("--continue-autofocus");
-						if (ConsoleVerbosity > 0)
-						{
-							std::cout << "[" << getTimeExcelLocal() << "]        execlp:";
-							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-								std::cout << " " << *iter;
-							std::cout << std::endl;
-						}
-						else
-						{
-							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-								std::cerr << *iter;
-							std::cerr << std::endl;
-						}
-						args.clear();
-						for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-							args.push_back((char*)iter->c_str());
-						args.push_back(NULL);
-						// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
-						// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
-						if (execvp(args[0], &args[0]) == -1)
-						{
-							std::cerr << "execvp Error!" << std::endl;
-							// One last try because the standard libcamera-still program doesn't have the --continue-autofocus option
-							mycommand.pop_back();
-							if (ConsoleVerbosity > 0)
-							{
-								std::cout << "[" << getTimeExcelLocal() << "]        execlp:";
-								for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-									std::cout << " " << *iter;
-								std::cout << std::endl;
-							}
-							else
-							{
-								for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-									std::cerr << *iter;
-								std::cerr << std::endl;
-							}
-							args.clear();
-							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-								args.push_back((char*)iter->c_str());
-							args.push_back(NULL);
-							// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
-							// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
-							if (execvp(args[0], &args[0]) == -1)
-							{
-								std::cerr << "execvp Error!" << std::endl;
-								bRun = false;
-							}
-						}
-					}
-				}
-				else if (pid > 0)
-				{
-					/* A positive (non-negative) PID indicates the parent process */
-					int CameraProgram_exit_status = 0;
-					wait(&CameraProgram_exit_status);				/* Wait for child process to end */
-					if (CameraProgram_exit_status != 0)
-						std::cerr << "CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
-					else if (ConsoleVerbosity > 0)
-						std::cout << "[" << getTimeExcelLocal() << "] CameraProgram exited with a  " << CameraProgram_exit_status << " value" << std::endl;
-				}
-				else
-				{
-					std::cerr << " Fork error! CameraProgram." << std::endl;  /* something went wrong */
-					bRun = false;
-				}
-				if (bRun)
-					bRun = CreateDailyMovie(ImageDirectory);
-			}
+				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime));
 		}
 	}
 	// remove our special Ctrl-C signal handler and restore previous one
