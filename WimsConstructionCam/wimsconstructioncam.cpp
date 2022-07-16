@@ -39,7 +39,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220715-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220715-2 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 double Latitude = 0;
@@ -1004,7 +1004,8 @@ int main(int argc, char** argv)
 					/* A zero PID indicates that this is the child process */
 					/* Replace the child fork with a new process */
 					std::vector<std::string> mycommand;
-					mycommand.push_back("raspistill");
+					// mycommand.push_back("raspistill");
+					mycommand.front() = "libcamera-still"; // Quick hack to use Bullseye 
 					mycommand.push_back("--nopreview");
 					mycommand.push_back("--thumb"); mycommand.push_back("none");
 					mycommand.push_back("--width"); mycommand.push_back("1920");
