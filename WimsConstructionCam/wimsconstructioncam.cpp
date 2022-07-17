@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220716-5 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220717-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 double Latitude = 0;
@@ -671,12 +671,12 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 					/* A zero PID indicates that this is the child process */
 					/* Replace the child fork with a new process */
 					//HACK: Redirecting stderr to /dev/null so that libcamera app doesn't fill up syslog
-					FILE* devnull = fopen("/dev/null","w");
-					if (devnull != NULL)
-					{
-						dup2(fileno(devnull), STDERR_FILENO);
-						fclose(devnull);
-					}
+					//FILE* devnull = fopen("/dev/null","w");
+					//if (devnull != NULL)
+					//{
+					//	dup2(fileno(devnull), STDERR_FILENO);
+					//	fclose(devnull);
+					//}
 					if (execvp(args[0], &args[0]) == -1)
 						exit(EXIT_FAILURE);
 				}
@@ -715,12 +715,12 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 							/* A zero PID indicates that this is the child process */
 							/* Replace the child fork with a new process */
 							//HACK: Redirecting stderr to /dev/null so that libcamera app doesn't fill up syslog
-							FILE* devnull = fopen("/dev/null", "w");
-							if (devnull != NULL)
-							{
-								dup2(fileno(devnull), STDERR_FILENO);
-								fclose(devnull);
-							}
+							//FILE* devnull = fopen("/dev/null", "w");
+							//if (devnull != NULL)
+							//{
+							//	dup2(fileno(devnull), STDERR_FILENO);
+							//	fclose(devnull);
+							//}
 							if (execvp(args[0], &args[0]) == -1)
 								exit(EXIT_FAILURE);
 						}

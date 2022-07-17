@@ -10,6 +10,7 @@ StartLimitIntervalSec=33
 Type=simple
 Restart=always
 RestartSec=5
+Environment=LIBCAMERA_LOG_LEVELS=*:4
 ExecStart=/usr/local/bin/wimsconstructioncam -v 0 --lat 47.669916733 --lon -122.382360867 --destination /media/%H/DCIM
 KillSignal=SIGINT
 
