@@ -81,6 +81,7 @@
     <None Include="hb1321.pdf" />
     <None Include="hb1329.pdf" />
     <None Include="makefile" />
+    <None Include="SIM7500_SIM7600_Series_AT_Command_Manual_V1.12.pdf" />
     <None Include="SIM7600G-H 4G HAT (B) For Raspberry Pi, LTE Cat-4 4G _ 3G _ 2G Support, GNSS Positioning, Global Band.html" />
     <None Include="WimsConstructionCam\DEBIAN\control" />
     <None Include="WimsConstructionCam\DEBIAN\postinst" />

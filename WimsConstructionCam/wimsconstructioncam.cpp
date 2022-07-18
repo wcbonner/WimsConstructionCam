@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220717-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220718-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 double Latitude = 0;
@@ -842,6 +842,7 @@ bool CreateDailyMovie(const std::string DailyDirectory)
 						std::vector<std::string> mycommand;
 						mycommand.push_back("ffmpeg");
 						mycommand.push_back("-hide_banner");
+						mycommand.push_back("-loglevel"); mycommand.push_back("warning");
 						mycommand.push_back("-r"); mycommand.push_back("30");
 						mycommand.push_back("-i"); mycommand.push_back(StillFormat.str());
 						mycommand.push_back("-vf"); mycommand.push_back("drawtext=font=sans:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=main_w-text_w-30:text=WimsConstructionCam,drawtext=font=mono:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=30:text=%{metadata\\\\:DateTimeOriginal}");
