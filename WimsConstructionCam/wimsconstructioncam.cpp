@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220718-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220718-2 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 double Latitude = 0;
@@ -832,12 +832,6 @@ bool CreateDailyMovie(const std::string DailyDirectory)
 							std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << JPGfiles.size() << std::endl;
 							std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << VideoFileName.str() << std::endl;
 						}
-						else
-						{
-							std::cerr << "   StillFormat: " << StillFormat.str() << std::endl;
-							std::cerr << "    File Count: " << JPGfiles.size() << std::endl;
-							std::cerr << " VideoFileName: " << VideoFileName.str() << std::endl;
-						}
 
 						std::vector<std::string> mycommand;
 						mycommand.push_back("ffmpeg");
@@ -861,6 +855,13 @@ bool CreateDailyMovie(const std::string DailyDirectory)
 							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
 								std::cout << " " << *iter;
 							std::cout << std::endl;
+						}
+						else
+						{
+							std::cerr << " JPG File Count: " << JPGfiles.size() << std::endl;
+							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+								std::cerr << " " << *iter;
+							std::cerr << std::endl;
 						}
 						std::vector<char*> args;
 						for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
