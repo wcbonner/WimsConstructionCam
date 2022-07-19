@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220719-3 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220719-4 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -734,14 +734,14 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 								rval = true;
 						}
 					}
-					else if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status))
+					else if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status) && (EXIT_SUCCESS == WTERMSIG(CameraProgram_exit_status)))
 						rval = true;
 				}
 			}
-			else if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status))
+			else if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status) && (EXIT_SUCCESS == WTERMSIG(CameraProgram_exit_status)))
 				rval = true;
 
-			if (EXIT_SUCCESS != WEXITSTATUS(CameraProgram_exit_status))
+			if (!rval)
 			{
 				std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(CameraProgram_exit_status) << ")" << std::endl;
 				std::cerr << mycommand.front() << " ended with signal (" << WTERMSIG(CameraProgram_exit_status) << ")" << std::endl;
