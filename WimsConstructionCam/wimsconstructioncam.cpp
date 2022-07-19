@@ -31,6 +31,7 @@
 #include <unistd.h> // For close()
 #include <utime.h>
 #include <vector>
+#define _USE_GPSD
 #ifdef _USE_GPSD
 #include <gps.h>        // apt install libgps-dev
 #include <libgpsmm.h>   // apt install libgps-dev
@@ -40,9 +41,10 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220718-2 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220719-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
+bool UseGPSD = false;
 double Latitude = 0;
 double Longitude = 0;
 int GigabytesFreeSpace = 8;
@@ -646,6 +648,7 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 				(255 == WEXITSTATUS(CameraProgram_exit_status))) // ERROR: the system should be configured for the legacy camera stack
 			{
 				mycommand.front() = "libcamera-still";
+				mycommand.push_back("--verbose"); mycommand.push_back("0");
 				mycommand.push_back("--continue-autofocus");
 				if (ConsoleVerbosity > 0)
 				{
@@ -988,18 +991,20 @@ static void usage(int argc, char** argv)
 	std::cout << "    -t | --time minutes of stills to capture [" << TimeoutMinutes << "]" << std::endl;
 	std::cout << "    -l | --lat latitude for sunrise/sunset [" << Latitude << "]" << std::endl;
 	std::cout << "    -L | --lon longitude for sunrise/sunset [" << Longitude << "]" << std::endl;
+	std::cout << "    -G | --gps prefer gpsd lat/lon, if available, to command line" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:f:t:l:L:";
+static const char short_options[] = "hv:d:f:t:l:L:G";
 static const struct option long_options[] = {
-		{ "help",   no_argument,       NULL, 'h' },
-		{ "verbose",required_argument, NULL, 'v' },
-		{ "destination",	required_argument, NULL, 'd' },
-		{ "freespace",required_argument, NULL, 'f' },
-		{ "time",required_argument, NULL, 't' },
-		{ "lat",required_argument, NULL, 'l' },
-		{ "lon",required_argument, NULL, 'L' },
-		{ 0, 0, 0, 0 }
+	{ "help",no_argument,			NULL, 'h' },
+	{ "verbose",required_argument,	NULL, 'v' },
+	{ "destination",required_argument, NULL, 'd' },
+	{ "freespace",required_argument,NULL, 'f' },
+	{ "time",required_argument,		NULL, 't' },
+	{ "lat",required_argument,		NULL, 'l' },
+	{ "lon",required_argument,		NULL, 'L' },
+	{ "gps",no_argument,			NULL, 'G' },
+	{ 0, 0, 0, 0 }
 };
 /////////////////////////////////////////////////////////////////////////////
 // Here's some web pages related to sunrise/sunset calculations since there's no reason to be taking pictures in the dark.
@@ -1056,6 +1061,9 @@ int main(int argc, char** argv)
 			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
 			break;
+		case 'G':
+			UseGPSD = true;
+			break;
 		default:
 			usage(argc, argv);
 			exit(EXIT_FAILURE);
@@ -1085,11 +1093,6 @@ int main(int argc, char** argv)
 		usage(argc, argv);
 		exit(EXIT_FAILURE);
 	}
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	// If Latitude or Longitude not specified on command line try to get it from GPSD
-	if ((Latitude == 0) || (Longitude == 0))
-		getLatLon(Latitude, Longitude);
-	///////////////////////////////////////////////////////////////////////////////////////////////
 	CreateAllDailyMovies(DestinationDir);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
@@ -1100,6 +1103,11 @@ int main(int argc, char** argv)
 	{
 		time_t LoopStartTime, SunriseNOAA, SunsetNOAA;
 		time(&LoopStartTime);
+		///////////////////////////////////////////////////////////////////////////////////////////////
+		// If Latitude or Longitude not specified on command line try to get it from GPSD
+		if ((Latitude == 0) || (Longitude == 0) || (UseGPSD))
+			UseGPSD = getLatLon(Latitude, Longitude);
+		///////////////////////////////////////////////////////////////////////////////////////////////
 		if (getSunriseSunset(SunriseNOAA, SunsetNOAA, LoopStartTime, Latitude, Longitude))
 		{
 			SunriseNOAA -= 60 * 30; // Start half an hour before calculated Sunrise
