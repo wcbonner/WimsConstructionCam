@@ -31,7 +31,6 @@
 #include <unistd.h> // For close()
 #include <utime.h>
 #include <vector>
-#define _USE_GPSD
 #ifdef _USE_GPSD
 #include <gps.h>        // apt install libgps-dev
 #include <libgpsmm.h>   // apt install libgps-dev
@@ -41,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220719-1 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam Version 1.20220719-3 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
