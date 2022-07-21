@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimConstructionCam Version 1.20220719-4 Built on: " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimConstructionCam 1.20220721-1 Built on: " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -759,7 +759,7 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 	}
 	return(rval);
 }
-bool CreateDailyMovie(const std::string DailyDirectory)
+bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOverlay)
 {
 	bool rval = false;
 	DIR* dp;
@@ -834,14 +834,21 @@ bool CreateDailyMovie(const std::string DailyDirectory)
 							std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << JPGfiles.size() << std::endl;
 							std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << VideoFileName.str() << std::endl;
 						}
-
 						std::vector<std::string> mycommand;
 						mycommand.push_back("ffmpeg");
 						mycommand.push_back("-hide_banner");
 						mycommand.push_back("-loglevel"); mycommand.push_back("warning");
 						mycommand.push_back("-r"); mycommand.push_back("30");
 						mycommand.push_back("-i"); mycommand.push_back(StillFormat.str());
-						mycommand.push_back("-vf"); mycommand.push_back("drawtext=font=sans:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=main_w-text_w-30:text=WimsConstructionCam,drawtext=font=mono:fontcolor=white:fontsize=60:y=main_h-text_h-30:x=30:text=%{metadata\\\\:DateTimeOriginal}");
+						auto found = VideoTextOverlay.find_first_of(":'\"\\");
+						while (found != std::string::npos)
+						{
+							VideoTextOverlay.erase(found, 1);
+							found = VideoTextOverlay.find_first_of(":'\"\\");
+						}
+						std::ostringstream vfParam;
+						vfParam << "drawtext=font=mono:fontcolor=white:fontsize=40:y=main_h-text_h-10:x=10:text=%{metadata\\\\:DateTimeOriginal},drawtext=font=sans:fontcolor=white:fontsize=40:y=main_h-text_h-10:x=main_w-text_w-10:text=" << VideoTextOverlay;
+						mycommand.push_back("-vf"); mycommand.push_back(vfParam.str());
 						mycommand.push_back("-c:v"); mycommand.push_back("libx265");
 						mycommand.push_back("-crf"); mycommand.push_back("23");
 						mycommand.push_back("-preset"); mycommand.push_back("veryfast");
@@ -920,7 +927,7 @@ bool CreateDailyMovie(const std::string DailyDirectory)
 	}
 	return(rval);
 }
-void CreateAllDailyMovies(const std::string DestinationDir)
+void CreateAllDailyMovies(const std::string DestinationDir, const std::string & VideoTextOverlay)
 {
 	DIR* dp;
 	if ((dp = opendir(DestinationDir.c_str())) != NULL)
@@ -959,7 +966,7 @@ void CreateAllDailyMovies(const std::string DestinationDir)
 		closedir(dp);
 		while (!Subdirectories.empty())
 		{
-			CreateDailyMovie(Subdirectories.front());
+			CreateDailyMovie(Subdirectories.front(), VideoTextOverlay);
 			Subdirectories.pop_front();
 		}
 	}
@@ -991,9 +998,10 @@ static void usage(int argc, char** argv)
 	std::cout << "    -l | --lat latitude for sunrise/sunset [" << Latitude << "]" << std::endl;
 	std::cout << "    -L | --lon longitude for sunrise/sunset [" << Longitude << "]" << std::endl;
 	std::cout << "    -G | --gps prefer gpsd lat/lon, if available, to command line" << std::endl;
+	std::cout << "    -n | --name Text to display on the bottom right of the video" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:f:t:l:L:G";
+static const char short_options[] = "hv:d:f:t:l:L:Gn:";
 static const struct option long_options[] = {
 	{ "help",no_argument,			NULL, 'h' },
 	{ "verbose",required_argument,	NULL, 'v' },
@@ -1003,6 +1011,7 @@ static const struct option long_options[] = {
 	{ "lat",required_argument,		NULL, 'l' },
 	{ "lon",required_argument,		NULL, 'L' },
 	{ "gps",no_argument,			NULL, 'G' },
+	{ "name",required_argument,		NULL, 'n' },
 	{ 0, 0, 0, 0 }
 };
 /////////////////////////////////////////////////////////////////////////////
@@ -1013,6 +1022,7 @@ static const struct option long_options[] = {
 /////////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv)
 {
+	std::string VideoOverlayText(ProgramVersionString);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	tzset();
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1063,6 +1073,9 @@ int main(int argc, char** argv)
 		case 'G':
 			UseGPSD = true;
 			break;
+		case 'n':
+			VideoOverlayText = std::string(optarg);
+			break;
 		default:
 			usage(argc, argv);
 			exit(EXIT_FAILURE);
@@ -1092,7 +1105,7 @@ int main(int argc, char** argv)
 		usage(argc, argv);
 		exit(EXIT_FAILURE);
 	}
-	CreateAllDailyMovies(DestinationDir);
+	CreateAllDailyMovies(DestinationDir, VideoOverlayText);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
 	typedef void (*SignalHandlerPointer)(int);
@@ -1174,7 +1187,7 @@ int main(int argc, char** argv)
 			GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
 			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA);
 			if (bRun)
-				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime));
+				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText);
 		}
 	}
 	// remove our special Ctrl-C signal handler and restore previous one
