@@ -13,6 +13,18 @@ Arducam for Raspberry Pi Zero with 160° field of view
 https://www.arducam.com/product/b006605-arducam-for-raspberry-pi-zero-camera-module-wide-angle-160-1-4-inch-5mp-ov5647-spy-camera-with-flex-cable-for-pi-zero-and-pi-compute-module/
 https://wimsworld.wordpress.com/2019/09/23/raspberry-pi-zerow-camera-focus-with-ffmpeg/
 
+ $32.95 	Weather Resistant Case
+ $54.99 	512 GB Memory Card
+ $86.99 	LTE Card
+ $21.99 	Arducam for Raspberry Pi Zero with 160° field of view 
+ $29.38 	Power Cord
+ $15.00 	Raspberry Pi Zero W
+ $9.76 	Extra hardware
+ $25.11 	Sales Tax
+ $20.20 	USPS Mailing
+ $296.37 	
+
+
 
 libcamera-vid -t 0 --nopreview --inline --listen -o tcp://0.0.0.0:5000
 libcamera-vid --timeout 0 --nopreview --listen --output tcp://0.0.0.0:5000
