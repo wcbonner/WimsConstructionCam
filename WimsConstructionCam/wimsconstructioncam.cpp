@@ -40,10 +40,11 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220730-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220731-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
+bool bRunOnce = false;
 double Latitude = 0;
 double Longitude = 0;
 int GigabytesFreeSpace = 8;
@@ -999,9 +1000,10 @@ static void usage(int argc, char** argv)
 	std::cout << "    -L | --lon longitude for sunrise/sunset [" << Longitude << "]" << std::endl;
 	std::cout << "    -G | --gps prefer gpsd lat/lon, if available, to command line" << std::endl;
 	std::cout << "    -n | --name Text to display on the bottom right of the video" << std::endl;
+	std::cout << "    -R | --runonce Run a single capture session and exit" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:f:t:l:L:Gn:";
+static const char short_options[] = "hv:d:f:t:l:L:Gn:R";
 static const struct option long_options[] = {
 	{ "help",no_argument,			NULL, 'h' },
 	{ "verbose",required_argument,	NULL, 'v' },
@@ -1012,6 +1014,7 @@ static const struct option long_options[] = {
 	{ "lon",required_argument,		NULL, 'L' },
 	{ "gps",no_argument,			NULL, 'G' },
 	{ "name",required_argument,		NULL, 'n' },
+	{ "runonce",no_argument,		NULL, 'R' },
 	{ 0, 0, 0, 0 }
 };
 /////////////////////////////////////////////////////////////////////////////
@@ -1075,6 +1078,9 @@ int main(int argc, char** argv)
 			break;
 		case 'n':
 			VideoOverlayText = std::string(optarg);
+			break;
+		case 'R':
+			bRunOnce = true;
 			break;
 		default:
 			usage(argc, argv);
@@ -1188,6 +1194,8 @@ int main(int argc, char** argv)
 			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA);
 			if (bRun)
 				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText);
+			if (bRunOnce)
+				bRun = false;
 		}
 	}
 	// remove our special Ctrl-C signal handler and restore previous one
