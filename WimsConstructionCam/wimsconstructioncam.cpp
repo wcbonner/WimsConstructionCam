@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220801-2 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220801-3 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -1126,7 +1126,17 @@ int main(int argc, char** argv)
 		///////////////////////////////////////////////////////////////////////////////////////////////
 		// If Latitude or Longitude not specified on command line try to get it from GPSD
 		if ((Latitude == 0) || (Longitude == 0) || (UseGPSD))
-			UseGPSD = getLatLon(Latitude, Longitude);
+		{
+			double tLat = 0;
+			double tLon = 0;
+			UseGPSD = getLatLon(tLat, tLon);
+			if (UseGPSD)
+			{
+				Latitude = tLat;
+				Longitude = tLon;
+			}
+			std::cerr << "Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Longitude << std::endl;
+		}
 		///////////////////////////////////////////////////////////////////////////////////////////////
 		if (getSunriseSunset(SunriseNOAA, SunsetNOAA, LoopStartTime, Latitude, Longitude))
 		{
