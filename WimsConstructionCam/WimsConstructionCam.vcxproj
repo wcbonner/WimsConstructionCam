@@ -96,6 +96,9 @@
     <Link>
       <LibraryDependencies>gps</LibraryDependencies>
     </Link>
+    <ClCompile>
+      <PreprocessorDefinitions>_USE_GPSD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <Link>
