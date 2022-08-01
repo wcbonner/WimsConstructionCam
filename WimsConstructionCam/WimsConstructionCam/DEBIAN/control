@@ -1,5 +1,5 @@
 Package: WimsConstructionCam
-Version: 1.20220731-1
+Version: 1.20220801-1
 Section: custom
 Priority: optional
 Architecture: armhf
@@ -7,6 +7,6 @@ Essential: no
 Installed-Size: 100
 Maintainer: wcbonner@users.noreply.github.com
 Description: Records TimeLapse Pictures at one minute intervals and turns them into a daily video
-Depends: ffmpeg, libcamera-apps-lite | libraspberrypi-bin
+Depends: ffmpeg, libcamera-apps-lite | libraspberrypi-bin, libgps28
 Recommends: gpsd
 Homepage: https://github.com/wcbonner/WimsConstructionCam
