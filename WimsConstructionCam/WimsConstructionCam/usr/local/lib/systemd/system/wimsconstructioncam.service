@@ -1,15 +1,15 @@
 # Contents of /etc/systemd/system/wimconstructioncam.service
 [Unit]
 Description=WimsConstructionCam service
-After=network-online.target
-Requires=time-set.target
-StartLimitBurst=5
+After=multi-user.target
+# Requires=time-set.target
+StartLimitBurst=10
 StartLimitIntervalSec=33
 
 [Service]
 Type=simple
 Restart=always
-RestartSec=5
+RestartSec=10
 Environment=LIBCAMERA_LOG_LEVELS=*:4
 ExecStart=/usr/local/bin/wimsconstructioncam -v 0 --gps --lat 44.54450388 --lon -115.99412220 --destination /media/%H/DCIM --runonce
 KillSignal=SIGINT

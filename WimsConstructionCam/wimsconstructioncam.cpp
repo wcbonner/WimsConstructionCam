@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220801-3 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220801-4 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -350,7 +350,7 @@ bool getLatLon(double& Latitude, double& Longitude)
 							std::cout << "[" << getTimeExcelLocal() << "] Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
 						}
 						else
-							std::cerr << "Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
+							std::cerr << " Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
 						doloop+=10;
 					}
 			}
@@ -1135,7 +1135,7 @@ int main(int argc, char** argv)
 				Latitude = tLat;
 				Longitude = tLon;
 			}
-			std::cerr << "Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Longitude << std::endl;
+			std::cerr << " Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Longitude << std::endl;
 		}
 		///////////////////////////////////////////////////////////////////////////////////////////////
 		if (getSunriseSunset(SunriseNOAA, SunsetNOAA, LoopStartTime, Latitude, Longitude))
