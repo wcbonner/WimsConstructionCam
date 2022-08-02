@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220801-4 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220801-5 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -1135,13 +1135,13 @@ int main(int argc, char** argv)
 				Latitude = tLat;
 				Longitude = tLon;
 			}
-			std::cerr << " Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Longitude << std::endl;
 		}
 		///////////////////////////////////////////////////////////////////////////////////////////////
 		if (getSunriseSunset(SunriseNOAA, SunsetNOAA, LoopStartTime, Latitude, Longitude))
 		{
 			SunriseNOAA -= 60 * 30; // Start half an hour before calculated Sunrise
 			SunsetNOAA += 60 * 30;	// End half an hour after calculated Sunset
+			std::cerr << " Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Longitude << " Sunrise: " << timeToExcelLocal(SunriseNOAA) << " Sunset: " << timeToExcelLocal(SunsetNOAA) << std::endl;
 		}
 		if (ConsoleVerbosity > 1)
 		{
