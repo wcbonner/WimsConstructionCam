@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220801-5 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220810-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -784,9 +784,23 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 		if (!JPGfiles.empty())
 		{
 			sort(JPGfiles.begin(), JPGfiles.end());
+			std::string VideoDirectory(DailyDirectory);
+			VideoDirectory.erase(VideoDirectory.find_last_of("/\\"));
 			// What follows is a simple test that if there are newer images 
 			// than the video files, empty the deque of video files and create 
 			// a video file, possibly overwriting an older video.
+			if ((dp = opendir(VideoDirectory.c_str())) != NULL)
+			{
+				struct dirent* dirp;
+				while ((dirp = readdir(dp)) != NULL)
+					if (DT_REG == dirp->d_type)
+					{
+						std::string filename = VideoDirectory + "/" + std::string(dirp->d_name);
+						if (filename.find(".mp4") != std::string::npos)
+							MP4files.push_back(filename);
+					}
+				closedir(dp);
+			}
 			if (!MP4files.empty())
 			{
 				sort(MP4files.begin(), MP4files.end());
@@ -820,7 +834,7 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 
 						std::ostringstream VideoFileName;	// ffmpeg output video name
 						VideoFileName.fill('0');
-						VideoFileName << DailyDirectory << "/";
+						VideoFileName << VideoDirectory << "/";
 						VideoFileName.width(4);
 						VideoFileName << UTC.tm_year + 1900;
 						VideoFileName.width(2);
