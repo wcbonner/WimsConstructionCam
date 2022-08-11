@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220810-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220811-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -769,7 +769,6 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 	if ((dp = opendir(DailyDirectory.c_str())) != NULL)
 	{
 		std::deque<std::string> JPGfiles;
-		std::deque<std::string> MP4files;
 		struct dirent* dirp;
 		while ((dirp = readdir(dp)) != NULL)
 			if (DT_REG == dirp->d_type)
@@ -777,8 +776,6 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 				std::string filename = DailyDirectory + "/" + std::string(dirp->d_name);
 				if (filename.find(".jpg") != std::string::npos)
 					JPGfiles.push_back(filename);
-				else if (filename.find(".mp4") != std::string::npos)
-					MP4files.push_back(filename);
 			}
 		closedir(dp);
 		if (!JPGfiles.empty())
@@ -789,62 +786,38 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 			// What follows is a simple test that if there are newer images 
 			// than the video files, empty the deque of video files and create 
 			// a video file, possibly overwriting an older video.
-			if ((dp = opendir(VideoDirectory.c_str())) != NULL)
+			struct stat FirstJPGStat, LastJPGStat;
+			if ((0 == stat(JPGfiles.front().c_str(), &FirstJPGStat)) &&
+				(0 == stat(JPGfiles.back().c_str(), &LastJPGStat)))
 			{
-				struct dirent* dirp;
-				while ((dirp = readdir(dp)) != NULL)
-					if (DT_REG == dirp->d_type)
-					{
-						std::string filename = VideoDirectory + "/" + std::string(dirp->d_name);
-						if (filename.find(".mp4") != std::string::npos)
-							MP4files.push_back(filename);
-					}
-				closedir(dp);
-			}
-			if (!MP4files.empty())
-			{
-				sort(MP4files.begin(), MP4files.end());
-				struct stat LastJPGStat;
-				if (0 == stat(JPGfiles.back().c_str(), &LastJPGStat))
+				struct tm UTC;
+				if (0 != localtime_r(&FirstJPGStat.st_mtim.tv_sec, &UTC))
 				{
-					struct stat LastMP4Stat;
-					if (0 == stat(MP4files.back().c_str(), &LastMP4Stat))
-					{
-						if (LastJPGStat.st_mtim.tv_sec > LastMP4Stat.st_mtim.tv_sec)
-							MP4files.clear();
-					}
-				}
-			}
-			if (MP4files.empty())
-			{
-				struct stat FirstJPGStat;
-				if (0 == stat(JPGfiles.front().c_str(), &FirstJPGStat))
-				{
-					struct tm UTC;
-					if (0 != localtime_r(&FirstJPGStat.st_mtim.tv_sec, &UTC))
-					{
-						std::ostringstream StillFormat;	// raspistill outputname format string
-						StillFormat.fill('0');
-						StillFormat << DailyDirectory << "/";
-						StillFormat.width(2);
-						StillFormat << UTC.tm_mon + 1;
-						StillFormat.width(2);
-						StillFormat << UTC.tm_mday;
-						StillFormat << "\%04d.jpg";
+					std::ostringstream StillFormat;	// raspistill outputname format string
+					StillFormat.fill('0');
+					StillFormat << DailyDirectory << "/";
+					StillFormat.width(2);
+					StillFormat << UTC.tm_mon + 1;
+					StillFormat.width(2);
+					StillFormat << UTC.tm_mday;
+					StillFormat << "\%04d.jpg";
 
-						std::ostringstream VideoFileName;	// ffmpeg output video name
-						VideoFileName.fill('0');
-						VideoFileName << VideoDirectory << "/";
-						VideoFileName.width(4);
-						VideoFileName << UTC.tm_year + 1900;
-						VideoFileName.width(2);
-						VideoFileName << UTC.tm_mon + 1;
-						VideoFileName.width(2);
-						VideoFileName << UTC.tm_mday;
-						char MyHostName[HOST_NAME_MAX] = { 0 }; // hostname used for data recordkeeping
-						if (gethostname(MyHostName, sizeof(MyHostName)) == 0)
-							VideoFileName << "-" << MyHostName;
-						VideoFileName << ".mp4";
+					std::ostringstream VideoFileName;	// ffmpeg output video name
+					VideoFileName.fill('0');
+					VideoFileName << VideoDirectory << "/";
+					VideoFileName.width(4);
+					VideoFileName << UTC.tm_year + 1900;
+					VideoFileName.width(2);
+					VideoFileName << UTC.tm_mon + 1;
+					VideoFileName.width(2);
+					VideoFileName << UTC.tm_mday;
+					char MyHostName[HOST_NAME_MAX] = { 0 }; // hostname used for data recordkeeping
+					if (gethostname(MyHostName, sizeof(MyHostName)) == 0)
+						VideoFileName << "-" << MyHostName;
+					VideoFileName << ".mp4";
+					struct stat MP4Stat;
+					if (-1 == stat(VideoFileName.str().c_str(), &MP4Stat))
+					{
 						if (ConsoleVerbosity > 0)
 						{
 							std::cout << "[" << getTimeExcelLocal() << "]   StillFormat: " << StillFormat.str() << std::endl;
@@ -900,7 +873,7 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 							/* A zero PID indicates that this is the child process */
 							/* Replace the child fork with a new process */
 							if (execvp(args[0], &args[0]) == -1)
-								exit(EXIT_FAILURE);
+								exit(EXIT_FAILURE);	// this exit value will only get hit if the exec fails, since the exec overwrites the process
 						}
 						else if (pid_FFMPEG > 0)
 						{
@@ -923,14 +896,10 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 							{
 								rval = true;
 								// change file date on mp4 file to match the last jpg file
-								struct stat LastJPGStatBuffer;
-								if (0 == stat(JPGfiles.back().c_str(), &LastJPGStatBuffer))
-								{
-									struct utimbuf MP4TimeToSet;
-									MP4TimeToSet.actime = LastJPGStatBuffer.st_mtim.tv_sec;
-									MP4TimeToSet.modtime = LastJPGStatBuffer.st_mtim.tv_sec;
-									utime(VideoFileName.str().c_str(), &MP4TimeToSet);
-								}
+								struct utimbuf MP4TimeToSet;
+								MP4TimeToSet.actime = LastJPGStat.st_mtim.tv_sec;
+								MP4TimeToSet.modtime = LastJPGStat.st_mtim.tv_sec;
+								utime(VideoFileName.str().c_str(), &MP4TimeToSet);
 							}
 						}
 						else
@@ -981,6 +950,7 @@ void CreateAllDailyMovies(const std::string DestinationDir, const std::string & 
 				}
 			}
 		closedir(dp);
+		sort(Subdirectories.begin(), Subdirectories.end());
 		while (!Subdirectories.empty())
 		{
 			CreateDailyMovie(Subdirectories.front(), VideoTextOverlay);
