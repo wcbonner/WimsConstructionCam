@@ -26,10 +26,10 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h> // wait()
 #include <unistd.h> // For close()
-#include <utime.h>
 #include <vector>
 #ifdef _USE_GPSD
 #include <gps.h>        // apt install libgps-dev
@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220811-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220907-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -541,6 +541,8 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 					if (0 == remove(files.begin()->c_str()))
 						if (ConsoleVerbosity > 0)
 							std::cout << "[" << getTimeExcelLocal() << "] File Deleted: " << *files.begin() << "(" << buffer.st_size << ")" << std::endl;
+						else
+							std::cerr << "File Deleted: " << *files.begin() << "(" << buffer.st_size << ")" << std::endl;
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_ctime: " << buffer.st_ctime << endl;
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_mtime: " << buffer.st_mtime << endl;
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_atime: " << buffer.st_atime << endl;
@@ -894,12 +896,16 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 
 							if (EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status))
 							{
+								std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
 								rval = true;
 								// change file date on mp4 file to match the last jpg file
-								struct utimbuf MP4TimeToSet;
-								MP4TimeToSet.actime = LastJPGStat.st_mtim.tv_sec;
-								MP4TimeToSet.modtime = LastJPGStat.st_mtim.tv_sec;
-								utime(VideoFileName.str().c_str(), &MP4TimeToSet);
+								struct timeval MP4TimeToSet[2];
+								MP4TimeToSet[0].tv_usec = 0;
+								MP4TimeToSet[1].tv_usec = 0;
+								MP4TimeToSet[0].tv_sec = LastJPGStat.st_mtim.tv_sec;
+								MP4TimeToSet[1].tv_sec = LastJPGStat.st_mtim.tv_sec;
+								if (0 != utimes(VideoFileName.str().c_str(), MP4TimeToSet))
+									std::cerr << "could not set the modification and access times on " << VideoFileName.str() << std::endl;
 							}
 						}
 						else
