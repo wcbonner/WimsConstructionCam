@@ -40,14 +40,15 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220907-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220907-2 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
+bool RotateStills180Degrees = false;
 bool bRunOnce = false;
 double Latitude = 0;
 double Longitude = 0;
-int GigabytesFreeSpace = 8;
+int GigabytesFreeSpace = 3;
 /////////////////////////////////////////////////////////////////////////////
 std::string timeToISO8601(const time_t& TheTime)
 {
@@ -86,12 +87,12 @@ std::string getTimeISO8601(void)
 time_t ISO8601totime(const std::string& ISOTime)
 {
 	struct tm UTC;
-	UTC.tm_year = stol(ISOTime.substr(0, 4)) - 1900;
-	UTC.tm_mon = stol(ISOTime.substr(5, 2)) - 1;
-	UTC.tm_mday = stol(ISOTime.substr(8, 2));
-	UTC.tm_hour = stol(ISOTime.substr(11, 2));
-	UTC.tm_min = stol(ISOTime.substr(14, 2));
-	UTC.tm_sec = stol(ISOTime.substr(17, 2));
+	UTC.tm_year = stoi(ISOTime.substr(0, 4)) - 1900;
+	UTC.tm_mon = stoi(ISOTime.substr(5, 2)) - 1;
+	UTC.tm_mday = stoi(ISOTime.substr(8, 2));
+	UTC.tm_hour = stoi(ISOTime.substr(11, 2));
+	UTC.tm_min = stoi(ISOTime.substr(14, 2));
+	UTC.tm_sec = stoi(ISOTime.substr(17, 2));
 	UTC.tm_gmtoff = 0;
 	UTC.tm_isdst = -1;
 	UTC.tm_zone = 0;
@@ -201,7 +202,7 @@ double Time2JulianDate(const time_t& TheTime)
 }
 time_t JulianDate2Time(const double JulianDate)
 {
-	time_t TheTime = (JulianDate - 2440587.5) * 86400;
+	time_t TheTime = (JulianDate - 2440587.5) * 86400.0;
 	return(TheTime);
 }
 double JulianDate2JulianDay(const double JulianDate)
@@ -536,13 +537,19 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 			//	cout << "[" << timeToISO8601(LogFileTime) << "] " << filename->second << endl;
 			while ((!files.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))	// This loop will make sure that there's free space on the drive.
 			{
+				if (ConsoleVerbosity > 0)
+					std::cout << "[" << getTimeExcelLocal() << "] Free Space: " << buffer2.f_bsize * buffer2.f_bavail << " < " << MinFreeSpace << std::endl;
+				else
+					std::cerr << "Free Space: " << buffer2.f_bsize * buffer2.f_bavail << " < " << MinFreeSpace << std::endl;
 				struct stat buffer;
 				if (0 == stat(files.begin()->c_str(), &buffer))
 					if (0 == remove(files.begin()->c_str()))
+					{
 						if (ConsoleVerbosity > 0)
 							std::cout << "[" << getTimeExcelLocal() << "] File Deleted: " << *files.begin() << "(" << buffer.st_size << ")" << std::endl;
 						else
-							std::cerr << "File Deleted: " << *files.begin() << "(" << buffer.st_size << ")" << std::endl;
+							std::cerr << " File Deleted: " << *files.begin() << "(" << buffer.st_size << ")" << std::endl;
+					}
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_ctime: " << buffer.st_ctime << endl;
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_mtime: " << buffer.st_mtime << endl;
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_atime: " << buffer.st_atime << endl;
@@ -566,7 +573,7 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 	}
 }
 /////////////////////////////////////////////////////////////////////////////
-bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, const time_t& Sunset)
+bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, const time_t& Sunset, const bool bRotate)
 {
 	bool rval = false;
 	std::ostringstream OutputFormat;	// raspistill outputname format string
@@ -606,6 +613,11 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 		std::vector<std::string> mycommand;
 		mycommand.push_back("raspistill");
 		mycommand.push_back("--nopreview");
+		if (bRotate)
+		{
+			mycommand.push_back("--hflip");
+			mycommand.push_back("--vflip");
+		}
 		mycommand.push_back("--thumb"); mycommand.push_back("none");
 		mycommand.push_back("--width"); mycommand.push_back("1920");
 		mycommand.push_back("--height"); mycommand.push_back("1080");
@@ -993,9 +1005,10 @@ static void usage(int argc, char** argv)
 	std::cout << "    -G | --gps prefer gpsd lat/lon, if available, to command line" << std::endl;
 	std::cout << "    -n | --name Text to display on the bottom right of the video" << std::endl;
 	std::cout << "    -R | --runonce Run a single capture session and exit" << std::endl;
+	std::cout << "    -r | --rotate rotate all still pictures 180 degrees if camera is upside down" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:f:t:l:L:Gn:R";
+static const char short_options[] = "hv:d:f:t:l:L:Gn:Rr";
 static const struct option long_options[] = {
 	{ "help",no_argument,			NULL, 'h' },
 	{ "verbose",required_argument,	NULL, 'v' },
@@ -1007,6 +1020,7 @@ static const struct option long_options[] = {
 	{ "gps",no_argument,			NULL, 'G' },
 	{ "name",required_argument,		NULL, 'n' },
 	{ "runonce",no_argument,		NULL, 'R' },
+	{ "rotate",no_argument,			NULL, 'r' },
 	{ 0, 0, 0, 0 }
 };
 /////////////////////////////////////////////////////////////////////////////
@@ -1073,6 +1087,9 @@ int main(int argc, char** argv)
 			break;
 		case 'R':
 			bRunOnce = true;
+			break;
+		case 'r':
+			RotateStills180Degrees = true;
 			break;
 		default:
 			usage(argc, argv);
@@ -1193,7 +1210,7 @@ int main(int argc, char** argv)
 		{
 			// largest file in sample was 1,310,523, multiply by minutes in day 1440, 1887153120, round up to 2000000000 or 2GB.
 			GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
-			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA);
+			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA, RotateStills180Degrees);
 			if (bRun)
 				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText);
 			if (bRunOnce)
