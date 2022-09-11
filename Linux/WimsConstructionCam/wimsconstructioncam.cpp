@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220907-2 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220911-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -499,8 +499,8 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 	unsigned long long MinFreeSpace = (unsigned long long)(MinFreeSpaceGB) << 30ll;
 	std::ostringstream OutputDirectoryName;
 	OutputDirectoryName << DestinationDir;
-	struct statvfs buffer2;
-	if (0 == statvfs(OutputDirectoryName.str().c_str(), &buffer2))
+	struct statvfs64 buffer2;
+	if (0 == statvfs64(OutputDirectoryName.str().c_str(), &buffer2))
 	{
 		if (ConsoleVerbosity > 0)
 		{
@@ -555,7 +555,7 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_atime: " << buffer.st_atime << endl;
 				//files[buffer.st_mtime] = dirp->d_name;
 				files.pop_front();
-				if (0 != statvfs(OutputDirectoryName.str().c_str(), &buffer2))
+				if (0 != statvfs64(OutputDirectoryName.str().c_str(), &buffer2))
 					break;
 				//for (std::vector<string>::const_iterator filename = files.begin(); filename != files.end(); filename++)
 				//	cout << "[" << timeToISO8601(LogFileTime) << "] " << *filename << endl;
@@ -566,7 +566,7 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 			{
 				GenerateFreeSpace(MinFreeSpaceGB, *directories.begin());
 				directories.pop_front();
-				if (0 != statvfs(OutputDirectoryName.str().c_str(), &buffer2))
+				if (0 != statvfs64(OutputDirectoryName.str().c_str(), &buffer2))
 					break;
 			}
 		}
