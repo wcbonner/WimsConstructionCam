@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220911-2 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220912-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -346,13 +346,9 @@ bool getLatLon(double& Latitude, double& Longitude)
 						Longitude = newdata->fix.longitude;
 						rval = true;
 						if (ConsoleVerbosity > 0)
-						{
-							//std::cout << "[" << getTimeExcelLocal() << "]  Fix Time: " << timeToISO8601(newdata->fix.time) << std::endl;
-							std::cout << "[" << getTimeExcelLocal() << "]  Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << std::endl;
-							std::cout << "[" << getTimeExcelLocal() << "] Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
-						}
+							std::cout << "[" << getTimeExcelLocal() << "] Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
 						else
-							std::cerr << " Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
+							std::cerr << "Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
 						doloop+=10;
 					}
 			}
@@ -1162,7 +1158,10 @@ int main(int argc, char** argv)
 		{
 			SunriseNOAA -= 60 * 30; // Start half an hour before calculated Sunrise
 			SunsetNOAA += 60 * 30;	// End half an hour after calculated Sunset
-			std::cerr << " Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Longitude << " Sunrise: " << timeToExcelLocal(SunriseNOAA) << " Sunset: " << timeToExcelLocal(SunsetNOAA) << std::endl;
+			if (ConsoleVerbosity > 1)
+				std::cout << "[" << getTimeExcelLocal() << "] Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Longitude << " Sunrise: " << timeToExcelLocal(SunriseNOAA) << " Sunset: " << timeToExcelLocal(SunsetNOAA) << std::endl;
+			else
+				std::cerr << "Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Longitude << " Sunrise: " << timeToExcelLocal(SunriseNOAA) << " Sunset: " << timeToExcelLocal(SunsetNOAA) << std::endl;
 		}
 		if (ConsoleVerbosity > 1)
 		{
@@ -1227,9 +1226,9 @@ int main(int argc, char** argv)
 			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA, RotateStills180Degrees, UseFullSensor);
 			if (bRun)
 				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, UseFullSensor);
-			if (bRunOnce)
-				bRun = false;
 		}
+		if (bRunOnce)
+			bRun = false;
 	}
 	// remove our special Ctrl-C signal handler and restore previous one
 	signal(SIGINT, previousHandler);
