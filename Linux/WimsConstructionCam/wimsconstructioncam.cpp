@@ -40,11 +40,12 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220911-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220911-2 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
 bool RotateStills180Degrees = false;
+bool UseFullSensor = false;
 bool bRunOnce = false;
 double Latitude = 0;
 double Longitude = 0;
@@ -573,7 +574,7 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 	}
 }
 /////////////////////////////////////////////////////////////////////////////
-bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, const time_t& Sunset, const bool bRotate)
+bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, const time_t& Sunset, const bool bRotate, const bool bFullSensor)
 {
 	bool rval = false;
 	std::ostringstream OutputFormat;	// raspistill outputname format string
@@ -619,8 +620,11 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 			mycommand.push_back("--vflip");
 		}
 		mycommand.push_back("--thumb"); mycommand.push_back("none");
-		mycommand.push_back("--width"); mycommand.push_back("1920");
-		mycommand.push_back("--height"); mycommand.push_back("1080");
+		if (!bFullSensor)
+		{
+			mycommand.push_back("--width"); mycommand.push_back("1920");
+			mycommand.push_back("--height"); mycommand.push_back("1080");
+		}
 		mycommand.push_back("--timeout"); mycommand.push_back(Timeout.str());
 		mycommand.push_back("--timelapse"); mycommand.push_back("60000");
 		mycommand.push_back("--output"); mycommand.push_back(OutputFormat.str());
@@ -776,7 +780,7 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 	}
 	return(rval);
 }
-bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOverlay)
+bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOverlay, const bool bFullSensor)
 {
 	bool rval = false;
 	DIR* dp;
@@ -851,11 +855,15 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 							found = VideoTextOverlay.find_first_of(":'\"\\");
 						}
 						std::ostringstream vfParam;
+						if (bFullSensor)
+							vfParam << "crop=in_w:9/16*in_w,";
 						vfParam << "drawtext=font=mono:fontcolor=white:fontsize=40:y=main_h-text_h-10:x=10:text=%{metadata\\\\:DateTimeOriginal},drawtext=font=sans:fontcolor=white:fontsize=40:y=main_h-text_h-10:x=main_w-text_w-10:text=" << VideoTextOverlay;
 						mycommand.push_back("-vf"); mycommand.push_back(vfParam.str());
 						mycommand.push_back("-c:v"); mycommand.push_back("libx264");
 						mycommand.push_back("-crf"); mycommand.push_back("23");
 						mycommand.push_back("-preset"); mycommand.push_back("veryfast");
+						if (bFullSensor)
+							mycommand.push_back("-s"); mycommand.push_back("1920x1080");
 						mycommand.push_back("-movflags"); mycommand.push_back("+faststart");
 						mycommand.push_back("-bf"); mycommand.push_back("2");
 						mycommand.push_back("-g"); mycommand.push_back("15");
@@ -931,7 +939,7 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 	}
 	return(rval);
 }
-void CreateAllDailyMovies(const std::string DestinationDir, const std::string & VideoTextOverlay)
+void CreateAllDailyMovies(const std::string DestinationDir, const std::string & VideoTextOverlay, const bool bFullSensor)
 {
 	DIR* dp;
 	if ((dp = opendir(DestinationDir.c_str())) != NULL)
@@ -971,7 +979,7 @@ void CreateAllDailyMovies(const std::string DestinationDir, const std::string & 
 		sort(Subdirectories.begin(), Subdirectories.end());
 		while (!Subdirectories.empty())
 		{
-			CreateDailyMovie(Subdirectories.front(), VideoTextOverlay);
+			CreateDailyMovie(Subdirectories.front(), VideoTextOverlay, bFullSensor);
 			Subdirectories.pop_front();
 		}
 	}
@@ -1006,9 +1014,10 @@ static void usage(int argc, char** argv)
 	std::cout << "    -n | --name Text to display on the bottom right of the video" << std::endl;
 	std::cout << "    -R | --runonce Run a single capture session and exit" << std::endl;
 	std::cout << "    -r | --rotate rotate all still pictures 180 degrees if camera is upside down" << std::endl;
+	std::cout << "    -F | --fullsensor use the default camera size for still capture" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:f:t:l:L:Gn:Rr";
+static const char short_options[] = "hv:d:f:t:l:L:Gn:RrF";
 static const struct option long_options[] = {
 	{ "help",no_argument,			NULL, 'h' },
 	{ "verbose",required_argument,	NULL, 'v' },
@@ -1021,6 +1030,7 @@ static const struct option long_options[] = {
 	{ "name",required_argument,		NULL, 'n' },
 	{ "runonce",no_argument,		NULL, 'R' },
 	{ "rotate",no_argument,			NULL, 'r' },
+	{ "fullsensor",no_argument,		NULL, 'F' },
 	{ 0, 0, 0, 0 }
 };
 /////////////////////////////////////////////////////////////////////////////
@@ -1091,6 +1101,9 @@ int main(int argc, char** argv)
 		case 'r':
 			RotateStills180Degrees = true;
 			break;
+		case 'F':
+			UseFullSensor = true;
+			break;
 		default:
 			usage(argc, argv);
 			exit(EXIT_FAILURE);
@@ -1120,7 +1133,7 @@ int main(int argc, char** argv)
 		usage(argc, argv);
 		exit(EXIT_FAILURE);
 	}
-	CreateAllDailyMovies(DestinationDir, VideoOverlayText);
+	CreateAllDailyMovies(DestinationDir, VideoOverlayText, UseFullSensor);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
 	typedef void (*SignalHandlerPointer)(int);
@@ -1210,9 +1223,9 @@ int main(int argc, char** argv)
 		{
 			// largest file in sample was 1,310,523, multiply by minutes in day 1440, 1887153120, round up to 2000000000 or 2GB.
 			GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
-			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA, RotateStills180Degrees);
+			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA, RotateStills180Degrees, UseFullSensor);
 			if (bRun)
-				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText);
+				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, UseFullSensor);
 			if (bRunOnce)
 				bRun = false;
 		}
