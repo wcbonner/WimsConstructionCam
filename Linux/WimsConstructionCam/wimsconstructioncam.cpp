@@ -857,7 +857,8 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 						std::ostringstream vfParam;
 						if (bFullSensor)
 							vfParam << "crop=in_w:9/16*in_w,";
-						vfParam << "drawtext=font=mono:fontcolor=white:fontsize=40:y=main_h-text_h-10:x=10:text=%{metadata\\\\:DateTimeOriginal},drawtext=font=sans:fontcolor=white:fontsize=40:y=main_h-text_h-10:x=main_w-text_w-10:text=" << VideoTextOverlay;
+						vfParam << "drawtext=font=mono:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=10:text=%{metadata\\\\:DateTimeOriginal},";
+						vfParam << "drawtext=font=sans:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=main_w-text_w-10:text=" << VideoTextOverlay;
 						mycommand.push_back("-vf"); mycommand.push_back(vfParam.str());
 						mycommand.push_back("-c:v"); mycommand.push_back("libx264");
 						mycommand.push_back("-crf"); mycommand.push_back("23");
