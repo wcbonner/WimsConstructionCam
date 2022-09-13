@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220912-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220913-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -1203,6 +1203,7 @@ int main(int argc, char** argv)
 			else 
 				std::cerr << "before Sunrise: " << timeToExcelLocal(SunriseNOAA) << " sleeping for " << (SunriseNOAA - LoopStartTime) / 60 << " minutes" << std::endl;
 			sleep(SunriseNOAA - LoopStartTime);
+			sleep(60); // sleep for an extra minute
 		}
 		else if (LoopStartTime > SunsetNOAA)
 		{
@@ -1217,6 +1218,7 @@ int main(int argc, char** argv)
 				else
 					std::cerr << "after Sunset: " << timeToExcelLocal(SunsetNOAA) << " sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
 				sleep(MinutesLeftInDay * 60);
+				sleep(60); // sleep for an extra minute
 			}
 		}
 		else
