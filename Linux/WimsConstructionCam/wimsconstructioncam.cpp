@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220913-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220918-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -584,7 +584,12 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 		int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
 		struct tm SunsetTM;
 		if (0 != localtime_r(&Sunset, &SunsetTM))
-			MinutesLeftInDay = (SunsetTM.tm_hour * 60 + SunsetTM.tm_min) - CurrentMinuteInDay;
+		{
+			if (UTC.tm_mday == SunsetTM.tm_mday)
+				MinutesLeftInDay = (SunsetTM.tm_hour * 60 + SunsetTM.tm_min) - CurrentMinuteInDay;
+			else
+				MinutesLeftInDay = 1440 - CurrentMinuteInDay;
+		}
 		else
 			MinutesLeftInDay = 1440 - CurrentMinuteInDay;
 		if (TimeoutMinutes == 0)
