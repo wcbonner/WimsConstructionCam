@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220918-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220919-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -341,16 +341,17 @@ bool getLatLon(double& Latitude, double& Longitude)
 			{
 				if (newdata->set & MODE_SET)
 					if ((newdata->fix.mode > 2) && (newdata->set & LATLON_SET) && (newdata->set & TIME_SET))
-					{
-						Latitude = newdata->fix.latitude;
-						Longitude = newdata->fix.longitude;
-						rval = true;
-						if (ConsoleVerbosity > 0)
-							std::cout << "[" << getTimeExcelLocal() << "] Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
-						else
-							std::cerr << "Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
-						doloop+=10;
-					}
+						if ((newdata->fix.latitude != 0) && (newdata->fix.longitude != 0)) // simple test that niether of these are zero
+						{
+							Latitude = newdata->fix.latitude;
+							Longitude = newdata->fix.longitude;
+							rval = true;
+							if (ConsoleVerbosity > 0)
+								std::cout << "[" << getTimeExcelLocal() << "] Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
+							else
+								std::cerr << "Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
+							doloop+=10;
+						}
 			}
 		}
 	}
