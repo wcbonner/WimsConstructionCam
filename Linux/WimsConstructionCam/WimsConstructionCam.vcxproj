@@ -87,6 +87,17 @@
     <None Include="WimsConstructionCam\DEBIAN\postinst" />
     <None Include="WimsConstructionCam\DEBIAN\postrm" />
     <None Include="WimsConstructionCam\DEBIAN\prerm" />
+    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_100.json" />
+    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_120.json" />
+    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_160.json" />
+    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_200.json" />
+    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_20d-1.json" />
+    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_45d.json" />
+    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_55d.json" />
+    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_65.json" />
+    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_70d.json" />
+    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_80d.json" />
+    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_original.json" />
     <None Include="WimsConstructionCam\usr\local\lib\systemd\system\wimsconstructioncam.service" />
   </ItemGroup>
   <ItemGroup>
