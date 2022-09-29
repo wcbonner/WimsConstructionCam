@@ -40,7 +40,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220919-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20220929-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -430,6 +430,61 @@ bool ValidateDirectory(std::string& DirectoryName)
 		}
 	return(rval);
 }
+bool ValidateFile(std::string& FileName)
+{
+	bool rval = false;
+	// https://linux.die.net/man/2/stat
+	struct stat StatBuffer;
+	if (0 == stat(FileName.c_str(), &StatBuffer))
+		if (S_ISREG(StatBuffer.st_mode))
+		{
+			// https://linux.die.net/man/2/access
+			if (0 == access(FileName.c_str(), R_OK))
+				rval = true;
+			else
+			{
+				switch (errno)
+				{
+				case EACCES:
+					std::cerr << FileName << " (" << errno << ") The requested access would be denied to the file, or search permission is denied for one of the directories in the path prefix of pathname." << std::endl;
+					break;
+				case ELOOP:
+					std::cerr << FileName << " (" << errno << ") Too many symbolic links were encountered in resolving pathname." << std::endl;
+					break;
+				case ENAMETOOLONG:
+					std::cerr << FileName << " (" << errno << ") pathname is too long." << std::endl;
+					break;
+				case ENOENT:
+					std::cerr << FileName << " (" << errno << ") A component of pathname does not exist or is a dangling symbolic link." << std::endl;
+					break;
+				case ENOTDIR:
+					std::cerr << FileName << " (" << errno << ") A component used as a directory in pathname is not, in fact, a directory." << std::endl;
+					break;
+				case EROFS:
+					std::cerr << FileName << " (" << errno << ") Write permission was requested for a file on a read-only file system." << std::endl;
+					break;
+				case EFAULT:
+					std::cerr << FileName << " (" << errno << ") pathname points outside your accessible address space." << std::endl;
+					break;
+				case EINVAL:
+					std::cerr << FileName << " (" << errno << ") mode was incorrectly specified." << std::endl;
+					break;
+				case EIO:
+					std::cerr << FileName << " (" << errno << ") An I/O error occurred." << std::endl;
+					break;
+				case ENOMEM:
+					std::cerr << FileName << " (" << errno << ") Insufficient kernel memory was available." << std::endl;
+					break;
+				case ETXTBSY:
+					std::cerr << FileName << " (" << errno << ") Write access was requested to an executable which is being executed." << std::endl;
+					break;
+				default:
+					std::cerr << FileName << " (" << errno << ") An unknown error." << std::endl;
+				}
+			}
+		}
+	return(rval);
+}
 /////////////////////////////////////////////////////////////////////////////
 std::string GetImageDirectory(const std::string DestinationDir, const time_t& TheTime)
 {
@@ -571,7 +626,7 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 	}
 }
 /////////////////////////////////////////////////////////////////////////////
-bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, const time_t& Sunset, const bool bRotate, const bool bFullSensor)
+bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, const time_t& Sunset, const bool bRotate, const bool bFullSensor, const std::string & TuningFileName)
 {
 	bool rval = false;
 	std::ostringstream OutputFormat;	// raspistill outputname format string
@@ -671,6 +726,10 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 			{
 				mycommand.front() = "libcamera-still";
 				mycommand.push_back("--verbose"); mycommand.push_back("0");
+				if (!TuningFileName.empty())
+				{
+					mycommand.push_back("--tuning-file"); mycommand.push_back(TuningFileName);
+				}
 				mycommand.push_back("--continue-autofocus");
 				if (ConsoleVerbosity > 0)
 				{
@@ -1001,6 +1060,7 @@ void SignalHandlerSIGHUP(int signal)
 }
 /////////////////////////////////////////////////////////////////////////////
 std::string DestinationDir;
+std::string SensorTuningFile;
 static void usage(int argc, char** argv)
 {
 	std::cout << "Usage: " << argv[0] << " [options]" << std::endl;
@@ -1018,9 +1078,10 @@ static void usage(int argc, char** argv)
 	std::cout << "    -R | --runonce Run a single capture session and exit" << std::endl;
 	std::cout << "    -r | --rotate rotate all still pictures 180 degrees if camera is upside down" << std::endl;
 	std::cout << "    -F | --fullsensor use the default camera size for still capture" << std::endl;
+	std::cout << "    -T | --tuning-file camera module tuning file" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:f:t:l:L:Gn:RrF";
+static const char short_options[] = "hv:d:f:t:l:L:Gn:RrFT:";
 static const struct option long_options[] = {
 	{ "help",no_argument,			NULL, 'h' },
 	{ "verbose",required_argument,	NULL, 'v' },
@@ -1034,6 +1095,7 @@ static const struct option long_options[] = {
 	{ "runonce",no_argument,		NULL, 'R' },
 	{ "rotate",no_argument,			NULL, 'r' },
 	{ "fullsensor",no_argument,		NULL, 'F' },
+	{ "tuning-file",required_argument,	NULL, 'T' },
 	{ 0, 0, 0, 0 }
 };
 /////////////////////////////////////////////////////////////////////////////
@@ -1106,6 +1168,11 @@ int main(int argc, char** argv)
 			break;
 		case 'F':
 			UseFullSensor = true;
+			break;
+		case 'T':
+			TempString = std::string(optarg);
+			if (ValidateFile(TempString))
+				SensorTuningFile = TempString;
 			break;
 		default:
 			usage(argc, argv);
@@ -1231,7 +1298,7 @@ int main(int argc, char** argv)
 		{
 			// largest file in sample was 1,310,523, multiply by minutes in day 1440, 1887153120, round up to 2000000000 or 2GB.
 			GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
-			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA, RotateStills180Degrees, UseFullSensor);
+			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA, RotateStills180Degrees, UseFullSensor, SensorTuningFile);
 			if (bRun)
 				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, UseFullSensor);
 		}
