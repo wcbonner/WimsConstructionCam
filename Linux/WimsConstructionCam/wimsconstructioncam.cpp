@@ -29,6 +29,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h> // wait()
+#include <time.h>	// clock_settime()
 #include <unistd.h> // For close()
 #include <vector>
 #ifdef _USE_GPSD
@@ -40,7 +41,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20220929-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20221019-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -341,6 +342,7 @@ bool getLatLon(double& Latitude, double& Longitude)
 			{
 				if (newdata->set & MODE_SET)
 					if ((newdata->fix.mode > 2) && (newdata->set & LATLON_SET) && (newdata->set & TIME_SET))
+					{
 						if ((newdata->fix.latitude != 0) && (newdata->fix.longitude != 0)) // simple test that niether of these are zero
 						{
 							Latitude = newdata->fix.latitude;
@@ -350,8 +352,18 @@ bool getLatLon(double& Latitude, double& Longitude)
 								std::cout << "[" << getTimeExcelLocal() << "] Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
 							else
 								std::cerr << "Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << newdata->fix.longitude << std::endl;
-							doloop+=10;
+							doloop += 10;
 						}
+						timespec GPSTime = newdata->fix.time;
+						timespec SystemTime;
+						timespec_get(&SystemTime, TIME_UTC);
+						if (ConsoleVerbosity > 0)
+							std::cout << "[" << getTimeExcelLocal() << "] SystemTime: " << timeToISO8601(mktime(gmtime(&SystemTime.tv_sec))) << " GPSTime: " << timeToISO8601(mktime(gmtime(&GPSTime.tv_sec))) << " Seconds Difference: " << fabs(difftime(GPSTime.tv_sec, SystemTime.tv_sec)) << std::endl;
+						else
+							std::cerr << "SystemTime: " << timeToISO8601(mktime(gmtime(&SystemTime.tv_sec))) << " GPSTime: " << timeToISO8601(mktime(gmtime(&GPSTime.tv_sec))) << " Seconds Difference: " << fabs(difftime(GPSTime.tv_sec, SystemTime.tv_sec)) << std::endl;
+						if (fabs(difftime(GPSTime.tv_sec, SystemTime.tv_sec)) > 60 * 60) // if GPSTime is an hour or more ahead of SystemTime, we want to set the SystemTime.
+							clock_settime(CLOCK_REALTIME, &GPSTime);
+					}
 			}
 		}
 	}
