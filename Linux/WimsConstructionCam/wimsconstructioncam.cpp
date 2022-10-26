@@ -41,7 +41,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20221026-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20221026-2 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -738,7 +738,7 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 			// I've been having problems with the camera app locking up. This alarm sequence should let me kill it if it doesn't exit in the specified number of minutes.
 			CameraProgram_PID = pid;
 			auto OldAlarmHandler = signal(SIGALRM, SignalHandlerSIGALRM);
-			alarm((TimeoutMinutes + 1) * 60);
+			alarm((MinutesLeftInDay + 1) * 60);
 			int CameraProgram_exit_status = 0;
 			wait(&CameraProgram_exit_status);	// Wait for child process to end
 			alarm(0); // disable alarm
@@ -795,7 +795,7 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 					// I've been having problems with the camera app locking up. This alarm sequence should let me kill it if it doesn't exit in the specified number of minutes.
 					CameraProgram_PID = pid;
 					auto OldAlarmHandler = signal(SIGALRM, SignalHandlerSIGALRM);
-					alarm((TimeoutMinutes + 1) * 60);
+					alarm((MinutesLeftInDay + 1) * 60);
 					wait(&CameraProgram_exit_status);	// Wait for child process to end
 					alarm(0); // disable alarm
 					signal(SIGALRM, OldAlarmHandler);	// restore alarm handler
@@ -845,7 +845,7 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 							// I've been having problems with the camera app locking up. This alarm sequence should let me kill it if it doesn't exit in the specified number of minutes.
 							CameraProgram_PID = pid;
 							auto OldAlarmHandler = signal(SIGALRM, SignalHandlerSIGALRM);
-							alarm((TimeoutMinutes + 1) * 60);
+							alarm((MinutesLeftInDay + 1) * 60);
 							wait(&CameraProgram_exit_status);	// Wait for child process to end
 							alarm(0);	// disable alarm
 							signal(SIGALRM, OldAlarmHandler);	// restore alarm handler
