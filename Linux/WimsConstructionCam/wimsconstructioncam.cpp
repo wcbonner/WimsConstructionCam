@@ -41,7 +41,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20221019-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20221026-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -363,6 +363,7 @@ bool getLatLon(double& Latitude, double& Longitude)
 							std::cerr << "SystemTime: " << timeToISO8601(mktime(gmtime(&SystemTime.tv_sec))) << " GPSTime: " << timeToISO8601(mktime(gmtime(&GPSTime.tv_sec))) << " Seconds Difference: " << fabs(difftime(GPSTime.tv_sec, SystemTime.tv_sec)) << std::endl;
 						if (fabs(difftime(GPSTime.tv_sec, SystemTime.tv_sec)) > 60 * 60) // if GPSTime is an hour or more ahead of SystemTime, we want to set the SystemTime.
 							clock_settime(CLOCK_REALTIME, &GPSTime);
+						doloop++;
 					}
 			}
 		}
@@ -638,6 +639,12 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 	}
 }
 /////////////////////////////////////////////////////////////////////////////
+volatile pid_t CameraProgram_PID = 0;
+void SignalHandlerSIGALRM(int signal)
+{
+	std::cerr << "***************** SIGALRM: Caught Alarm, sending child SIGINT. ************************" << std::endl;
+	kill(CameraProgram_PID, SIGINT);
+}
 bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, const time_t& Sunset, const bool bRotate, const bool bFullSensor, const std::string & TuningFileName)
 {
 	bool rval = false;
@@ -728,8 +735,14 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 		else if (pid > 0)
 		{
 			/* A positive (non-negative) PID indicates the parent process */
+			// I've been having problems with the camera app locking up. This alarm sequence should let me kill it if it doesn't exit in the specified number of minutes.
+			CameraProgram_PID = pid;
+			auto OldAlarmHandler = signal(SIGALRM, SignalHandlerSIGALRM);
+			alarm((TimeoutMinutes + 1) * 60);
 			int CameraProgram_exit_status = 0;
-			wait(&CameraProgram_exit_status);				/* Wait for child process to end */
+			wait(&CameraProgram_exit_status);	// Wait for child process to end
+			alarm(0); // disable alarm
+			signal(SIGALRM, OldAlarmHandler);	// restore alarm handler
 			// https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStill.c
 			// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
 			if ((EXIT_FAILURE == WEXITSTATUS(CameraProgram_exit_status)) || 
@@ -779,7 +792,13 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 				else if (pid > 0)
 				{
 					/* A positive (non-negative) PID indicates the parent process */
-					wait(&CameraProgram_exit_status);				/* Wait for child process to end */
+					// I've been having problems with the camera app locking up. This alarm sequence should let me kill it if it doesn't exit in the specified number of minutes.
+					CameraProgram_PID = pid;
+					auto OldAlarmHandler = signal(SIGALRM, SignalHandlerSIGALRM);
+					alarm((TimeoutMinutes + 1) * 60);
+					wait(&CameraProgram_exit_status);	// Wait for child process to end
+					alarm(0); // disable alarm
+					signal(SIGALRM, OldAlarmHandler);	// restore alarm handler
 					// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
 					// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
 					if ((EXIT_FAILURE == WEXITSTATUS(CameraProgram_exit_status)) || 
@@ -823,7 +842,13 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 						else if (pid > 0)
 						{
 							/* A positive (non-negative) PID indicates the parent process */
-							wait(&CameraProgram_exit_status);				/* Wait for child process to end */
+							// I've been having problems with the camera app locking up. This alarm sequence should let me kill it if it doesn't exit in the specified number of minutes.
+							CameraProgram_PID = pid;
+							auto OldAlarmHandler = signal(SIGALRM, SignalHandlerSIGALRM);
+							alarm((TimeoutMinutes + 1) * 60);
+							wait(&CameraProgram_exit_status);	// Wait for child process to end
+							alarm(0);	// disable alarm
+							signal(SIGALRM, OldAlarmHandler);	// restore alarm handler
 							if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status) && (EXIT_SUCCESS == WTERMSIG(CameraProgram_exit_status)))
 								rval = true;
 						}
