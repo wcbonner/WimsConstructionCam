@@ -78,6 +78,8 @@
     <ClCompile Include="wimsconstructioncam.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="LICENSE" />
+    <None Include="README.md" />
     <None Include="SupportingDocuments\hb1321.pdf" />
     <None Include="SupportingDocuments\hb1329.pdf" />
     <None Include="makefile" />
