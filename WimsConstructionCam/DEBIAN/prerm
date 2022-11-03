@@ -1,0 +1,8 @@
+#!/bin/sh
+# PRERM script for wimsconstructioncam
+
+echo "$(tput setaf 3) HI I'M A PRERM SCRIPT `date +"%s"` $(tput sgr0)"
+systemctl stop wimsconstructioncam.service
+systemctl disable wimsconstructioncam.service
+
+exit 0

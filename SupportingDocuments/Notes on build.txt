@@ -1,0 +1,664 @@
+Three Bud Industries enclosures purchased
+Model # PN-1321-C $12.29
+Model # PN-1322-C $13.19
+Model # PN-1329-C $32.95
+https://www.budind.com/product/nema-ip-rated-boxes/pn-series-nema-box/ip65-nema-4x-box-with-clear-cover-pn-1321-c/#group=series-products&external_dimensions_group=0&internal_dimensions=0&indoor_outdoor_group=0&nema_rating_group=0&ip_rating_group=0
+https://www.budind.com/product/nema-ip-rated-boxes/pn-series-nema-box/ip65-nema-4x-box-with-clear-cover-pn-1322-c/#group=series-products&external_dimensions_group=0&internal_dimensions=0&indoor_outdoor_group=0&nema_rating_group=0&ip_rating_group=0
+https://www.budind.com/product/nema-ip-rated-boxes/pn-series-nema-box/ip65-nema-4x-box-with-clear-cover-pn-1329-c/#group=series-products&external_dimensions_group=0&internal_dimensions=0&indoor_outdoor_group=0&nema_rating_group=0&ip_rating_group=0
+Eight standoffs at $0.69 each $5.52
+Digital Volt Meter $4.95
+Sales Tax $3.64
+
+Arducam for Raspberry Pi Zero with 160° field of view 
+https://www.arducam.com/product/b006605-arducam-for-raspberry-pi-zero-camera-module-wide-angle-160-1-4-inch-5mp-ov5647-spy-camera-with-flex-cable-for-pi-zero-and-pi-compute-module/
+https://wimsworld.wordpress.com/2019/09/23/raspberry-pi-zerow-camera-focus-with-ffmpeg/
+
+ $32.95 	Weather Resistant Case
+ $54.99 	512 GB Memory Card
+ $86.99 	LTE Card
+ $21.99 	Arducam for Raspberry Pi Zero with 160° field of view 
+ $29.38 	Power Cord
+ $15.00 	Raspberry Pi Zero W
+ $9.76 	Extra hardware
+ $25.11 	Sales Tax
+ $20.20 	USPS Mailing
+ $296.37 	
+
+
+
+libcamera-vid -t 0 --nopreview --inline --listen -o tcp://0.0.0.0:5000
+libcamera-vid --timeout 0 --nopreview --listen --output tcp://0.0.0.0:5000
+libcamera-vid --timeout 0 --nopreview --width 1920 --height 1080 --codec h264 --inline --output tcp://0.0.0.0:5000
+libcamera-vid --timeout 0 --nopreview --width 1920 --height 1080 --inline --listen -o tcp://0.0.0.0:5000 
+
+tcp/h264://192.168.0.63:5000
+
+pi@WimPiZeroCamera:~ $ libcamera-vid --list-cameras
+[0:01:26.600607679] [701]  INFO Camera camera_manager.cpp:293 libcamera v0.0.0+3544-22656360
+[0:01:26.690670361] [702] ERROR CameraSensor camera_sensor.cpp:591 'ov5647 10-0036': Camera sensor does not support test pattern modes.
+[0:01:26.842438396] [702]  INFO RPI raspberrypi.cpp:1356 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media3 and ISP device /dev/media0
+Available cameras
+-----------------
+0 : ov5647 [2592x1944] (/base/soc/i2c0mux/i2c@1/ov5647@36)
+    Modes: 'SGBRG10_CSI2P' : 640x480 1296x972 1920x1080 2592x1944 
+
+
+pi@WimPiZeroCamera:~ $ libcamera-vid -t 0 --nopreview --inline --listen -o tcp://0.0.0.0:5000
+[0:15:00.418093674] [2072]  INFO Camera camera_manager.cpp:293 libcamera v0.0.0+3544-22656360
+[0:15:00.532210773] [2106] ERROR CameraSensor camera_sensor.cpp:591 'ov5647 10-0036': Camera sensor does not support test pattern modes.
+[0:15:00.662090089] [2106]  INFO RPI raspberrypi.cpp:1356 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media3 and ISP device /dev/media0
+[0:15:00.667158516] [2072]  INFO Camera camera.cpp:1029 configuring streams: (0) 640x480-YUV420
+[0:15:00.671455031] [2106]  INFO RPI raspberrypi.cpp:760 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.117741] Internal error: Oops: 80000005 [#1] ARM
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119434] Process libcamera-vid (pid: 2106, stack limit = 0xa40387ed)
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119468] Stack: (0xc57c7e10 to 0xc57c8000)
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119497] 7e00:                                     c57c7e3b c1b92be0 c57c7e5c 00000000
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119532] 7e20: 00000000 00000000 00000000 00000000 c33de8c0 b58cd094 00c9c038 00000005
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119566] 7e40: 00000001 00070800 00004002 00000000 00000000 0000038f 00000000 000ee5f2
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119600] 7e60: 00000000 00000000 00000000 00000000 00000000 00000000 00000004 00000017
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119635] 7e80: 00071000 00000000 00000000 c57c7e98 c0046c80 c000b100 c5ef2014 c1b92be0
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119670] 7ea0: c0c2b2c0 c3946660 00000000 c19a51c0 c57c7edc c57c7ec0 c0013798 f140fdb1
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119704] 7ec0: 00000000 bf204d50 c33de8c1 00000000 c33de8c0 c0c1f028 b58cd094 0000000f
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119740] 7ee0: c57c7efc c57c7ef0 bf204d6c bf2047b4 c57c7f14 c57c7f00 bf1fc148 bf204d5c
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119775] 7f00: c044560f c33de8c1 c57c7fa4 c57c7f18 c021fda0 bf1fc108 00000010 00000000
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119810] 7f20: 00000390 c04d67e4 c57c7f74 c57c7f38 c007f00c c04d67d0 00000390 00000000
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119845] 7f40: 00da35f2 00000000 00000193 f140fdb1 c57c6000 b58cce98 c0c1f028 b6f6a880
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119880] 7f60: 00000193 c00083e4 c57c7fa4 c57c7f78 c0090458 f140fdb1 00000390 b58cd094
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119915] 7f80: b4f14ea8 b4f0b3b8 00000036 c00083e4 c57c6000 00000000 00000000 c57c7fa8
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119950] 7fa0: c0008260 c021fc98 b58cd094 b4f14ea8 0000000f c044560f b58cd094 b6e0c788
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.119985] 7fc0: b58cd094 b4f14ea8 b4f0b3b8 00000036 004fb950 fffffff8 b6aea124 004fd850
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.120021] 7fe0: b6abce94 b58cd06c b6a464a0 b6bdc1ac 60000010 0000000f 00000000 00000000
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.120048] Backtrace: 
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.120071] [<bf2047a8>] (video_usercopy [videodev]) from [<bf204d6c>] (video_ioctl2+0x1c/0x24 [videodev])
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.120842]  r10:0000000f r9:b58cd094 r8:c0c1f028 r7:c33de8c0 r6:00000000 r5:c33de8c1
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.120873]  r4:bf204d50
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.120891] [<bf204d50>] (video_ioctl2 [videodev]) from [<bf1fc148>] (v4l2_ioctl+0x4c/0x64 [videodev])
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.121620] [<bf1fc0fc>] (v4l2_ioctl [videodev]) from [<c021fda0>] (sys_ioctl+0x114/0x9b0)
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.122025]  r5:c33de8c1 r4:c044560f
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.122047] [<c021fc8c>] (sys_ioctl) from [<c0008260>] (ret_fast_syscall+0x0/0x1c)
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.122091] Exception stack(0xc57c7fa8 to 0xc57c7ff0)
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.122124] 7fa0:                   b58cd094 b4f14ea8 0000000f c044560f b58cd094 b6e0c788
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.122160] 7fc0: b58cd094 b4f14ea8 b4f0b3b8 00000036 004fb950 fffffff8 b6aea124 004fd850
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.122193] 7fe0: b6abce94 b58cd06c b6a464a0 b6bdc1ac
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.122223]  r10:00000000 r9:c57c6000 r8:c00083e4 r7:00000036 r6:b4f0b3b8 r5:b4f14ea8
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.122250]  r4:b58cd094
+
+Message from syslogd@WimPiZeroCamera at Jun  3 17:49:49 ...
+ kernel:[  912.122276] Code: bad PC value
+
+pi@WimPiZeroCamera:~ $ tail -500 /var/log/kern.log
+
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.117574] 8<--- cut here ---
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.117639] Unable to handle kernel paging request at virtual address bfa40c9c
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.117675] pgd = f135a101
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.117702] [bfa40c9c] *pgd=00000000
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.117741] Internal error: Oops: 80000005 [#1] ARM
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.117770] Modules linked in: cmac algif_hash aes_arm aes_generic ecb algif_skcipher af_alg bnep ov5647 snd_soc_hdmi_codec hci_uart btbcm bluetooth ecdh_generic ecc libaes 8021q garp stp llc brcmfmac vc4 brcmutil cec sha256_generic libsha256 drm_kms_helper cfg80211 raspberrypi_hwmon snd_soc_core rfkill snd_compress snd_pcm_dmaengine syscopyarea sysfillrect sysimgblt i2c_mux_pinctrl fb_sys_fops i2c_mux bcm2835_unicam v4l2_dv_timings v4l2_fwnode v4l2_async snd_bcm2835(C) i2c_bcm2835 bcm2835_codec(C) snd_pcm bcm2835_v4l2(C) v4l2_mem2mem bcm2835_isp(C) bcm2835_mmal_vchiq(C) snd_timer videobuf2_dma_contig videobuf2_vmalloc videobuf2_memops videobuf2_v4l2 videobuf2_common snd vc_sm_cma(C) videodev mc uio_pdrv_genirq uio fixed fuse drm drm_panel_orientation_quirks backlight ip_tables x_tables ipv6
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.118234] CPU: 0 PID: 2106 Comm: libcamera-vid Tainted: G         C        5.15.32+ #1538
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.118272] Hardware name: BCM2835
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.118292] PC is at 0xbfa40c9c
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.118320] LR is at video_usercopy+0x4e8/0x5a8 [videodev]
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.118848] pc : [<bfa40c9c>]    lr : [<bf204c90>]    psr: 60000013
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.118875] sp : c57c7e10  ip : c57c7e10  fp : c57c7eec
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.118897] r10: c0c1f028  r9 : 00000000  r8 : 00000000
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.118918] r7 : c57c7e3c  r6 : 00000000  r5 : c044560f  r4 : c050560f
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.118942] r3 : 00000000  r2 : bf226a40  r1 : f140fdb1  r0 : c265c7c0
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.118966] Flags: nZCv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment user
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.118994] Control: 00c5387d  Table: 06c10008  DAC: 00000055
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119016] Register r0 information: slab kmalloc-8k start c265c000 pointer offset 1984 size 8192
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119080] Register r1 information: non-paged memory
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119110] Register r2 information: 58-page vmalloc region starting at 0xbf1fc000 allocated at load_module+0xa74/0x25f8
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119170] Register r3 information: NULL pointer
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119198] Register r4 information: non-slab/vmalloc memory
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119226] Register r5 information: non-slab/vmalloc memory
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119253] Register r6 information: NULL pointer
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119277] Register r7 information: non-slab/vmalloc memory
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119304] Register r8 information: NULL pointer
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119329] Register r9 information: NULL pointer
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119354] Register r10 information: non-slab/vmalloc memory
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119381] Register r11 information: non-slab/vmalloc memory
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119407] Register r12 information: non-slab/vmalloc memory
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119434] Process libcamera-vid (pid: 2106, stack limit = 0xa40387ed)
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119468] Stack: (0xc57c7e10 to 0xc57c8000)
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119497] 7e00:                                     c57c7e3b c1b92be0 c57c7e5c 00000000
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119532] 7e20: 00000000 00000000 00000000 00000000 c33de8c0 b58cd094 00c9c038 00000005
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119566] 7e40: 00000001 00070800 00004002 00000000 00000000 0000038f 00000000 000ee5f2
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119600] 7e60: 00000000 00000000 00000000 00000000 00000000 00000000 00000004 00000017
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119635] 7e80: 00071000 00000000 00000000 c57c7e98 c0046c80 c000b100 c5ef2014 c1b92be0
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119670] 7ea0: c0c2b2c0 c3946660 00000000 c19a51c0 c57c7edc c57c7ec0 c0013798 f140fdb1
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119704] 7ec0: 00000000 bf204d50 c33de8c1 00000000 c33de8c0 c0c1f028 b58cd094 0000000f
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119740] 7ee0: c57c7efc c57c7ef0 bf204d6c bf2047b4 c57c7f14 c57c7f00 bf1fc148 bf204d5c
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119775] 7f00: c044560f c33de8c1 c57c7fa4 c57c7f18 c021fda0 bf1fc108 00000010 00000000
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119810] 7f20: 00000390 c04d67e4 c57c7f74 c57c7f38 c007f00c c04d67d0 00000390 00000000
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119845] 7f40: 00da35f2 00000000 00000193 f140fdb1 c57c6000 b58cce98 c0c1f028 b6f6a880
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119880] 7f60: 00000193 c00083e4 c57c7fa4 c57c7f78 c0090458 f140fdb1 00000390 b58cd094
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119915] 7f80: b4f14ea8 b4f0b3b8 00000036 c00083e4 c57c6000 00000000 00000000 c57c7fa8
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119950] 7fa0: c0008260 c021fc98 b58cd094 b4f14ea8 0000000f c044560f b58cd094 b6e0c788
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.119985] 7fc0: b58cd094 b4f14ea8 b4f0b3b8 00000036 004fb950 fffffff8 b6aea124 004fd850
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.120021] 7fe0: b6abce94 b58cd06c b6a464a0 b6bdc1ac 60000010 0000000f 00000000 00000000
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.120048] Backtrace: 
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.120071] [<bf2047a8>] (video_usercopy [videodev]) from [<bf204d6c>] (video_ioctl2+0x1c/0x24 [videodev])
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.120842]  r10:0000000f r9:b58cd094 r8:c0c1f028 r7:c33de8c0 r6:00000000 r5:c33de8c1
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.120873]  r4:bf204d50
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.120891] [<bf204d50>] (video_ioctl2 [videodev]) from [<bf1fc148>] (v4l2_ioctl+0x4c/0x64 [videodev])
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.121620] [<bf1fc0fc>] (v4l2_ioctl [videodev]) from [<c021fda0>] (sys_ioctl+0x114/0x9b0)
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.122025]  r5:c33de8c1 r4:c044560f
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.122047] [<c021fc8c>] (sys_ioctl) from [<c0008260>] (ret_fast_syscall+0x0/0x1c)
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.122091] Exception stack(0xc57c7fa8 to 0xc57c7ff0)
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.122124] 7fa0:                   b58cd094 b4f14ea8 0000000f c044560f b58cd094 b6e0c788
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.122160] 7fc0: b58cd094 b4f14ea8 b4f0b3b8 00000036 004fb950 fffffff8 b6aea124 004fd850
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.122193] 7fe0: b6abce94 b58cd06c b6a464a0 b6bdc1ac
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.122223]  r10:00000000 r9:c57c6000 r8:c00083e4 r7:00000036 r6:b4f0b3b8 r5:b4f14ea8
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.122250]  r4:b58cd094
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.122276] Code: bad PC value
+Jun  3 17:49:49 WimPiZeroCamera kernel: [  912.122301] ---[ end trace 573ed3b4c982bd9e ]---
+
+pi@WimPiZeroCamera:~ $ libcamera-vid -t 0 --nopreview --inline --listen -o tcp://0.0.0.0:5000
+[0:21:29.651290354] [2842]  INFO Camera camera_manager.cpp:293 libcamera v0.0.0+3544-22656360
+[0:21:29.736025830] [2865] ERROR CameraSensor camera_sensor.cpp:591 'ov5647 10-0036': Camera sensor does not support test pattern modes.
+[0:21:29.865355241] [2865]  INFO RPI raspberrypi.cpp:1356 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media3 and ISP device /dev/media0
+[0:21:29.870456691] [2842]  INFO Camera camera.cpp:1029 configuring streams: (0) 640x480-YUV420
+[0:21:29.872753894] [2865] ERROR V4L2 v4l2_videodevice.cpp:1211 /dev/video14[15:cap]: Unable to request 0 buffers: Device or resource busy
+[0:21:29.876987267] [2865]  INFO RPI raspberrypi.cpp:760 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[0:21:29.879793515] [2865] ERROR V4L2 v4l2_videodevice.cpp:1017 /dev/video14[15:cap]: Unable to set format: Invalid argument
+[0:21:29.885868051] [2865] ERROR V4L2 v4l2_videodevice.cpp:1211 /dev/video14[15:cap]: Unable to request 0 buffers: Device or resource busy
+[0:21:29.888558288] [2865] ERROR V4L2 v4l2_videodevice.cpp:1211 /dev/video14[15:cap]: Unable to request 0 buffers: Device or resource busy
+ERROR: *** failed to configure streams ***
+
+pi@WimPiZeroCamera:~ $ dmesg 
+[    0.000000] Booting Linux on physical CPU 0x0
+[    0.000000] Linux version 5.15.32+ (dom@buildbot) (arm-linux-gnueabihf-gcc-8 (Ubuntu/Linaro 8.4.0-3ubuntu1) 8.4.0, GNU ld (GNU Binutils for Ubuntu) 2.34) #1538 Thu Mar 31 19:37:58 BST 2022
+[    0.000000] CPU: ARMv6-compatible processor [410fb767] revision 7 (ARMv7), cr=00c5387d
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT nonaliasing instruction cache
+[    0.000000] OF: fdt: Machine model: Raspberry Pi Zero W Rev 1.1
+[    0.000000] random: fast init done
+[    0.000000] Memory policy: Data cache writeback
+[    0.000000] Reserved memory: created CMA memory pool at 0x0bc00000, size 256 MiB
+[    0.000000] OF: reserved mem: initialized node linux,cma, compatible id shared-dma-pool
+[    0.000000] Zone ranges:
+[    0.000000]   Normal   [mem 0x0000000000000000-0x000000001bffffff]
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000000000-0x000000001bffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000000000-0x000000001bffffff]
+[    0.000000] pcpu-alloc: s0 r0 d32768 u32768 alloc=1*32768
+[    0.000000] pcpu-alloc: [0] 0 
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 113680
+[    0.000000] Kernel command line: coherent_pool=1M 8250.nr_uarts=0 snd_bcm2835.enable_compat_alsa=0 snd_bcm2835.enable_hdmi=1 video=Composite-1:720x480@60i smsc95xx.macaddr=B8:27:EB:B0:8B:F5 vc_mem.mem_base=0x1ec00000 vc_mem.mem_size=0x20000000  console=ttyS0,115200 console=tty1 root=PARTUUID=fb77dacb-02 rootfstype=ext4 fsck.repair=yes rootwait
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] Memory: 177232K/458752K available (8994K kernel code, 1338K rwdata, 2932K rodata, 436K init, 546K bss, 19376K reserved, 262144K cma-reserved)
+[    0.000000] SLUB: HWalign=32, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.000000] ftrace: allocating 31774 entries in 94 pages
+[    0.000000] ftrace: allocated 94 pages with 5 groups
+[    0.000000] trace event string verifier disabled
+[    0.000000] NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+[    0.000000] random: get_random_bytes called from start_kernel+0x474/0x6d8 with crng_init=1
+[    0.000006] sched_clock: 32 bits at 1000kHz, resolution 1000ns, wraps every 2147483647500ns
+[    0.000103] clocksource: timer: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275 ns
+[    0.000218] bcm2835: system timer (irq = 27)
+[    0.001057] Console: colour dummy device 80x30
+[    0.001745] printk: console [tty1] enabled
+[    0.001852] Calibrating delay loop... 697.95 BogoMIPS (lpj=3489792)
+[    0.060393] pid_max: default: 32768 minimum: 301
+[    0.060674] LSM: Security Framework initializing
+[    0.060961] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.061053] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.063508] cgroup: Disabling memory control group subsystem
+[    0.064035] CPU: Testing write buffer coherency: ok
+[    0.066225] Setting up static identity map for 0x8220 - 0x8258
+[    0.067834] devtmpfs: initialized
+[    0.083807] VFP support v0.3: implementor 41 architecture 1 part 20 variant b rev 5
+[    0.084294] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.084404] futex hash table entries: 256 (order: -1, 3072 bytes, linear)
+[    0.127024] pinctrl core: initialized pinctrl subsystem
+[    0.129466] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.134357] DMA: preallocated 1024 KiB pool for atomic coherent allocations
+[    0.142184] audit: initializing netlink subsys (disabled)
+[    0.143933] thermal_sys: Registered thermal governor 'step_wise'
+[    0.144990] hw-breakpoint: found 6 breakpoint and 1 watchpoint registers.
+[    0.145109] hw-breakpoint: maximum watchpoint size is 4 bytes.
+[    0.145453] Serial: AMBA PL011 UART driver
+[    0.151092] audit: type=2000 audit(0.140:1): state=initialized audit_enabled=0 res=1
+[    0.160145] bcm2835-mbox 2000b880.mailbox: mailbox enabled
+[    0.191108] raspberrypi-firmware soc:firmware: Attached to firmware from 2022-03-24T13:20:54, variant start
+[    0.201144] raspberrypi-firmware soc:firmware: Firmware hash is e5a963efa66a1974127860b42e913d2374139ff5
+[    0.262054] Kprobes globally optimized
+[    0.272484] bcm2835-dma 20007000.dma: DMA legacy API manager, dmachans=0x1
+[    0.276118] SCSI subsystem initialized
+[    0.276762] usbcore: registered new interface driver usbfs
+[    0.276949] usbcore: registered new interface driver hub
+[    0.277112] usbcore: registered new device driver usb
+[    0.277695] usb_phy_generic phy: supply vcc not found, using dummy regulator
+[    0.278623] pps_core: LinuxPPS API ver. 1 registered
+[    0.278699] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.278800] PTP clock support registered
+[    0.281910] clocksource: Switched to clocksource timer
+[    0.370455] VFS: Disk quotas dquot_6.6.0
+[    0.370691] VFS: Dquot-cache hash table entries: 1024 (order 0, 4096 bytes)
+[    0.371010] FS-Cache: Loaded
+[    0.371466] CacheFiles: Loaded
+[    0.372792] simple-framebuffer 1eaa9000.framebuffer: framebuffer at 0x1eaa9000, 0x151800 bytes
+[    0.372901] simple-framebuffer 1eaa9000.framebuffer: format=a8r8g8b8, mode=720x480x32, linelength=2880
+[    2.316101] Console: switching to colour frame buffer device 90x30
+[    2.325271] simple-framebuffer 1eaa9000.framebuffer: fb0: simplefb registered!
+[    2.350732] NET: Registered PF_INET protocol family
+[    2.354872] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    2.360316] tcp_listen_portaddr_hash hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    2.367939] TCP established hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    2.371890] TCP bind hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    2.375935] TCP: Hash tables configured (established 4096 bind 4096)
+[    2.380124] UDP hash table entries: 256 (order: 0, 4096 bytes, linear)
+[    2.384335] UDP-Lite hash table entries: 256 (order: 0, 4096 bytes, linear)
+[    2.388904] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    2.394625] RPC: Registered named UNIX socket transport module.
+[    2.398765] RPC: Registered udp transport module.
+[    2.402743] RPC: Registered tcp transport module.
+[    2.406565] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    2.412460] armv6-pmu arm-pmu: hw perfevents: no irqs for PMU, sampling events not supported
+[    2.420399] hw perfevents: enabled with armv6_1176 PMU driver, 3 counters available
+[    2.429744] Initialise system trusted keyrings
+[    2.434604] workingset: timestamp_bits=14 max_order=17 bucket_order=3
+[    2.453924] zbud: loaded
+[    2.461435] FS-Cache: Netfs 'nfs' registered for caching
+[    2.467183] NFS: Registering the id_resolver key type
+[    2.471273] Key type id_resolver registered
+[    2.475265] Key type id_legacy registered
+[    2.479333] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    2.483258] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    2.489408] Key type asymmetric registered
+[    2.493314] Asymmetric key parser 'x509' registered
+[    2.497226] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 247)
+[    2.500957] io scheduler mq-deadline registered
+[    2.504634] io scheduler kyber registered
+[    2.523787] bcm2835-rng 20104000.rng: hwrng registered
+[    2.528273] vc-mem: phys_addr:0x00000000 mem_base=0x1ec00000 mem_size:0x20000000(512 MiB)
+[    2.537873] gpiomem-bcm2835 20200000.gpiomem: Initialised: Registers at 0x20200000
+[    2.566526] brd: module loaded
+[    2.585049] loop: module loaded
+[    2.590211] Loading iSCSI transport class v2.0-870.
+[    2.597328] usbcore: registered new interface driver smsc95xx
+[    2.601215] dwc_otg: version 3.00a 10-AUG-2012 (platform bus)
+[    3.333676] Core Release: 2.80a
+[    3.337343] Setting default values for core params
+[    3.340853] Finished setting default values for core params
+[    3.544874] Using Buffer DMA mode
+[    3.548387] Periodic Transfer Interrupt Enhancement - disabled
+[    3.551884] Multiprocessor Interrupt Enhancement - disabled
+[    3.555462] OTG VER PARAM: 0, OTG VER FLAG: 0
+[    3.558997] Dedicated Tx FIFOs mode
+
+[    3.564287] WARN::dwc_otg_hcd_init:1074: FIQ DMA bounce buffers: virt = cbd04000 dma = 0x8bd04000 len=9024
+[    3.574695] FIQ FSM acceleration enabled for :
+               Non-periodic Split Transactions
+               Periodic Split Transactions
+               High-Speed Isochronous Endpoints
+               Interrupt/Control Split Transaction hack enabled
+[    3.591457] dwc_otg: Microframe scheduler enabled
+
+[    3.591760] WARN::hcd_init_fiq:457: FIQ on core 0
+
+[    3.598183] WARN::hcd_init_fiq:458: FIQ ASM at c0685988 length 36
+
+[    3.604257] WARN::hcd_init_fiq:497: MPHI regs_base at dc810000
+[    3.610492] dwc_otg 20980000.usb: DWC OTG Controller
+[    3.613790] dwc_otg 20980000.usb: new USB bus registered, assigned bus number 1
+[    3.617120] dwc_otg 20980000.usb: irq 56, io mem 0x00000000
+[    3.620339] Init: Port Power? op_state=1
+[    3.623486] Init: Power Port (0)
+[    3.627138] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002, bcdDevice= 5.15
+[    3.633517] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    3.636877] usb usb1: Product: DWC OTG Controller
+[    3.640146] usb usb1: Manufacturer: Linux 5.15.32+ dwc_otg_hcd
+[    3.643536] usb usb1: SerialNumber: 20980000.usb
+[    3.648277] hub 1-0:1.0: USB hub found
+[    3.651724] hub 1-0:1.0: 1 port detected
+[    3.656434] dwc_otg: FIQ enabled
+[    3.656474] dwc_otg: NAK holdoff enabled
+[    3.656491] dwc_otg: FIQ split-transaction FSM enabled
+[    3.656524] Module dwc_common_port init
+[    3.657236] usbcore: registered new interface driver usb-storage
+[    3.661029] mousedev: PS/2 mouse device common for all mice
+[    3.668645] sdhci: Secure Digital Host Controller Interface driver
+[    3.672150] sdhci: Copyright(c) Pierre Ossman
+[    3.676357] sdhci-pltfm: SDHCI platform and OF driver helper
+[    3.681225] ledtrig-cpu: registered to indicate activity on CPUs
+[    3.686004] hid: raw HID events driver (C) Jiri Kosina
+[    3.689742] usbcore: registered new interface driver usbhid
+[    3.693243] usbhid: USB HID core driver
+[    3.704651] Initializing XFRM netlink socket
+[    3.708554] NET: Registered PF_PACKET protocol family
+[    3.712267] Key type dns_resolver registered
+[    3.716598] registered taskstats version 1
+[    3.719910] Loading compiled-in X.509 certificates
+[    3.741735] uart-pl011 20201000.serial: cts_event_workaround enabled
+[    3.745462] 20201000.serial: ttyAMA0 at MMIO 0x20201000 (irq = 81, base_baud = 0) is a PL011 rev2
+[    3.756764] bcm2835-wdt bcm2835-wdt: Broadcom BCM2835 watchdog timer
+[    3.761042] bcm2835-power bcm2835-power: Broadcom BCM2835 power domains driver
+[    3.767326] mmc-bcm2835 20300000.mmcnr: mmc_debug:0 mmc_debug2:0
+[    3.770813] mmc-bcm2835 20300000.mmcnr: DMA channel allocated
+[    3.804379] sdhost: log_buf @ (ptrval) (8bd03000)
+[    3.855622] mmc0: sdhost-bcm2835 loaded - DMA enabled (>1)
+[    3.884231] of_cfs_init
+[    3.888423] of_cfs_init: OK
+[    3.894920] Waiting for root device PARTUUID=fb77dacb-02...
+[    3.964145] mmc0: host does not support reading read-only switch, assuming write-enable
+[    3.970800] mmc0: new high speed SDHC card at address aaaa
+[    3.976433] mmcblk0: mmc0:aaaa SU32G 29.7 GiB 
+[    3.986167]  mmcblk0: p1 p2
+[    3.991578] mmcblk0: mmc0:aaaa SU32G 29.7 GiB
+[    4.019154] mmc1: new high speed SDIO card at address 0001
+[    4.030412] EXT4-fs (mmcblk0p2): mounted filesystem with ordered data mode. Opts: (null). Quota mode: none.
+[    4.037645] VFS: Mounted root (ext4 filesystem) readonly on device 179:2.
+[    4.050795] devtmpfs: mounted
+[    4.061420] Freeing unused kernel image (initmem) memory: 436K
+[    4.065307] Kernel memory protection not selected by kernel config.
+[    4.069089] Run /sbin/init as init process
+[    4.072790]   with arguments:
+[    4.072814]     /sbin/init
+[    4.072831]   with environment:
+[    4.072844]     HOME=/
+[    4.072858]     TERM=linux
+[    4.731561] systemd[1]: System time before build time, advancing clock.
+[    4.908194] NET: Registered PF_INET6 protocol family
+[    4.914717] Segment Routing with IPv6
+[    4.918456] In-situ OAM (IOAM) with IPv6
+[    5.034004] systemd[1]: systemd 247.3-7+rpi1 running in system mode. (+PAM +AUDIT +SELINUX +IMA +APPARMOR +SMACK +SYSVINIT +UTMP +LIBCRYPTSETUP +GCRYPT +GNUTLS +ACL +XZ +LZ4 +ZSTD +SECCOMP +BLKID +ELFUTILS +KMOD +IDN2 -IDN +PCRE2 default-hierarchy=unified)
+[    5.047083] systemd[1]: Detected architecture arm.
+[    5.085699] systemd[1]: Set hostname to <WimPiZeroCamera.WimsWorld>.
+[    8.215871] systemd[1]: Queued start job for default target Multi-User System.
+[    8.224630] random: systemd: uninitialized urandom read (16 bytes read)
+[    8.237508] systemd[1]: Created slice system-getty.slice.
+[    8.247592] random: systemd: uninitialized urandom read (16 bytes read)
+[    8.254798] systemd[1]: Created slice system-modprobe.slice.
+[    8.264193] random: systemd: uninitialized urandom read (16 bytes read)
+[    8.271182] systemd[1]: Created slice system-systemd\x2dfsck.slice.
+[    8.283153] systemd[1]: Created slice User and Session Slice.
+[    8.293557] systemd[1]: Started Dispatch Password Requests to Console Directory Watch.
+[    8.304193] systemd[1]: Started Forward Password Requests to Wall Directory Watch.
+[    8.316813] systemd[1]: Set up automount Arbitrary Executable File Formats File System Automount Point.
+[    8.332118] systemd[1]: Reached target Local Encrypted Volumes.
+[    8.343212] systemd[1]: Reached target Paths.
+[    8.353821] systemd[1]: Reached target Slices.
+[    8.364199] systemd[1]: Reached target Swap.
+[    8.384700] systemd[1]: Listening on Syslog Socket.
+[    8.396304] systemd[1]: Listening on fsck to fsckd communication Socket.
+[    8.407075] systemd[1]: Listening on initctl Compatibility Named Pipe.
+[    8.419681] systemd[1]: Listening on Journal Audit Socket.
+[    8.431465] systemd[1]: Listening on Journal Socket (/dev/log).
+[    8.443928] systemd[1]: Listening on Journal Socket.
+[    8.456084] systemd[1]: Listening on udev Control Socket.
+[    8.467315] systemd[1]: Listening on udev Kernel Socket.
+[    8.478818] systemd[1]: Condition check resulted in Huge Pages File System being skipped.
+[    8.497484] systemd[1]: Mounting POSIX Message Queue File System...
+[    8.535230] systemd[1]: Mounting RPC Pipe File System...
+[    8.587682] systemd[1]: Mounting Kernel Debug File System...
+[    8.662975] systemd[1]: Mounting Kernel Trace File System...
+[    8.676250] systemd[1]: Condition check resulted in Kernel Module supporting RPCSEC_GSS being skipped.
+[    8.717368] systemd[1]: Starting Restore / save the current clock...
+[    8.763917] systemd[1]: Starting Set the console keyboard layout...
+[    8.827761] systemd[1]: Starting Create list of static device nodes for the current kernel...
+[    8.954875] systemd[1]: Starting Load Kernel Module configfs...
+[    9.035230] systemd[1]: Starting Load Kernel Module drm...
+[    9.106262] systemd[1]: Starting Load Kernel Module fuse...
+[    9.170944] systemd[1]: Condition check resulted in Set Up Additional Binary Formats being skipped.
+[    9.285687] systemd[1]: Starting File System Check on Root Device...
+[    9.362984] fuse: init (API version 7.34)
+[    9.414131] systemd[1]: Starting Journal Service...
+[    9.529796] systemd[1]: Starting Load Kernel Modules...
+[    9.644712] systemd[1]: Starting Coldplug All udev Devices...
+[    9.892203] systemd[1]: Mounted POSIX Message Queue File System.
+[    9.947872] systemd[1]: Mounted RPC Pipe File System.
+[   10.008488] systemd[1]: Mounted Kernel Debug File System.
+[   10.093845] systemd[1]: Mounted Kernel Trace File System.
+[   10.172241] systemd[1]: Finished Restore / save the current clock.
+[   10.282353] systemd[1]: Finished Create list of static device nodes for the current kernel.
+[   10.339644] systemd[1]: modprobe@configfs.service: Succeeded.
+[   10.392416] systemd[1]: Finished Load Kernel Module configfs.
+[   10.456169] systemd[1]: modprobe@drm.service: Succeeded.
+[   10.502718] systemd[1]: Finished Load Kernel Module drm.
+[   10.556329] systemd[1]: modprobe@fuse.service: Succeeded.
+[   10.612293] systemd[1]: Finished Load Kernel Module fuse.
+[   10.682383] systemd[1]: Finished Load Kernel Modules.
+[   10.822779] systemd[1]: Mounting FUSE Control File System...
+[   10.973040] systemd[1]: Mounting Kernel Configuration File System...
+[   11.103787] systemd[1]: Started File System Check Daemon to report status.
+[   11.252580] systemd[1]: Starting Apply Kernel Variables...
+[   11.362273] systemd[1]: Finished File System Check on Root Device.
+[   11.446454] systemd[1]: Mounted FUSE Control File System.
+[   11.527519] systemd[1]: Mounted Kernel Configuration File System.
+[   11.643939] systemd[1]: Starting Remount Root and Kernel File Systems...
+[   11.834288] systemd[1]: Finished Apply Kernel Variables.
+[   11.956778] systemd[1]: Started Journal Service.
+[   12.742026] EXT4-fs (mmcblk0p2): re-mounted. Opts: (null). Quota mode: none.
+[   13.309146] systemd-journald[100]: Received client request to flush runtime journal.
+[   17.807366] mc: Linux media interface: v0.10
+[   17.894615] vc_sm_cma: module is from the staging directory, the quality is unknown, you have been warned.
+[   17.897436] bcm2835_vc_sm_cma_probe: Videocore shared memory driver
+[   17.897497] [vc_sm_connected_init]: start
+[   17.932842] [vc_sm_connected_init]: installed successfully
+[   18.019478] videodev: Linux video capture interface: v2.00
+[   18.142360] bcm2835_mmal_vchiq: module is from the staging directory, the quality is unknown, you have been warned.
+[   18.147968] bcm2835_mmal_vchiq: module is from the staging directory, the quality is unknown, you have been warned.
+[   18.176426] bcm2835_isp: module is from the staging directory, the quality is unknown, you have been warned.
+[   18.187930] bcm2835_v4l2: module is from the staging directory, the quality is unknown, you have been warned.
+[   18.222681] bcm2835-isp bcm2835-isp: Device node output[0] registered as /dev/video13
+[   18.225364] bcm2835-isp bcm2835-isp: Device node capture[0] registered as /dev/video14
+[   18.242274] bcm2835-isp bcm2835-isp: Device node capture[1] registered as /dev/video15
+[   18.272175] bcm2835-isp bcm2835-isp: Device node stats[2] registered as /dev/video16
+[   18.272261] bcm2835-isp bcm2835-isp: Register output node 0 with media controller
+[   18.272310] bcm2835-isp bcm2835-isp: Register capture node 1 with media controller
+[   18.272349] bcm2835-isp bcm2835-isp: Register capture node 2 with media controller
+[   18.272384] bcm2835-isp bcm2835-isp: Register capture node 3 with media controller
+[   18.273046] bcm2835_codec: module is from the staging directory, the quality is unknown, you have been warned.
+[   18.301507] bcm2835-isp bcm2835-isp: Device node output[0] registered as /dev/video20
+[   18.303890] bcm2835-isp bcm2835-isp: Device node capture[0] registered as /dev/video21
+[   18.332223] bcm2835-isp bcm2835-isp: Device node capture[1] registered as /dev/video22
+[   18.343474] bcm2835-isp bcm2835-isp: Device node stats[2] registered as /dev/video23
+[   18.343557] bcm2835-isp bcm2835-isp: Register output node 0 with media controller
+[   18.343607] bcm2835-isp bcm2835-isp: Register capture node 1 with media controller
+[   18.343646] bcm2835-isp bcm2835-isp: Register capture node 2 with media controller
+[   18.343681] bcm2835-isp bcm2835-isp: Register capture node 3 with media controller
+[   18.356571] bcm2835-isp bcm2835-isp: Loaded V4L2 bcm2835-isp
+[   18.373078] bcm2835-codec bcm2835-codec: Device registered as /dev/video10
+[   18.373189] bcm2835-codec bcm2835-codec: Loaded V4L2 decode
+[   18.386250] bcm2835-codec bcm2835-codec: Device registered as /dev/video11
+[   18.386354] bcm2835-codec bcm2835-codec: Loaded V4L2 encode
+[   18.396316] snd_bcm2835: module is from the staging directory, the quality is unknown, you have been warned.
+[   18.403514] bcm2835-codec bcm2835-codec: Device registered as /dev/video12
+[   18.403615] bcm2835-codec bcm2835-codec: Loaded V4L2 isp
+[   18.406492] bcm2835_audio bcm2835_audio: there is not valid maps for state default
+[   18.435801] bcm2835-codec bcm2835-codec: Device registered as /dev/video18
+[   18.435904] bcm2835-codec bcm2835-codec: Loaded V4L2 image_fx
+[   18.512235] bcm2835-codec bcm2835-codec: Device registered as /dev/video31
+[   18.512341] bcm2835-codec bcm2835-codec: Loaded V4L2 encode_image
+[   19.328877] i2c i2c-11: Added multiplexed i2c bus 0
+[   19.396074] i2c 10-0036: Fixing up cyclic dependency with 20801000.csi
+[   19.396908] i2c i2c-11: Added multiplexed i2c bus 10
+[   20.786408] cfg80211: Loading compiled-in X.509 certificates for regulatory database
+[   21.250947] cfg80211: Loaded X.509 cert 'sforshee: 00b28ddf47aef9cea7'
+[   21.281679] cfg80211: loaded regulatory.db is malformed or signature is missing/invalid
+[   22.118616] brcmfmac: F1 signature read @0x18000000=0x1541a9a6
+[   22.372486] brcmfmac: brcmf_fw_alloc_request: using brcm/brcmfmac43430-sdio for chip BCM43430/1
+[   22.374297] brcmfmac mmc1:0001:1: Direct firmware load for brcm/brcmfmac43430-sdio.raspberrypi,model-zero-w.bin failed with error -2
+[   22.375539] usbcore: registered new interface driver brcmfmac
+[   22.591615] checking generic (1eaa9000 151800) vs hw (0 ffffffff)
+[   22.591674] fb0: switching to vc4 from simple
+[   22.622199] Console: switching to colour dummy device 80x30
+[   22.781744] vc4-drm soc:gpu: bound 20400000.hvs (ops vc4_hvs_ops [vc4])
+[   22.829524] brcmfmac: brcmf_fw_alloc_request: using brcm/brcmfmac43430-sdio for chip BCM43430/1
+[   22.829828] brcmfmac: brcmf_fw_alloc_request: using brcm/brcmfmac43430-sdio for chip BCM43430/1
+[   22.842050] brcmfmac: brcmf_c_preinit_dcmds: Firmware: BCM43430/1 wl0: Jul 19 2021 03:24:18 version 7.45.98 (TOB) (56df937 CY) FWID 01-8e14b897
+[   22.952489] Registered IR keymap rc-cec
+[   22.952915] rc rc0: vc4 as /devices/platform/soc/20902000.hdmi/rc/rc0
+[   22.953404] input: vc4 as /devices/platform/soc/20902000.hdmi/rc/rc0/input0
+[   27.709312] 8021q: 802.1Q VLAN Support v1.8
+[   29.053515] uart-pl011 20201000.serial: no DMA platform data
+[   29.379297] Adding 102396k swap on /var/swap.  Priority:-2 extents:4 across:249856k SSFS
+[   30.426024] random: crng init done
+[   30.426059] random: 7 urandom warning(s) missed due to ratelimiting
+[   33.416543] Bluetooth: Core ver 2.22
+[   33.416726] NET: Registered PF_BLUETOOTH protocol family
+[   33.416746] Bluetooth: HCI device and connection manager initialized
+[   33.416783] Bluetooth: HCI socket layer initialized
+[   33.416808] Bluetooth: L2CAP socket layer initialized
+[   33.416851] Bluetooth: SCO socket layer initialized
+[   33.448555] Bluetooth: HCI UART driver ver 2.3
+[   33.448602] Bluetooth: HCI UART protocol H4 registered
+[   33.448747] Bluetooth: HCI UART protocol Three-wire (H5) registered
+[   33.449098] Bluetooth: HCI UART protocol Broadcom registered
+[   34.402081] cam-dummy-reg: disabling
+[   34.503613] vc4-drm soc:gpu: bound 20400000.hvs (ops vc4_hvs_ops [vc4])
+[   34.510749] Registered IR keymap rc-cec
+[   34.511059] rc rc0: vc4 as /devices/platform/soc/20902000.hdmi/rc/rc0
+[   34.511414] input: vc4 as /devices/platform/soc/20902000.hdmi/rc/rc0/input1
+[   34.532992] vc4-drm soc:gpu: bound 20902000.hdmi (ops vc4_hdmi_ops [vc4])
+[   34.533833] vc4-drm soc:gpu: bound 20004000.txp (ops vc4_txp_ops [vc4])
+[   34.534506] vc4-drm soc:gpu: bound 20206000.pixelvalve (ops vc4_crtc_ops [vc4])
+[   34.535181] vc4-drm soc:gpu: bound 20207000.pixelvalve (ops vc4_crtc_ops [vc4])
+[   34.535843] vc4-drm soc:gpu: bound 20807000.pixelvalve (ops vc4_crtc_ops [vc4])
+[   34.536391] vc4-drm soc:gpu: bound 20c00000.v3d (ops vc4_v3d_ops [vc4])
+[   34.589979] [drm] Initialized vc4 0.0.0 20140616 for soc:gpu on minor 0
+[   34.590541] vc4-drm soc:gpu: [drm] Cannot find any crtc or sizes
+[   35.922732] ov5647 10-0036: Consider updating driver ov5647 to match on endpoints
+[   36.468621] Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+[   36.468665] Bluetooth: BNEP filters: protocol multicast
+[   36.468700] Bluetooth: BNEP socket layer initialized
+[   36.656444] NET: Registered PF_ALG protocol family
+[   39.193864] brcmfmac: brcmf_cfg80211_set_power_mgmt: power save enabled
+[   40.791518] IPv6: ADDRCONF(NETDEV_CHANGE): wlan0: link becomes ready
+[   42.728939] ICMPv6: process `dhcpcd' is using deprecated sysctl (syscall) net.ipv6.neigh.wlan0.retrans_time - use net.ipv6.neigh.wlan0.retrans_time_ms instead
+[   44.642448] vc4-drm soc:gpu: [drm] Cannot find any crtc or sizes
+[  912.117574] 8<--- cut here ---
+[  912.117639] Unable to handle kernel paging request at virtual address bfa40c9c
+[  912.117675] pgd = f135a101
+[  912.117702] [bfa40c9c] *pgd=00000000
+[  912.117741] Internal error: Oops: 80000005 [#1] ARM
+[  912.117770] Modules linked in: cmac algif_hash aes_arm aes_generic ecb algif_skcipher af_alg bnep ov5647 snd_soc_hdmi_codec hci_uart btbcm bluetooth ecdh_generic ecc libaes 8021q garp stp llc brcmfmac vc4 brcmutil cec sha256_generic libsha256 drm_kms_helper cfg80211 raspberrypi_hwmon snd_soc_core rfkill snd_compress snd_pcm_dmaengine syscopyarea sysfillrect sysimgblt i2c_mux_pinctrl fb_sys_fops i2c_mux bcm2835_unicam v4l2_dv_timings v4l2_fwnode v4l2_async snd_bcm2835(C) i2c_bcm2835 bcm2835_codec(C) snd_pcm bcm2835_v4l2(C) v4l2_mem2mem bcm2835_isp(C) bcm2835_mmal_vchiq(C) snd_timer videobuf2_dma_contig videobuf2_vmalloc videobuf2_memops videobuf2_v4l2 videobuf2_common snd vc_sm_cma(C) videodev mc uio_pdrv_genirq uio fixed fuse drm drm_panel_orientation_quirks backlight ip_tables x_tables ipv6
+[  912.118234] CPU: 0 PID: 2106 Comm: libcamera-vid Tainted: G         C        5.15.32+ #1538
+[  912.118272] Hardware name: BCM2835
+[  912.118292] PC is at 0xbfa40c9c
+[  912.118320] LR is at video_usercopy+0x4e8/0x5a8 [videodev]
+[  912.118848] pc : [<bfa40c9c>]    lr : [<bf204c90>]    psr: 60000013
+[  912.118875] sp : c57c7e10  ip : c57c7e10  fp : c57c7eec
+[  912.118897] r10: c0c1f028  r9 : 00000000  r8 : 00000000
+[  912.118918] r7 : c57c7e3c  r6 : 00000000  r5 : c044560f  r4 : c050560f
+[  912.118942] r3 : 00000000  r2 : bf226a40  r1 : f140fdb1  r0 : c265c7c0
+[  912.118966] Flags: nZCv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment user
+[  912.118994] Control: 00c5387d  Table: 06c10008  DAC: 00000055
+[  912.119016] Register r0 information: slab kmalloc-8k start c265c000 pointer offset 1984 size 8192
+[  912.119080] Register r1 information: non-paged memory
+[  912.119110] Register r2 information: 58-page vmalloc region starting at 0xbf1fc000 allocated at load_module+0xa74/0x25f8
+[  912.119170] Register r3 information: NULL pointer
+[  912.119198] Register r4 information: non-slab/vmalloc memory
+[  912.119226] Register r5 information: non-slab/vmalloc memory
+[  912.119253] Register r6 information: NULL pointer
+[  912.119277] Register r7 information: non-slab/vmalloc memory
+[  912.119304] Register r8 information: NULL pointer
+[  912.119329] Register r9 information: NULL pointer
+[  912.119354] Register r10 information: non-slab/vmalloc memory
+[  912.119381] Register r11 information: non-slab/vmalloc memory
+[  912.119407] Register r12 information: non-slab/vmalloc memory
+[  912.119434] Process libcamera-vid (pid: 2106, stack limit = 0xa40387ed)
+[  912.119468] Stack: (0xc57c7e10 to 0xc57c8000)
+[  912.119497] 7e00:                                     c57c7e3b c1b92be0 c57c7e5c 00000000
+[  912.119532] 7e20: 00000000 00000000 00000000 00000000 c33de8c0 b58cd094 00c9c038 00000005
+[  912.119566] 7e40: 00000001 00070800 00004002 00000000 00000000 0000038f 00000000 000ee5f2
+[  912.119600] 7e60: 00000000 00000000 00000000 00000000 00000000 00000000 00000004 00000017
+[  912.119635] 7e80: 00071000 00000000 00000000 c57c7e98 c0046c80 c000b100 c5ef2014 c1b92be0
+[  912.119670] 7ea0: c0c2b2c0 c3946660 00000000 c19a51c0 c57c7edc c57c7ec0 c0013798 f140fdb1
+[  912.119704] 7ec0: 00000000 bf204d50 c33de8c1 00000000 c33de8c0 c0c1f028 b58cd094 0000000f
+[  912.119740] 7ee0: c57c7efc c57c7ef0 bf204d6c bf2047b4 c57c7f14 c57c7f00 bf1fc148 bf204d5c
+[  912.119775] 7f00: c044560f c33de8c1 c57c7fa4 c57c7f18 c021fda0 bf1fc108 00000010 00000000
+[  912.119810] 7f20: 00000390 c04d67e4 c57c7f74 c57c7f38 c007f00c c04d67d0 00000390 00000000
+[  912.119845] 7f40: 00da35f2 00000000 00000193 f140fdb1 c57c6000 b58cce98 c0c1f028 b6f6a880
+[  912.119880] 7f60: 00000193 c00083e4 c57c7fa4 c57c7f78 c0090458 f140fdb1 00000390 b58cd094
+[  912.119915] 7f80: b4f14ea8 b4f0b3b8 00000036 c00083e4 c57c6000 00000000 00000000 c57c7fa8
+[  912.119950] 7fa0: c0008260 c021fc98 b58cd094 b4f14ea8 0000000f c044560f b58cd094 b6e0c788
+[  912.119985] 7fc0: b58cd094 b4f14ea8 b4f0b3b8 00000036 004fb950 fffffff8 b6aea124 004fd850
+[  912.120021] 7fe0: b6abce94 b58cd06c b6a464a0 b6bdc1ac 60000010 0000000f 00000000 00000000
+[  912.120048] Backtrace: 
+[  912.120071] [<bf2047a8>] (video_usercopy [videodev]) from [<bf204d6c>] (video_ioctl2+0x1c/0x24 [videodev])
+[  912.120842]  r10:0000000f r9:b58cd094 r8:c0c1f028 r7:c33de8c0 r6:00000000 r5:c33de8c1
+[  912.120873]  r4:bf204d50
+[  912.120891] [<bf204d50>] (video_ioctl2 [videodev]) from [<bf1fc148>] (v4l2_ioctl+0x4c/0x64 [videodev])
+[  912.121620] [<bf1fc0fc>] (v4l2_ioctl [videodev]) from [<c021fda0>] (sys_ioctl+0x114/0x9b0)
+[  912.122025]  r5:c33de8c1 r4:c044560f
+[  912.122047] [<c021fc8c>] (sys_ioctl) from [<c0008260>] (ret_fast_syscall+0x0/0x1c)
+[  912.122091] Exception stack(0xc57c7fa8 to 0xc57c7ff0)
+[  912.122124] 7fa0:                   b58cd094 b4f14ea8 0000000f c044560f b58cd094 b6e0c788
+[  912.122160] 7fc0: b58cd094 b4f14ea8 b4f0b3b8 00000036 004fb950 fffffff8 b6aea124 004fd850
+[  912.122193] 7fe0: b6abce94 b58cd06c b6a464a0 b6bdc1ac
+[  912.122223]  r10:00000000 r9:c57c6000 r8:c00083e4 r7:00000036 r6:b4f0b3b8 r5:b4f14ea8
+[  912.122250]  r4:b58cd094
+[  912.122276] Code: bad PC value
+[  912.122301] ---[ end trace 573ed3b4c982bd9e ]---
+[ 1289.920316] bcm2835-isp bcm2835-isp: populate_qdata_fmt: Failed vchiq_mmal_port_set_format on port, ret -3
+
