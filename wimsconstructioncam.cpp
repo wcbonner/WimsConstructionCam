@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20221103-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20221103-2 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -778,6 +778,11 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 				{
 					mycommand.push_back("--tuning-file"); mycommand.push_back(TuningFileName);
 				}
+				// The next three pair of arguments are an HDR experiment
+				mycommand.push_back("--ev"); mycommand.push_back("-2");
+				mycommand.push_back("--denoise"); mycommand.push_back("cdn_off");
+				mycommand.push_back("--post-process-file"); mycommand.push_back("/usr/local/etc/wimsconstructioncam/hdr.json");
+				// The following pair is for the arducam_64mp camera
 				mycommand.push_back("--afmode"); mycommand.push_back("auto");
 				if (ConsoleVerbosity > 0)
 				{

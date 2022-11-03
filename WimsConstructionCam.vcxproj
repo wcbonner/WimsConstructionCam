@@ -89,6 +89,7 @@
     <None Include="WimsConstructionCam\DEBIAN\postinst" />
     <None Include="WimsConstructionCam\DEBIAN\postrm" />
     <None Include="WimsConstructionCam\DEBIAN\prerm" />
+    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\hdr.json" />
     <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_100.json" />
     <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_120.json" />
     <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_160.json" />
