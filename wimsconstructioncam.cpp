@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20221102-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20221103-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -778,7 +778,7 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 				{
 					mycommand.push_back("--tuning-file"); mycommand.push_back(TuningFileName);
 				}
-				mycommand.push_back("--continue-autofocus");
+				mycommand.push_back("--afmode"); mycommand.push_back("auto");
 				if (ConsoleVerbosity > 0)
 				{
 					std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
@@ -828,7 +828,8 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 						(255 == WEXITSTATUS(CameraProgram_exit_status))) // ERROR: *** unrecognised option '--continue-autofocus' ***
 					{
 						// One last try because the standard libcamera-still program doesn't have the --continue-autofocus option
-						mycommand.pop_back();
+						mycommand.pop_back(); // pop auto
+						mycommand.pop_back(); // pop --afmode
 						if (ConsoleVerbosity > 0)
 						{
 							std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
