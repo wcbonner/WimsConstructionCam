@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<!-- saved from url=(0083)https://www.jeffgeerling.com/blog/2022/using-4g-lte-wireless-modems-on-raspberry-pi -->
+<html lang="en" dir="ltr" class=" js"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+<meta name="Generator" content="Drupal 9 (https://www.drupal.org)">
+<meta name="MobileOptimized" content="width">
+<meta name="HandheldFriendly" content="true">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script async="" src="./Using 4G LTE wireless modems on a Raspberry Pi _ Jeff Geerling_files/tracker.js.download" id="fathom-script"></script><script>var ct_check_js_val = '0481cb40e3eec18991bf4a01f5376955';var drupal_ac_antibot_cookie_value = '0075a04c093efa8f1070e676dc07b8c264c977ef63aad754f882bcddfb4e8c0b';var ct_use_alt_cookies = 0;var ct_capture_buffer = 0;</script>
+<link rel="apple-touch-icon" sizes="180x180" href="https://www.jeffgeerling.com/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://www.jeffgeerling.com/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://www.jeffgeerling.com/favicon-16x16.png">
+<link rel="manifest" href="https://www.jeffgeerling.com/site.webmanifest">
+<link rel="mask-icon" href="https://www.jeffgeerling.com/safari-pinned-tab.svg" color="#333333">
+<link rel="icon" href="https://www.jeffgeerling.com/themes/jeffgeerling/favicon.ico" type="image/vnd.microsoft.icon">
+<link rel="canonical" href="https://www.jeffgeerling.com/blog/2022/using-4g-lte-wireless-modems-on-raspberry-pi">
+<link rel="shortlink" href="https://www.jeffgeerling.com/node/3169">
+
+    <title>Using 4G LTE wireless modems on a Raspberry Pi | Jeff Geerling</title>
+    <link rel="stylesheet" media="all" href="./Using 4G LTE wireless modems on a Raspberry Pi _ Jeff Geerling_files/css_DfIk0kDE_97QqZBJr5TF4iiP6Rt7nG3gWSu-Jh5AKCY.css">
+<link rel="stylesheet" media="all" href="./Using 4G LTE wireless modems on a Raspberry Pi _ Jeff Geerling_files/css_eNW2531dcDNYjMPraE8XDVzKUGW1yLJPeSm_lPpIbXc.css">
+
+    
+  </head>
+  <body class="path-node page-node-type-blog-post">
+        <a href="https://www.jeffgeerling.com/blog/2022/using-4g-lte-wireless-modems-on-raspberry-pi#main-content" class="visually-hidden focusable skip-link">
+      Skip to main content
+    </a>
+    
+      <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas="">
+    <div class="layout-container">
+
+  <header role="banner">
+      <div class="region region-header">
+    <div id="block-jeffgeerling-branding" class="block block-system block-system-branding-block">
+  
+    
+  <div class="block-content">
+            <div class="site-name">
+      <strong>
+        <a href="https://www.jeffgeerling.com/" title="Home" rel="home">Jeff Geerling</a>
+      </strong>
+    </div>
+      </div>
+</div>
+<nav role="navigation" aria-labelledby="block-mainmenu-menu" id="block-mainmenu" class="block block-menu navigation menu--main">
+            
+  <h2 class="visually-hidden" id="block-mainmenu-menu">Main menu</h2>
+  
+
+        
+              <ul class="menu">
+                    <li class="menu-item">
+        <a href="https://www.jeffgeerling.com/blog" data-drupal-link-system-path="blog">Blog</a>
+              </li>
+                <li class="menu-item">
+        <a href="https://www.jeffgeerling.com/projects" data-drupal-link-system-path="projects">Projects</a>
+              </li>
+                <li class="menu-item">
+        <a href="https://www.jeffgeerling.com/about" data-drupal-link-system-path="node/1">About</a>
+              </li>
+        </ul>
+  
+
+
+  </nav>
+
+  </div>
+
+  </header>
+
+  
+  
+
+  
+
+    <div class="region region-highlighted">
+    <div data-drupal-messages-fallback="" class="hidden"></div>
+
+  </div>
+
+
+  
+
+  <main role="main">
+    <a id="main-content" tabindex="-1"></a>
+    <div class="layout-content">
+        <div class="region region-content">
+    <div id="block-jeffgeerling-page-title" class="block block-core block-page-title-block">
+  
+    
+  <div class="block-content">
+          
+  <h1 class="page-title"><span class="field field--name-title field--type-string field--label-hidden">Using 4G LTE wireless modems on a Raspberry Pi</span>
+</h1>
+
+
+      </div>
+</div>
+<div id="block-jeffgeerling-system-main" class="block block-system block-system-main-block">
+  
+    
+  <div class="block-content">
+          
+<article role="article" class="node node--type-blog-post node--promoted node--view-mode-full">
+
+  <header>
+    
+        
+  </header>
+
+      <footer class="node__meta">
+      <article class="profile">
+  </article>
+
+      <div class="node__submitted">
+        <span class="field field--name-created field--type-created field--label-hidden">January 20, 2022</span>
+
+        
+      </div>
+    </footer>
+  
+  <div class="node__content">
+    
+            <div class="clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item"><p>For a recent project, I needed to add cellular connectivity to a Raspberry Pi (actually, an entire cluster... but that's a story for a future time!).</p>
+
+<p><img src="./Using 4G LTE wireless modems on a Raspberry Pi _ Jeff Geerling_files/raspberry-pi-lte-modem-hardware-4g-wireless.jpeg" alt="Raspberry Pi 4 model B with 4G LTE wireless Quectel modem and antenna and USB adapter" width="700" height="442" class="insert-image"></p>
+
+<p>I figured I'd document the process in this blog post so people who follow in my footsteps don't need to spend quite as much time researching. This post is the culmination of 40+ hours of reading, testing, and head-scratching.</p>
+
+<p>There doesn't seem to be any good central resource for "4G LTE and Linux" out there, just a thousand posts about the ABC's of getting an Internet connection working through a 4G modem—but with precious little explanation about <em>why</em> or <em>how</em> it works. (Or why someone should care about random terms like PPP, ECM, QMI, or MBIM, or why someone would choose <code>qmi_wwan</code> over <code>cdc_ether</code>, or ... I could go on).</p>
+
+<p>Hopefully you can learn something from my notes. Or point out places where I'm glaringly wrong :)</p>
+
+<h2>Hardware</h2>
+
+<p>The hardware requirements are not too bad, and remarkably affordable. You'll need:</p>
+
+<ul>
+<li>A Raspberry Pi (almost any will do, though I used a Raspberry Pi 4 (with a USB adapter) and a Compute Module 4 (with a carrier board with a mini PCIe slot).</li>
+<li>A mini PCI Express 4G LTE modem. I used a <a href="https://amzn.to/3A3ey8A">Quectel EC25-A</a>, but there are some from Sierra Wireless I've heard recommended too.</li>
+<li>(If not using a CM4 + LTE carrier board) A USB to mini PCIe adapter with built-in SIM tray. I used <a href="https://amzn.to/33Ge38q">this one from Timack</a> but any should do—just make sure it has a SIM try built-in! There are even <a href="https://amzn.to/3tPQips">Pi HATs like this one</a> that place the modem hardware directly atop the Pi.</li>
+<li>A SIM card with a 4G data plan. I bought a <a href="https://sixfab.com/sim/">SixFab SIM</a> and used their monthly pay-as-you-go service for testing. You could pull out the SIM from your mobile phone (on most carriers at least) but that is a bit inconvenient as your phone won't get service until you put the SIM back in. You could also get a plan and SIM from any major carrier (e.g. AT&amp;T, T-Mobile, Verizon in the USA)—though you have to make sure the carrier you use works with the LTE modem you have!</li>
+<li>An antenna—most modems have plugs for LTE main, LTE diversity, and GPS/GNSS. I typically use <a href="https://sixfab.com/product/lte-main-diversity-gnss-triple-port-u-fl-antenna-100mm/">this Pulse Electronics U.FL antenna</a> in a pinch, but there are many options for different needs (e.g. outdoor antennas, antennas with longer cables and <a href="https://amzn.to/3qHLyAe">SMA to U.FL adapters</a>)—you have to figure out exactly what you need depending on your environment.</li>
+<li>(Depending on the SIM) If you want to use the SIM from your phone—which might be a nano SIM—you should also have on hand a cheap SIM Adapter set <a href="https://amzn.to/3fHGTbe">like the one I use</a>.</li>
+</ul>
+
+<p>To save on cost, I bought most of the things I used on eBay, where the price was 30-50% less than buying new on Amazon or SixFab's store. Since there are a <em>lot</em> of enterprise deployments using this type of gear, there's a <em>lot</em> of stock on the used market. Just know that some of it is pretty beat up—so buy only from reputable vendors!</p>
+
+<blockquote>
+  <p>Note: All the instructions in this post assume you're in the US. If you're in another country, some things need changing—for example, the Quectel modem comes in different varieties for different geographical regions, like the EC25-E for Europe, Africa, and parts of Asia.</p>
+</blockquote>
+
+<p>Once you have everything together, insert the SIM in the SIM tray on your USB adapter or CM4 carrier board, install the LTE modem in the Mini PCIe slot. If you have a USB adapter, plug that USB adapter into one of the Pi's USB ports—which port doesn't really matter since all these devices operate over USB 2.0 (480 Mbps).</p>
+
+<h2>Data Plans</h2>
+
+<p>Before getting to the setup process, I thought I'd jot down a few notes about data plans, since at least in my part of the USA, it's kinda hard to find generous data packages with features like static IP addresses for a reasonable price.</p>
+
+<p>Just as a point of estimation, it cost me about $30 for 10 GB of data (if pre-purchased), and I can find a few plans that offer 30-50 GB/month for $60-90/month.</p>
+
+<p>I used to have an unlimited plan from AT&amp;T, but they severely throttled data once you went past a certain cap (down to like 100 Kbps, which is excruciating), so I switched to a 30 GB/month shared plan a couple years ago.</p>
+
+<p>I also investigated getting a static public IPv4 address, but that was prohibitively expensive with the carriers I checked on. Instead, you may be able to get a routable IPv6 address—some carriers support this, and some network configurations will work with it. But YMMV, and you should be prepared to <a href="https://www.jeffgeerling.com/blog/2022/ssh-and-http-raspberry-pi-behind-cg-nat">deal with CG-NAT</a>.</p>
+
+<blockquote>
+  <p><strong>WARNING</strong>: If you set a Pi up as a webserver or some other type of server that's constantly using data, be careful—you could end up racking up <em>huge</em> overage charges if you're not careful.</p>
+</blockquote>
+
+<h2>Pi Setup</h2>
+
+<p>These modems are widely supported in Linux, and even in Raspberry Pi OS (which is based on Debian).</p>
+
+<p>Since I used a SixFab SIM, I had to log into my SixFab account and set the SIM to be 'active' before it was able to connect to AT&amp;T's network.</p>
+
+<p>With the Raspberry Pi booted up, in a Terminal window, enter in <code>lsusb</code> and you should see something like:</p>
+
+<pre><code>pi@lte:~ $ lsusb
+Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+Bus 001 Device 003: ID 2c7c:0125 Quectel Wireless Solutions Co., Ltd. EC25 LTE modem
+Bus 001 Device 002: ID 2109:3431 VIA Labs, Inc. Hub
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+
+pi@lte:~ $ lsusb -t
+...
+/:  Bus 01.Port 1: Dev 1, Class=root_hub, Driver=xhci_hcd/1p, 480M
+    |__ Port 1: Dev 2, If 0, Class=Hub, Driver=hub/4p, 480M
+        |__ Port 2: Dev 3, If 4, Class=Vendor Specific Class, Driver=qmi_wwan, 480M
+</code></pre>
+
+<p>If you don't see the modem listed in the output, you might not have plugged it in all the way, or your USB adapter or CM4 carrier board hasn't routed the USB signal properly (I've encountered a few broken implementations, so it's not out of the question).</p>
+
+<p>If you check the kernel logs with <code>dmesg</code>, you may also see some messages from <code>qmi_wwan</code>, like:</p>
+
+<pre><code>pi@lte:~ $ dmesg | grep qmi
+[    5.701450] qmi_wwan 1-1.2:1.4: cdc-wdm0: USB WDM device
+[    5.703022] qmi_wwan 1-1.2:1.4 wwan0: register 'qmi_wwan' at usb-0000:01:00.0-1.2, WWAN/QMI device, 02:5c:84:4e:14:51
+[    5.703245] usbcore: registered new interface driver qmi_wwan
+</code></pre>
+
+<p>And a device is listed as <code>cdc-wdm0</code>:</p>
+
+<pre><code>pi@lte:~ $ ls /dev/cdc*
+/dev/cdc-wdm0
+</code></pre>
+
+<p>What may not be obvious—since these 4G modems are physically in a mini PCIe card form factor—is that they don't show up as PCI Express devices (even on a Compute Module 4 board). They show up as USB devices.</p>
+
+<p>Anyways, the card <em>should</em> automatically show up on as a <code>wwan</code> network interface, usually <code>wwan0</code>:</p>
+
+<pre><code>pi@lte:~ $ ip a
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+...
+3: wwan0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc pfifo_fast state UNKNOWN group default qlen 1000
+    link/ether 02:5c:84:4e:14:51 brd ff:ff:ff:ff:ff:ff
+    inet 169.254.231.106/16 brd 169.254.255.255 scope global noprefixroute wwan0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::8284:d6cd:67d2:ca3a/64 scope link 
+       valid_lft forever preferred_lft forever
+</code></pre>
+
+<p>You can try <em>using</em> this interface already using <code>ping</code>, but since it's not configured yet, it most likely won't work:</p>
+
+<pre><code>pi@lte:~ $ ping -I wwan0 www.google.com -c 5
+PING www.google.com (142.251.32.4) from 169.254.231.106 wwan0: 56(84) bytes of data.
+
+--- www.google.com ping statistics ---
+5 packets transmitted, 0 received, 100% packet loss, time 4085ms
+</code></pre>
+
+<p>At this point, you'll need to make a decision—do you want to use the device</p>
+
+<h2>QMI Mode setup (as <code>wwan0</code>)</h2>
+
+<p>There's a longer history about the relationship of QMI, MBIM, and PPP modes for these modems, which I don't know if I have time to get into here. But in general, you should use a modem like the Quectel I'm using in either QMI or ECM mode.</p>
+
+<p>All the modems I've purchased seem to be in PPP/QMI mode by default (<code>usbmode</code> returns <code>0</code>—more on that later). This seems to automatically make the device use the <code>qmi_wwan</code> driver and expose a <code>wwan0</code> interface.</p>
+
+<p>SixFab has an excellent guide for getting started with this mode: <a href="https://docs.sixfab.com/page/setting-up-a-data-connection-over-qmi-interface-using-libqmi">Setting up a data connection over QMI interface using libqmi</a>.</p>
+
+<p>You need to install a few utilities to interact with the modem via QMI:</p>
+
+<pre><code>pi@lte:~ $ sudo apt update &amp;&amp; sudo apt install libqmi-utils udhcpc
+</code></pre>
+
+<p>Then check the current operating mode for the modem:</p>
+
+<pre><code>pi@lte:~ $ sudo qmicli -d /dev/cdc-wdm0 --dms-get-operating-mode
+[/dev/cdc-wdm0] Operating mode retrieved:
+    Mode: 'online'
+    HW restricted: 'no'
+</code></pre>
+
+<blockquote>
+  <p>Note: If this returns a <code>Resource temporarily unavailable</code> error after a bit, you might need to <em>first</em> stop ModemManager (if it's installed and running) with <code>sudo systemctl stop ModemManager</code>, then try again.</p>
+</blockquote>
+
+<p>If it doesn't return <code>online</code>, run <code>sudo qmicli -d /dev/cdc-wdm0 --dms-set-operating-mode='online'</code> to set it online.</p>
+
+<p>Then set the interface into <code>raw_ip</code> mode:</p>
+
+<pre><code>pi@lte:~ $ sudo ip link set wwan0 down
+pi@lte:~ $ echo 'Y' | sudo tee /sys/class/net/wwan0/qmi/raw_ip
+Y
+pi@lte:~ $ sudo ip link set wwan0 up
+</code></pre>
+
+<p>Confirm it's in the <code>raw-ip</code> mode with the following command:</p>
+
+<pre><code>pi@lte:~ $ sudo qmicli -d /dev/cdc-wdm0 --wda-get-data-format
+[/dev/cdc-wdm0] Successfully got data format
+                   QoS flow header: no
+               Link layer protocol: 'raw-ip'
+...
+</code></pre>
+
+<p>Now it's finally time to connect to the network your SIM card is affiliated with! You need to know the APN for the network—in my case I'm using <code>super</code> for the SixFab card, but a common one for AT&amp;T SIMs like the one I use in my iPhone is <code>nxtgenphone</code>. Cradlepoint maintains a <a href="https://customer.cradlepoint.com/s/article/access-point-names-by-carrier">list of common APNs by carrier</a>, but to know what it should be, the easiest thing is to ask your provider.</p>
+
+<p>Run the following command to connect:</p>
+
+<pre><code>pi@lte:~ $ sudo qmicli -p -d /dev/cdc-wdm0 --device-open-net='net-raw-ip|net-no-qos-header' --wds-start-network="apn='YOUR_APN',ip-type=4" --client-no-release-cid
+[/dev/cdc-wdm0] Network started
+    Packet data handle: '2267587312'
+[/dev/cdc-wdm0] Client ID not released:
+    Service: 'wds'
+        CID: '19'
+</code></pre>
+
+<blockquote>
+  <p>Note: If you have a username and password, you can add those in after the apn, e.g. <code>apn='YOUR_APN',username='YOUR_USERNAME',password='YOUR_PASSWORD',ip-type=4</code>.</p>
+</blockquote>
+
+<p>Now, configure <code>udhcpc</code> to assign a default IP address and route:</p>
+
+<pre><code>pi@lte:~ $ sudo udhcpc -q -f -i wwan0
+udhcpc: started, v1.30.1
+No resolv.conf for interface wwan0.udhcpc
+udhcpc: sending discover
+udhcpc: sending select for 10.228.89.96
+udhcpc: lease of 10.228.89.96 obtained, lease time 7200
+</code></pre>
+
+<p>At this point, if you use <code>ip a</code>, you should see the new settings for the modem:</p>
+
+<pre><code>pi@lte:~ $ ip a
+...
+3: wwan0: &lt;POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP&gt; mtu 1500 qdisc pfifo_fast state UNKNOWN group default qlen 1000
+    link/none 
+    inet 10.228.89.96/26 scope global wwan0
+       valid_lft forever preferred_lft forever
+</code></pre>
+
+<p>And, if everything worked correctly, you should see some successful pings:</p>
+
+<pre><code>pi@lte:~ $ ping -I wwan0 www.google.com -c 5
+PING www.google.com (142.250.190.68) from 10.228.89.96 wwan0: 56(84) bytes of data.
+64 bytes from ord37s34-in-f4.1e100.net (142.250.190.68): icmp_seq=1 ttl=116 time=50.2 ms
+64 bytes from ord37s34-in-f4.1e100.net (142.250.190.68): icmp_seq=2 ttl=116 time=48.1 ms
+64 bytes from ord37s34-in-f4.1e100.net (142.250.190.68): icmp_seq=3 ttl=116 time=46.3 ms
+64 bytes from ord37s34-in-f4.1e100.net (142.250.190.68): icmp_seq=4 ttl=116 time=50.8 ms
+64 bytes from ord37s34-in-f4.1e100.net (142.250.190.68): icmp_seq=5 ttl=116 time=74.4 ms
+
+--- www.google.com ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 4005ms
+rtt min/avg/max/mdev = 46.260/53.975/74.403/10.342 ms
+</code></pre>
+
+<p>Yay! But once you restart the Pi, the network connection is lost.</p>
+
+<p>After a reboot, you have to re-run the following commands to connect again:</p>
+
+<pre><code>pi@lte:~ $ sudo ip link set wwan0 down
+pi@lte:~ $ echo 'Y' | sudo tee /sys/class/net/wwan0/qmi/raw_ip
+pi@lte:~ $ sudo ip link set wwan0 up
+pi@lte:~ $ sudo qmicli -p -d /dev/cdc-wdm0 --device-open-net='net-raw-ip|net-no-qos-header' --wds-start-network="apn='YOUR_APN',ip-type=4" --client-no-release-cid
+pi@lte:~ $ sudo udhcpc -q -f -i wwan0
+</code></pre>
+
+<p>Even though <code>sudo qmicli -d /dev/cdc-wdm0 --wda-get-data-format</code> shows it's in <code>raw-ip</code> mode, it seems you still have to stop the interface, force <code>raw_ip</code>, and start the interface, then you can connect and set up the IP and routing with <code>udhcpc</code>.</p>
+
+<h3>Automatic re-connection</h3>
+
+<p>The simplest way to set up automatic re-connection is to add the following contents in a new file for the <code>wwan0</code> interface:</p>
+
+<pre><code># Create the file.
+pi@lte:~ $ sudo nano /etc/network/interfaces.d/wwan0
+
+# Paste in the following contents (replacing with your own APN).
+iface wwan0 inet manual
+     pre-up ifconfig wwan0 down
+     pre-up echo Y &gt; /sys/class/net/wwan0/qmi/raw_ip
+     pre-up for _ in $(seq 1 10); do /usr/bin/test -c /dev/cdc-wdm0 &amp;&amp; break; /bin/sleep 1; done
+     pre-up for _ in $(seq 1 10); do /usr/bin/qmicli -d /dev/cdc-wdm0 --nas-get-signal-strength &amp;&amp; break; /bin/sleep 1; done
+     pre-up sudo qmicli -p -d /dev/cdc-wdm0 --device-open-net='net-raw-ip|net-no-qos-header' --wds-start-network="apn='nxtgenphone',ip-type=4" --client-no-release-cid
+     pre-up udhcpc -i wwan0
+     post-down /usr/bin/qmi-network /dev/cdc-wdm0 stop
+</code></pre>
+
+<blockquote>
+  <p>Note: Be sure to include username and password as stated earlier, if your SIM plan requires it.</p>
+</blockquote>
+
+<p>Reboot (<code>sudo reboot</code>) and once rebooted, run the following to manage the connection:</p>
+
+<pre><code># Bring up the connection.
+pi@lte:~ $ sudo ifup wwan0
+
+# Bring down the connection.
+pi@lte:~ $ sudo ifdown wwan0
+</code></pre>
+
+<p>And check if there's a route to the internet via <code>wwan0</code> with <code>route -n</code> (or try a ping through the interface).</p>
+
+<p>If you want the interface to come up at system boot, add the line <code>auto wwan0</code> above the <code>iface</code> line in the <code>/etc/network/interfaces.d/wwan0</code> file:</p>
+
+<pre><code>auto wwan0
+iface wwan0 inet manual
+</code></pre>
+
+<p>Now after a reboot, the interface should come up automatically, instead of requiring a manual <code>sudo ifup wwan0</code>.</p>
+
+<h3>Other helpful QMI modem commands</h3>
+
+<pre><code>sudo qmicli -d /dev/cdc-wdm0 --nas-get-signal-info
+sudo qmicli -d /dev/cdc-wdm0 --nas-get-signal-strength
+sudo qmicli -d /dev/cdc-wdm0 --nas-get-home-network
+sudo qmicli -d /dev/cdc-wdm0 --nas-get-serving-system
+sudo qmi-network /dev/cdc-wdm0 status
+sudo qmicli -d /dev/cdc-wdm0  --wds-get-packet-service-status
+</code></pre>
+
+<h2>ECM mode setup (<code>usb0</code>)</h2>
+
+<p>SixFab has a great guide for <a href="https://docs.sixfab.com/page/internet-connection-with-quectel-ec25-by-using-ecm-mode">setting the modem into ECM mode</a>, which exposes a <code>usb0</code> network interface instead of a <code>wwan0</code> interface.</p>
+
+<p>Assuming you did all the QMI mode setup, first make sure the interface is down with <code>sudo ifdown wwan0</code>. Also comment out all the lines in <code>/etc/network/interfaces.d/wwan0</code> (or delete that file).</p>
+
+<p>To switch to ECM mode, you need to use <code>minicom</code> to communicate with the modem over it's serial port:</p>
+
+<pre><code>pi@lte:~ $ sudo apt install minicom -y
+pi@lte:~ $ minicom -D /dev/ttyUSB2 -b 115200
+</code></pre>
+
+<p>This should open a serial connection. Type in <code>AT</code> and press 'Enter', and you should see <code>OK</code>. We're gonna talk old school AT commands to the modem, the first one being the command to check the current <code>usbmode</code>:</p>
+
+<pre><code>AT+QCFG="usbnet"
+</code></pre>
+
+<p>That will likely return <code>+QCFG: "usbnet",0</code>, but we need that to be set to <code>1</code> (ECM mode), so enter the following command:</p>
+
+<pre><code>AT+QCFG="usbnet",1
+</code></pre>
+
+<p>The modem may reboot itself automatically, but if not, enter the following command to force a reboot:</p>
+
+<pre><code>AT+CFUN=1,1
+</code></pre>
+
+<p><em>See, it's fun!</em></p>
+
+<p>After 5 seconds or so, you'll see a warning pop up in minicom like <code>Cannot open /dev/ttyUSB2!</code>. It will go away, and you'll start seeing some more information go by as the modem completes its boot process.</p>
+
+<p>Once you can type <code>AT</code> again and get <code>OK</code>, it's time to make sure the APN is correct. Enter the following command (but make sure you put in the correct APN for your SIM...):</p>
+
+<pre><code>AT+CGDCONT=1,"IP","YOUR_APN"
+</code></pre>
+
+<p>And finally, restart the modem again:</p>
+
+<pre><code>AT+CFUN=1,1
+</code></pre>
+
+<p>Wait for the modem to reboot, then exit minicom: press Ctrl-A, then press Z, and minicom's help comes up. Press X to leave minicom and confirm you want to leave it by hitting Enter.</p>
+
+<p>Now reboot the Raspberry Pi (<code>sudo reboot</code>), then check if you got an IP address on the <code>usb0</code> interface:</p>
+
+<pre><code>pi@lte:~ $ ifconfig usb0
+usb0: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500
+        inet 192.168.225.24  netmask 255.255.255.0  broadcast 192.168.225.255
+        inet6 fe80::1f80:5523:108c:a9eb  prefixlen 64  scopeid 0x20&lt;link&gt;
+        ether a6:51:1c:3f:79:1c  txqueuelen 1000  (Ethernet)
+        RX packets 24  bytes 2153 (2.1 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 33  bytes 4162 (4.0 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+</code></pre>
+
+<p>And confirm the modem is using the <code>cdc_ether</code> driver instead of <code>qmi_wwan</code>:</p>
+
+<pre><code>pi@lte:~ $ lsusb
+...
+Bus 001 Device 003: ID 2c7c:0125 Quectel Wireless Solutions Co., Ltd. EC25 LTE modem
+
+pi@lte:~ $ lsusb -t
+...
+/:  Bus 01.Port 1: Dev 1, Class=root_hub, Driver=xhci_hcd/1p, 480M
+    |__ Port 1: Dev 2, If 0, Class=Hub, Driver=hub/4p, 480M
+        |__ Port 2: Dev 3, If 4, Class=Communications, Driver=cdc_ether, 480M
+        |__ Port 2: Dev 3, If 5, Class=CDC Data, Driver=cdc_ether, 480M
+</code></pre>
+
+<p>Test if you can reach the Internet through the <code>usb0</code> interface:</p>
+
+<pre><code>pi@lte:~ $ ping -I usb0 www.google.com -c 5
+PING www.google.com (142.250.190.68) from 192.168.225.24 usb0: 56(84) bytes of data.
+64 bytes from ord37s34-in-f4.1e100.net (142.250.190.68): icmp_seq=1 ttl=115 time=33.9 ms
+64 bytes from ord37s34-in-f4.1e100.net (142.250.190.68): icmp_seq=2 ttl=115 time=36.8 ms
+64 bytes from ord37s34-in-f4.1e100.net (142.250.190.68): icmp_seq=3 ttl=115 time=41.8 ms
+64 bytes from ord37s34-in-f4.1e100.net (142.250.190.68): icmp_seq=4 ttl=115 time=59.9 ms
+64 bytes from ord37s34-in-f4.1e100.net (142.250.190.68): icmp_seq=5 ttl=115 time=39.1 ms
+
+--- www.google.com ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 4005ms
+rtt min/avg/max/mdev = 33.934/42.293/59.880/9.168 ms
+</code></pre>
+
+<p>Hooray! The best thing about this setup is it seems to come up automatically after a reboot on its own—no need for any network interface or <code>qmicli</code> shenanigans.</p>
+
+<p>You can still disable the <code>usb0</code> interface with:</p>
+
+<pre><code>pi@lte:~ $ sudo ip link set usb0 down
+</code></pre>
+
+<h3>Other Useful AT commands</h3>
+
+<pre><code># Signal strength: https://m2msupport.net/m2msupport/atcsq-signal-quality/
+AT+CSQ
++CSQ: 20,99
+
+# Network information: https://m2msupport.net/m2msupport/network-information-automaticmanual-selection/
+AT+COPS?
++COPS: 0,0,"AT&amp;T Twilio",7
+
+# Get clock: https://m2msupport.net/m2msupport/m2m-module-diagnostics/
+AT+CCLK?
++CCLK: "22/01/20,19:28:12-24"
+</code></pre>
+
+<h3>Built-in AP configuration</h3>
+
+<p>It seems another side effect of using the <code>usb0</code> interface is the <em>modem itself</em> is where all the management happens, and at least on my Quectel modem, if you open up the gateway IP address in a router (e.g. <code>https://192.168.225.1/</code>), bypassing certificate warnings, you end up with a little 'Qualcomm MobileAP' login page like:</p>
+
+<p><img src="./Using 4G LTE wireless modems on a Raspberry Pi _ Jeff Geerling_files/Qualcomm-MobileAP-login-page.jpg" alt="Qualcomm MobileAP Login Page" width="600" height="365" class="insert-image"></p>
+
+<blockquote>
+  <p>Note: Since I was operating the Pi headless, and browsing pages via <code>curl</code> is all but impossible, I accessed the site from my Mac using an SSH tunnel (<code>ssh -D 8080 pi@lte.local</code>), then I configured my network to use a SOCKS5 proxy with address <code>localhost</code> and port <code>8080</code>). Then I could access the IP address of the modem in my Mac's browser (Chrome, in this case).</p>
+</blockquote>
+
+<p>The UI looks ancient (and like many ancient designs, is likely <a href="https://jfrog.com/blog/major-vulnerabilities-discovered-in-qualcomm-qcmap/">vulnerable to many kinds of attacks</a>), but it did seem to have a number of settings like a built-in firewall, some DHCP options, and basic WWAN settings:</p>
+
+<p><img src="./Using 4G LTE wireless modems on a Raspberry Pi _ Jeff Geerling_files/Qualcomm-MobileAP-WWAN-settings.jpg" alt="Qualcomm MobileAP WWAN settings page" width="600" height="365" class="insert-image"></p>
+
+<p>It's not a very intuitive UI, though—and I also didn't see any easy way to do a 'factory reset' or to upgrade the modem from within the MobileAP interface. Seeing the copyright of 2014 didn't inspire a whole lot of confidence there :P</p>
+
+<h2>Updating Firmware</h2>
+
+<p>But speaking of the modem's firmware, there <em>has</em> to be a way it can be updated, right? Well... there <em>is</em>, with a tool called QFlash, which I found in the 'Tools' section of the <a href="https://sixfab.com/product/quectel-ec25-mini-pcie-4g-lte-module/">EC25 page</a> on SixFab's website.</p>
+
+<p>But it references firmware files that are seemingly conjured up out of thin air, as if by magic.</p>
+
+<p>The only firmware files I could find available for download were through random Google Drive links <a href="https://community.sixfab.com/t/quectel-ec25-firmware-update/1690/3">on forum postings</a> or <a href="https://community.sixfab.com/t/at-t-upgrade-kills-my-data-connection/1447/2?u=geerlingguy">expired WeTransfer links</a>. Yeah, like I'm gonna do that!</p>
+
+<p>And if you search Quectel's forums, you'll find threads like <a href="https://forums.quectel.com/t/firmware-for-ec25-a-and-ec25-af/3534/2">this one</a>, which seemingly never get resolved:</p>
+
+<blockquote>
+  <p>Quectel Rep: If you need the latest firmware, you can send email to support@quectel.com to get it, you can provide the firmware you used now, then we will arrange local FAE to support you, they will help to provide the latest firmware package, the upgrade tool and guide you how to upgrade it. Thanks!</p>
+  
+  <p>Customer: I tried again to request firmware from support earlier this week. Any idea what sort of time I should expect for a typical firmware request?</p>
+  
+  <p>Quectel Rep: Please provide your email and company name, your country to us, we will arrange local FAE to support you as soon as possible.</p>
+  
+  <p>Customer: [after doing this loop a few times] ... 😑</p>
+</blockquote>
+
+<p>So yeah... not sure why it's not possible for Quectel to just provide a firmware download page. And it looks like this isn't the first time someone's hit a brick wall communicating with Quectel; I found <a href="https://laforge.gnumonks.org/blog/20161230-33c3-presentation/">Harald Welte's OSMOCOM presentation</a> suggesting it was difficult getting Quectel to provide the sources for their on-chip Linux build.</p>
+
+<h2>Choosing QMI or ECM</h2>
+
+<p>When I started out on my journey towards understanding 4G LTE on a Pi, I was quickly confused by the fact that almost every tutorial and setup guide had completely different instructions—and some where basically copy-and-paste of someone else's guide.</p>
+
+<p>But nobody seemed to ever talk about the different connection methods: why do multiple methods exist? Why do modems (at least the Quectel) come with QMI and <code>wwan0</code> set up by default? Is one method faster and/or better supported than another?</p>
+
+<p><em>Don't know.</em></p>
+
+<p>So I did a bit of testing in <a href="https://github.com/geerlingguy/raspberry-pi-pcie-devices/issues/344">this GitHub issue</a>, and found (informally, at least) that I could get consistently better latency and upload speeds with the ECM driver (<code>cdc_ether</code>).</p>
+
+<p>What's more, that driver (which sets up the <code>usb0</code> interface) seems to work <em>out of the box</em> with everything in Linux, <em>doesn't</em> require me to set up a custom interface file with a bunch of extra commands, and is set up automatically just like any other network interface.</p>
+
+<p>Am I missing something? Is there any upside to using the default QMI / <code>qmi_wwan</code> / <code>wwan0</code>?</p>
+
+<p>I <a href="https://twitter.com/geerlingguy/status/1484232529192407042">asked about it on Twitter</a> and will update this post if I find anything conclusive.</p>
+
+<h2>Selecting the default interface for Internet access</h2>
+
+<p>With an active 4G LTE interface (whether <code>wwan0</code> or <code>usb0</code>), there could be a new problem: what if you have <em>two</em> interfaces providing Internet connectivity? For example, what if your Pi also has a WiFi or Ethernet connection that has more stable or faster Internet, and you just want to use the LTE connection as a backup?</p>
+
+<p>I won't get <em>too</em> deep in the weeds, but you can see how Linux will prioritize routing of the Internet connection by running <code>route</code>:</p>
+
+<pre><code>pi@lte:~ $ route
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+default         mobileap.qualco 0.0.0.0         UG    204    0        0 usb0
+default         10.0.100.1      0.0.0.0         UG    303    0        0 wlan0
+10.0.100.0      0.0.0.0         255.255.255.0   U     303    0        0 wlan0
+192.168.225.0   0.0.0.0         255.255.255.0   U     204    0        0 usb0
+</code></pre>
+
+<p>I actually wrote up an entire blog post on how to change the <code>metric</code>, so Linux will route through a different interface. Check out that post for all the details: <a href="https://www.jeffgeerling.com/blog/2022/network-interface-routing-priority-on-raspberry-pi">Network interface routing priority on a Raspberry Pi</a>.</p>
+
+<p>But for the tl;dr: Linux will route packets through whichever interface has the lowest <code>Metric</code> (which in the case above is <code>usb0</code>) and matches the <code>Gateway</code> IP range (<code>0.0.0.0</code> means 'any IP address', basically).</p>
+
+<p>So check out the linked blog post if you need to manage the Metric priority for different devices.</p>
+
+<p>One case where that solution <em>isn't</em> so helpful is with the modem in QMI mode (<code>wwan0</code>). Since that's using <code>udhcpc</code> instead of the system's built-in <code>dhcpcd</code>, setting the metric is not as straightforward as I hoped.</p>
+
+<p>Based on the <a href="https://wiki.alpinelinux.org/wiki/Udhcpc">udhcpc documentation</a>, I thought I could just add a file <code>/etc/udhcpc/udhcpc.conf</code> and put <code>IF_METRIC=400</code> inside, and that would be picked up as the routing metric... but that didn't seem to work. More investigation is needed.</p>
+
+<h2>Conclusion</h2>
+
+<p>I naïvely thought, coming into this project, that 4G LTE connectivity would be rather simple. But it's not. And it seems like there are basically two layers of documentation:</p>
+
+<ol>
+<li>Datasheets and code comments that expect expert-level understanding already.</li>
+<li>Beginner-level guides like "how to get your Pi connected to the Internet"</li>
+</ol>
+
+<p>Hopefully some of what I wrote here can bridge the gap between those two levels—but I gotta be honest, I typically don't like writing a blog post when I only have a partial understanding of the subject... and that's what I have here. So take what I say about 4G LTE with a grain of salt ;)</p>
+
+<h2>Further reading</h2>
+
+<ul>
+<li><a href="https://www.jeffgeerling.com/blog/2022/ssh-and-http-raspberry-pi-behind-cg-nat">SSH and HTTP to a Raspberry Pi behind CG-NAT</a></li>
+<li><a href="https://www.jeffgeerling.com/blog/2022/network-interface-routing-priority-on-raspberry-pi">Network interface routing priority on a Raspberry Pi</a></li>
+<li><a href="https://maker.pro/raspberry-pi/tutorial/how-to-create-a-4g-hotspot-with-raspberry-pi">Create a 4G Hotspot With Raspberry Pi</a></li>
+</ul></div>
+      
+
+          <div class="region region-node-bottom">
+        <div class="views-element-container block block-views block-views-blockrelated-content-block-1" id="block-related-content">
+  
+      <h2>Further reading</h2>
+    
+  <div class="block-content">
+          <div><div class="view view-related-content view-id-related_content view-display-id-block_1 js-view-dom-id-c3f9665e9f7872c6d8325be83723e62cd46c1d9d34369eb9aaeb7278eb3e5684">
+  
+    
+      
+      <div class="view-content">
+      <div class="item-list">
+  
+  <ul>
+
+          <li><div class="views-field views-field-title"><span class="field-content"><a href="https://www.jeffgeerling.com/blog/2022/network-interface-routing-priority-on-raspberry-pi" hreflang="en">Network interface routing priority on a Raspberry Pi</a></span></div></li>
+          <li><div class="views-field views-field-title"><span class="field-content"><a href="https://www.jeffgeerling.com/blog/2020/setting-9000-mtu-jumbo-frames-on-raspberry-pi-os" hreflang="en">Setting 9000 MTU (Jumbo Frames) on Raspberry Pi OS</a></span></div></li>
+          <li><div class="views-field views-field-title"><span class="field-content"><a href="https://www.jeffgeerling.com/blog/2022/hosting-website-on-farm-or-anywhere" hreflang="en">Hosting this website on a farm - or anywhere</a></span></div></li>
+    
+  </ul>
+
+</div>
+
+    </div>
+  
+          </div>
+</div>
+
+      </div>
+</div>
+
+      </div>
+    
+    
+      <div class="field field--name-field-tags field--type-entity-reference field--label-hidden field__items">
+              <div class="field__item"><a href="https://www.jeffgeerling.com/tags/raspberry-pi" hreflang="en">raspberry pi</a></div>
+              <div class="field__item"><a href="https://www.jeffgeerling.com/tags/4g" hreflang="en">4g</a></div>
+              <div class="field__item"><a href="https://www.jeffgeerling.com/tags/lte" hreflang="en">lte</a></div>
+              <div class="field__item"><a href="https://www.jeffgeerling.com/tags/networking" hreflang="en">networking</a></div>
+              <div class="field__item"><a href="https://www.jeffgeerling.com/tags/linux" hreflang="en">linux</a></div>
+              <div class="field__item"><a href="https://www.jeffgeerling.com/tags/mobile" hreflang="en">mobile</a></div>
+              <div class="field__item"><a href="https://www.jeffgeerling.com/tags/quectel" hreflang="en">quectel</a></div>
+              <div class="field__item"><a href="https://www.jeffgeerling.com/tags/usb" hreflang="en">usb</a></div>
+              <div class="field__item"><a href="https://www.jeffgeerling.com/tags/internet" hreflang="en">internet</a></div>
+              <div class="field__item"><a href="https://www.jeffgeerling.com/tags/qualcomm" hreflang="en">qualcomm</a></div>
+          </div>
+  
+
+      <div class="node__links">
+    <ul class="links inline"><li class="comment-add"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post#comment-form" title="Share your thoughts and opinions.">Add new comment</a></li></ul>  </div>
+
+  </div>
+      <div id="comments">
+        <section class="field field--name-comment-node-blog-post field--type-comment field--label-above comment-wrapper">
+          
+      <h2 class="title">Comments</h2>
+      
+    
+      
+<article data-comment-user-id="1" id="comment-18355" class="comment js-comment by-node-author">
+    <mark class="hidden" data-comment-timestamp="1642740824"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Jeff Geerling</span> – <a href="https://www.jeffgeerling.com/comment/18355#comment-18355">5 months ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>It was suggested in <a href="https://news.ycombinator.com/item?id=30016726">this comment on HN</a> that using ModemManager (with <code>mmcli</code> headless) might be the best option, and having the card in QMI mode. Here's the majority of that comment:</p>
+
+<blockquote>
+  <p>In QMI mode, the LTE interface is directly connected to your system, the 10.... IP you got is the one assigned by your carrier (I am not sure where the initial 169.254.231.106 IP it had before you established the connection came from) and your machine is directly reachable from the Internet.</p>
+  
+  <p>In ECM mode, you are given a fake Ethernet interface that's connected to a router and NAT gateway ran by the LTE module itself; this is also where that web interface comes from. In this mode, the module's router part is the one exposed to the internet and acts as a router/firewall/NAT gateway - your computer is not directly reachable unless you use that web interface to forward a port. Given the usual "quality" of these (as you witnessed by looking at the UI) I would not be surprised if there are exploits or bugs in there.</p>
+  
+  <p>There should also be a third mode, where the modem exposes one or more serial ports that accept AT commands and you can establish a connection over it using wvdial/pppd just like good old dial-up. This is worse than QMI mode but preferable to ECM mode as you still get your system directly connected to the internet without relying on the modem's router/gateway part.</p>
+  
+  <p>In general, I would recommend QMI mode - it is a breath of fresh air compared to the old school way of the modem exposing multiple serial ports and having to do dial-up on it. It does require some work but it's a solved problem - for desktop Linux look into ModemManager, or alternatively look into how OpenWRT deals with it for a potentially lighter alternative.</p>
+</blockquote></div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/18355">Reply</a></li></ul>
+  </div>
+</article>
+
+<div class="indented">  
+<article data-comment-user-id="0" id="comment-18359" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1642779445"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Sven</span> – <a href="https://www.jeffgeerling.com/comment/18359#comment-18359">5 months ago</a></p>
+
+              <p class="parent visually-hidden">In reply to <a href="https://www.jeffgeerling.com/comment/18355#comment-18355" class="permalink" rel="bookmark" hreflang="en">It was suggested in this…</a> by <span>Jeff Geerling</span></p>
+      </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Hey Jeff, thanks a ton for your very informative post. I know exactly what you mean with "there are only 2 types of instructions out there". I have been gone through that pain as well the last few days. There is so much useful information in your blog post, thanks again!</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/18359">Reply</a></li></ul>
+  </div>
+</article>
+  
+<article data-comment-user-id="0" id="comment-18361" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1642783536"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>bini_man</span> – <a href="https://www.jeffgeerling.com/comment/18361#comment-18361">5 months ago</a></p>
+
+              <p class="parent visually-hidden">In reply to <a href="https://www.jeffgeerling.com/comment/18355#comment-18355" class="permalink" rel="bookmark" hreflang="en">It was suggested in this…</a> by <span>Jeff Geerling</span></p>
+      </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Was going to ask the same “why not use modemmanager on the pi?” as it pretty much covers all the variations in the hardware and does the setup with less configuration. Currently using it on an OpenWRT setup and its awesome. It also has support for sending sms, placing phone calls and such.</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/18361">Reply</a></li></ul>
+  </div>
+</article>
+
+<div class="indented">  
+<article data-comment-user-id="0" id="comment-30922" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1654440532"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>MAiN_PRoToCoL</span> – <a href="https://www.jeffgeerling.com/comment/30922#comment-30922">1 month ago</a></p>
+
+              <p class="parent visually-hidden">In reply to <a href="https://www.jeffgeerling.com/comment/18361#comment-18361" class="permalink" rel="bookmark" hreflang="en">Was going to ask the same …</a> by <span>bini_man</span></p>
+      </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>bini_man i'd like to get in touch with you for that setup!</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/30922">Reply</a></li></ul>
+  </div>
+</article>
+</div></div>  
+<article data-comment-user-id="0" id="comment-18356" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1642779440"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Jay</span> – <a href="https://www.jeffgeerling.com/comment/18356#comment-18356">5 months ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Two bits of advice</p>
+<p>For an LTE modem, there's tons of Dell DW5811e cards out on the used market. They are actually Sierra EM7455.</p>
+<p>For a cheap IoT SIM, go to Amazon and search for ASIN B07JCTZ3BF. This IoTDataWorks plan is rate limited to 64kbps, but has no data limit. On an annualized basis it's a pretty good deal.</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/18356">Reply</a></li></ul>
+  </div>
+</article>
+  
+<article data-comment-user-id="0" id="comment-18370" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1642971544"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Minecraftchest1</span> – <a href="https://www.jeffgeerling.com/comment/18370#comment-18370">5 months ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>I would like to see you use the Pi to send and receive phone calls and text messages.</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/18370">Reply</a></li></ul>
+  </div>
+</article>
+  
+<article data-comment-user-id="0" id="comment-18375" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1643127438"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Kieran</span> – <a href="https://www.jeffgeerling.com/comment/18375#comment-18375">5 months ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Just had to say thanks for putting this one together. Went through a similar process about a year ago trying to figure out QMI for some IoT gear and was just coming back around to finishing right as you released this post. Saved me so much heartache. I was dreading figuring it out all over again.</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/18375">Reply</a></li></ul>
+  </div>
+</article>
+
+<div class="indented">  
+<article data-comment-user-id="1" id="comment-18377" class="comment js-comment by-node-author">
+    <mark class="hidden" data-comment-timestamp="1643127503"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Jeff Geerling</span> – <a href="https://www.jeffgeerling.com/comment/18377#comment-18377">5 months ago</a></p>
+
+              <p class="parent visually-hidden">In reply to <a href="https://www.jeffgeerling.com/comment/18375#comment-18375" class="permalink" rel="bookmark" hreflang="en">Just had to say thanks for…</a> by <span>Kieran</span></p>
+      </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Ha! Yeah there are some projects I approach with a little too much trepidation, as I know my rusty knowledge is bound to end up making me go in circles. Most of the reason I spent a lot of time documenting things in this post is because I know I'll forget half of it by next month and would not like to have to spend all the time figuring it out again!</p></div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/18377">Reply</a></li></ul>
+  </div>
+</article>
+</div>  
+<article data-comment-user-id="0" id="comment-18408" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1643730224"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Tony Goodridge</span> – <a href="https://www.jeffgeerling.com/comment/18408#comment-18408">5 months ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Excellent article Jeff (you're a star). As you said, there is very little useful information out there on how to set up these boards/HATs. Even the sample code from the manufactures do not Explain the underlying details.<br>
+My own UseCase is simple (and not at all unique) : I want to build a Raspberry Pi standalone IoT sensor, that will be installed many miles from a WiFi network, so I've bought a few HATs and (expensive!!) SIM cards :-(<br>
+Thanks to your article, I now have one (Waveshare SIM7000) connected to the outside world (can use your ping successfully). I can't currently see web pages hosted on the PI via LTE (but can locally when I have my WiFi turned on).... I'll crack on and get it working, but it's all harder than it should be :-).</p>
+<p>Keep up the good work.</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/18408">Reply</a></li></ul>
+  </div>
+</article>
+  
+<article data-comment-user-id="0" id="comment-30667" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1647714921"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Anonymous</span> – <a href="https://www.jeffgeerling.com/comment/30667#comment-30667">3 months ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Thanks for the tutorial, coming from Reddit. I got it working!</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/30667">Reply</a></li></ul>
+  </div>
+</article>
+  
+<article data-comment-user-id="0" id="comment-30748" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1649132415"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>good stuff</span> – <a href="https://www.jeffgeerling.com/comment/30748#comment-30748">3 months ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>I just re-read this.<br>
+I use a TOFU board which has the .m2 interface on the rear of the CM4 board and a sim slot.<br>
+This is really a nice way to go.<br>
+FYI,<br>
+There are quite big differences with bullseye, and the setup is far from bugfree, ie. can often disconnect or do all kinds of bad stuff.<br>
+Setting up modemmanager as a service, so that it boots up from scratch has to be the way to go.</p>
+<p>Being as the CM4 chips are pretty much unobtanium, (esp the ones with wifi and lots of RAM), it's quite a struggle to implement any strategy reliably right now, so for the present I use a standalone modem board with router OS, a highly minaturised credit sized board made in Russia (er yes!), instead of the less well designed microtik offerings originated in Latvia.</p>
+<p>The biggest hic on any router/Sim/4g-LTE system is roaming, which we in Europe simply have to have if any routing system is installed in anything mobile like a vehicle. (ask me about that!).<br>
+That's another whole can of worms.</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/30748">Reply</a></li></ul>
+  </div>
+</article>
+  
+<article data-comment-user-id="0" id="comment-30782" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1649693617"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>AMilliron</span> – <a href="https://www.jeffgeerling.com/comment/30782#comment-30782">2 months ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Hi, thanks for the write up! I went through this process using the SixFab website, successfully got my pi4 up and running on QMI with Telit modem. </p>
+<p>I'm running into the issue now though where my wlan0 doesn't connect at all to any saved network. I can see them, but can't connect. Wired networking works fine. My goal is to do what you were saying in last part, prioritize routing through better connection.</p>
+<p>Any ideas why my wireless isn't connecting? Haven't found much on this, seems that most want internet through the sixfab modem and thats where they stop.....</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/30782">Reply</a></li></ul>
+  </div>
+</article>
+  
+<article data-comment-user-id="0" id="comment-30783" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1649865341"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>AMilliron</span> – <a href="https://www.jeffgeerling.com/comment/30783#comment-30783">2 months ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Hi, thanks for the write up! I went through this process using the SixFab website, successfully got my pi4 up and running on QMI with Telit modem. </p>
+<p>I'm running into the issue now though where my wlan0 doesn't connect at all to any saved network. I can see them, but can't connect. Wired networking works fine. My goal is to do what you were saying in last part, prioritize routing through better connection.</p>
+<p>Any ideas why my wireless isn't connecting? Haven't found much on this, seems that most want internet through the sixfab modem and thats where they stop.....</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/30783">Reply</a></li></ul>
+  </div>
+</article>
+  
+<article data-comment-user-id="0" id="comment-30828" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1650640311"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>odhiambo</span> – <a href="https://www.jeffgeerling.com/comment/30828#comment-30828">2 months ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Hi Jeff,<br>
+I have really enjoyed this tutorial. I have a twist to it though.<br>
+I have a requirement for a dual-WAN portable router, using 2 SIM cards, with the ability to configure WAN failover, load balance, or bonding. For now, I am looking at the failover. Suppose I connect 2 4G USB dongles to the Pi4, there should be a way to achieve this scenario, I believe.</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/30828">Reply</a></li></ul>
+  </div>
+</article>
+  
+<article data-comment-user-id="0" id="comment-30928" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1654729814"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Robert Hancock</span> – <a href="https://www.jeffgeerling.com/comment/30928#comment-30928">1 month ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Could you add a description for setting up an mbim 4g modem?</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/30928">Reply</a></li></ul>
+  </div>
+</article>
+  
+<article data-comment-user-id="0" id="comment-30953" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1655506575"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Cabbache</span> – <a href="https://www.jeffgeerling.com/comment/30953#comment-30953">3 weeks ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Great article. I am wondering how you could access the GNSS data?</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/30953">Reply</a></li></ul>
+  </div>
+</article>
+
+<div class="indented">  
+<article data-comment-user-id="1" id="comment-30954" class="comment js-comment by-node-author">
+    <mark class="hidden" data-comment-timestamp="1655506584"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Jeff Geerling</span> – <a href="https://www.jeffgeerling.com/comment/30954#comment-30954">3 weeks ago</a></p>
+
+              <p class="parent visually-hidden">In reply to <a href="https://www.jeffgeerling.com/comment/30953#comment-30953" class="permalink" rel="bookmark" hreflang="en">Great article. I am…</a> by <span>Cabbache</span></p>
+      </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>That's something I haven't tested yet, sorry!</p></div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/30954">Reply</a></li></ul>
+  </div>
+</article>
+</div>  
+<article data-comment-user-id="0" id="comment-30974" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1656448862"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Chris Adkins</span> – <a href="https://www.jeffgeerling.com/comment/30974#comment-30974">1 week ago</a></p>
+
+          </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Just ran through this guide and all went well except for one item. I changed the wwan0 interfaces file to start wwan0 on reboot but it doesn't seem to be working. Here is my config file:<br>
+auto wwan0<br>
+iface wwan0 inet manual<br>
+     pre-up ifconfig wwan0 down<br>
+     pre-up echo Y &gt; /sys/class/net/wwan0/qmi/raw_ip<br>
+     pre-up for _ in $(seq 1 10); do /usr/bin/test -c /dev/cdc-wdm0 &amp;&amp; break; /bin/sleep 1; done<br>
+     pre-up for _ in $(seq 1 10); do /usr/bin/qmicli -d /dev/cdc-wdm0 --nas-get-signal-strength &amp;&amp; break; /bin/sleep 1; done<br>
+     pre-up sudo qmicli -p -d /dev/cdc-wdm0 --device-open-net='net-raw-ip|net-no-qos-header' --wds-start-network="apn='Broadband',ip-type=4" --client-no-release-cid<br>
+     pre-up udhcpc -i wwan0<br>
+     post-down /usr/bin/qmi-network /dev/cdc-wdm0 stop</p>
+<p>Any help or troubleshooting tips would be much apporeciated</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/30974">Reply</a></li></ul>
+  </div>
+</article>
+
+<div class="indented">  
+<article data-comment-user-id="0" id="comment-30987" class="comment js-comment by-anonymous by-viewer">
+    <mark class="hidden" data-comment-timestamp="1656959805"></mark>
+
+  <footer class="comment__meta">
+    <p class="comment__submitted"><span>Alberto</span> – <a href="https://www.jeffgeerling.com/comment/30987#comment-30987">6 days ago</a></p>
+
+              <p class="parent visually-hidden">In reply to <a href="https://www.jeffgeerling.com/comment/30974#comment-30974" class="permalink" rel="bookmark" hreflang="en">Just ran through this guide…</a> by <span>Chris Adkins</span></p>
+      </footer>
+
+  <div class="content">
+    
+            <div class="clearfix text-formatted field field--name-comment-body field--type-text-long field--label-hidden field__item"><p>Thank you Jeff for great contents, I could establish LTE &amp; RPI system with your tutorial.<br>
+I am also having same problem as Chris.<br>
+sudo ifup wwan0 is working really well,<br>
+but it seems like auto wwan0 is not working.</p>
+</div>
+      <ul class="links inline"><li class="comment-reply"><a href="https://www.jeffgeerling.com/comment/reply/node/3169/comment_node_blog_post/30987">Reply</a></li></ul>
+  </div>
+</article>
+</div>
+
+    
+  </section>
+
+  
+    </div>
+  
+</article>
+
+      </div>
+</div>
+
+  </div>
+
+    </div>
+    
+    
+  </main>
+
+      <footer role="contentinfo">
+        <div class="region region-footer">
+    <div class="views-exposed-form block block-views block-views-exposed-filter-blocksearch-page" data-drupal-selector="views-exposed-form-search-page" id="block-exposedformsearchpage-2">
+  
+    
+  <div class="block-content">
+          <form action="https://www.jeffgeerling.com/search" method="get" id="views-exposed-form-search-page" accept-charset="UTF-8">
+  <div class="form--inline clearfix">
+  <div class="js-form-item form-item js-form-type-textfield form-type-textfield js-form-item-search-api-fulltext form-item-search-api-fulltext">
+      <label for="edit-search-api-fulltext">Search</label>
+        <input data-drupal-selector="edit-search-api-fulltext" type="text" id="edit-search-api-fulltext" name="search_api_fulltext" value="" size="30" maxlength="128" placeholder="Enter your keywords" class="form-text">
+
+        </div>
+<div data-drupal-selector="edit-actions" class="form-actions js-form-wrapper form-wrapper" id="edit-actions"><input data-drupal-selector="edit-submit-search" type="submit" id="edit-submit-search" value="Search" class="button js-form-submit form-submit">
+</div>
+
+</div>
+
+</form>
+
+      </div>
+</div>
+<div id="block-footer" class="block block-block-content block-block-contentfd0023d1-3c23-4c7e-ae29-6b5e37e79690">
+  
+    
+  <div class="block-content">
+          
+            <div class="clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item"><style>
+<!--/*--><![CDATA[/* ><!--*/
+
+@media screen and (max-width: 600px) {
+  .family-crest {
+    width: 55px;
+    height: auto;
+  }
+}
+
+/*--><!]]>*/
+</style><p><img src="./Using 4G LTE wireless modems on a Raspberry Pi _ Jeff Geerling_files/geerling-family-crest.svg" height="65" width="55" alt="Geerling Family Crest" class="family-crest"><br>
+All content copyright Jeff Geerling. <a href="https://www.jeffgeerling.com/blog/2022/using-4g-lte-wireless-modems-on-raspberry-pi#top">Top of page</a>.</p>
+</div>
+      
+      </div>
+</div>
+<div id="block-fathomanalytics" class="block block-block-content block-block-content3c3ff7d8-a12f-483e-ab7f-bad9398d97ba">
+  
+    
+  <div class="block-content">
+          
+            <div class="clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item"><!-- Fathom - simple website analytics - https://github.com/usefathom/fathom -->
+<script>
+(function(f, a, t, h, o, m){
+	a[h]=a[h]||function(){
+		(a[h].q=a[h].q||[]).push(arguments)
+	};
+	o=f.createElement('script'),
+	m=f.getElementsByTagName('script')[0];
+	o.async=1; o.src=t; o.id='fathom-script';
+	m.parentNode.insertBefore(o,m)
+})(document, window, '//analytics.midwesternmac.com/tracker.js', 'fathom');
+fathom('set', 'siteId', 'UROTN');
+fathom('trackPageview');
+</script>
+<!-- / Fathom --></div>
+      
+      </div>
+</div>
+
+  </div>
+
+    </footer>
+  
+</div>
+  </div>
+
+    
+    <script type="application/json" data-drupal-selector="drupal-settings-json">{"path":{"baseUrl":"\/","scriptPath":null,"pathPrefix":"","currentPath":"node\/3169","currentPathIsAdmin":false,"isFront":false,"currentLanguage":"en"},"pluralDelimiter":"\u0003","suppressDeprecationErrors":true,"ajaxTrustedUrl":{"\/search":true},"user":{"uid":0,"permissionsHash":"41d4391498f4f97d37ce21e62b1457ca566b2b56d6cebe00b7abbdf99cac7d0f"}}</script>
+<script src="./Using 4G LTE wireless modems on a Raspberry Pi _ Jeff Geerling_files/js_N016WM3WXATGThTsUBXPArs2_wDkqcT90ILbCz5p_gE.js.download"></script>
+
+  
+
+</body></html>
