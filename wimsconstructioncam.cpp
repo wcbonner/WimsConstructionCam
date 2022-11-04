@@ -64,12 +64,13 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20221103-2 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20221103-3 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
 bool RotateStills180Degrees = false;
 bool UseFullSensor = false;
+bool HDR_Processing = false;
 bool bRunOnce = false;
 double Latitude = 0;
 double Longitude = 0;
@@ -778,10 +779,13 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 				{
 					mycommand.push_back("--tuning-file"); mycommand.push_back(TuningFileName);
 				}
-				// The next three pair of arguments are an HDR experiment
-				mycommand.push_back("--ev"); mycommand.push_back("-2");
-				mycommand.push_back("--denoise"); mycommand.push_back("cdn_off");
-				mycommand.push_back("--post-process-file"); mycommand.push_back("/usr/local/etc/wimsconstructioncam/hdr.json");
+				if (HDR_Processing)
+				{
+					// The next three pair of arguments are an HDR experiment
+					mycommand.push_back("--ev"); mycommand.push_back("-2");
+					mycommand.push_back("--denoise"); mycommand.push_back("cdn_off");
+					mycommand.push_back("--post-process-file"); mycommand.push_back("/usr/local/etc/wimsconstructioncam/hdr.json");
+				}
 				// The following pair is for the arducam_64mp camera
 				mycommand.push_back("--afmode"); mycommand.push_back("auto");
 				if (ConsoleVerbosity > 0)
@@ -1147,7 +1151,7 @@ static void usage(int argc, char** argv)
 	std::cout << "    -T | --tuning-file camera module tuning file" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:f:t:l:L:Gn:RrFT:";
+static const char short_options[] = "hv:d:f:t:l:L:Gn:RrFHT:";
 static const struct option long_options[] = {
 	{ "help",no_argument,			NULL, 'h' },
 	{ "verbose",required_argument,	NULL, 'v' },
@@ -1161,6 +1165,7 @@ static const struct option long_options[] = {
 	{ "runonce",no_argument,		NULL, 'R' },
 	{ "rotate",no_argument,			NULL, 'r' },
 	{ "fullsensor",no_argument,		NULL, 'F' },
+	{ "hdr",no_argument,			NULL, 'H' },
 	{ "tuning-file",required_argument,	NULL, 'T' },
 	{ 0, 0, 0, 0 }
 };
@@ -1234,6 +1239,9 @@ int main(int argc, char** argv)
 			break;
 		case 'F':
 			UseFullSensor = true;
+			break;
+		case 'H':
+			HDR_Processing = true;
 			break;
 		case 'T':
 			TempString = std::string(optarg);
