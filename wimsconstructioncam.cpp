@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20221103-3 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20221110-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -584,8 +584,9 @@ int GetLastImageNum(const std::string DestinationDir)
 	return(LastImageNum);
 }
 /////////////////////////////////////////////////////////////////////////////
-void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDir)
+bool GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDir)
 {
+	bool bDirectoryEmpty = false;
 	unsigned long long MinFreeSpace = (unsigned long long)(MinFreeSpaceGB) << 30ll;
 	std::ostringstream OutputDirectoryName;
 	OutputDirectoryName << DestinationDir;
@@ -621,46 +622,38 @@ void GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 					}
 				}
 			closedir(dp);
+			// recursivly dive into directories first, theoretically deleting the images before deleting the movies.
+			if (!directories.empty())
+				sort(directories.begin(), directories.end());
+			while ((!directories.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))
+			{
+				if (GenerateFreeSpace(MinFreeSpaceGB, *directories.begin()))
+					remove(directories.begin()->c_str());
+				directories.pop_front();
+				if (0 != statvfs64(OutputDirectoryName.str().c_str(), &buffer2))
+					break;
+			}
 			if (!files.empty())
 				sort(files.begin(), files.end());
-			//for (std::map<time_t, string>::const_iterator filename = files.begin(); filename != files.end(); filename++)
-			//	cout << "[" << timeToISO8601(LogFileTime) << "] " << filename->second << endl;
 			while ((!files.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))	// This loop will make sure that there's free space on the drive.
 			{
-				if (ConsoleVerbosity > 0)
-					std::cout << "[" << getTimeExcelLocal() << "] Free Space: " << buffer2.f_bsize * buffer2.f_bavail << " < " << MinFreeSpace << std::endl;
-				else
-					std::cerr << "Free Space: " << buffer2.f_bsize * buffer2.f_bavail << " < " << MinFreeSpace << std::endl;
 				struct stat buffer;
 				if (0 == stat(files.begin()->c_str(), &buffer))
 					if (0 == remove(files.begin()->c_str()))
 					{
 						if (ConsoleVerbosity > 0)
-							std::cout << "[" << getTimeExcelLocal() << "] File Deleted: " << *files.begin() << "(" << buffer.st_size << ")" << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "] File Deleted: " << *files.begin() << "(" << buffer.st_size << ") Free Space: " << buffer2.f_bsize * buffer2.f_bavail << " < " << MinFreeSpace << std::endl;
 						else
-							std::cerr << " File Deleted: " << *files.begin() << "(" << buffer.st_size << ")" << std::endl;
+							std::cerr << " File Deleted: " << *files.begin() << "(" << buffer.st_size << ") Free Space: " << buffer2.f_bsize * buffer2.f_bavail << " < " << MinFreeSpace << std::endl;
 					}
-				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_ctime: " << buffer.st_ctime << endl;
-				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_mtime: " << buffer.st_mtime << endl;
-				//cout << "[" << timeToISO8601(LogFileTime) << "] " << dirp->d_name << " st_atime: " << buffer.st_atime << endl;
-				//files[buffer.st_mtime] = dirp->d_name;
 				files.pop_front();
-				if (0 != statvfs64(OutputDirectoryName.str().c_str(), &buffer2))
-					break;
-				//for (std::vector<string>::const_iterator filename = files.begin(); filename != files.end(); filename++)
-				//	cout << "[" << timeToISO8601(LogFileTime) << "] " << *filename << endl;
-			}
-			if (!directories.empty())
-				sort(directories.begin(), directories.end());
-			while ((!directories.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))	// This loop will make sure that there's free space on the drive.
-			{
-				GenerateFreeSpace(MinFreeSpaceGB, *directories.begin());
-				directories.pop_front();
+				bDirectoryEmpty = files.empty();	// if the last file from the current directory was deleted, we can signal to the calling function that it can delete the directpry
 				if (0 != statvfs64(OutputDirectoryName.str().c_str(), &buffer2))
 					break;
 			}
 		}
 	}
+	return(bDirectoryEmpty);
 }
 /////////////////////////////////////////////////////////////////////////////
 volatile pid_t CameraProgram_PID = 0;
