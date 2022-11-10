@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20221110-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20221110-2 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -1364,7 +1364,8 @@ int main(int argc, char** argv)
 		else
 		{
 			// largest file in sample was 1,310,523, multiply by minutes in day 1440, 1887153120, round up to 2000000000 or 2GB.
-			GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
+			if (GigabytesFreeSpace > 0)
+				GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
 			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA, RotateStills180Degrees, UseFullSensor, SensorTuningFile);
 			if (bRun)
 				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, UseFullSensor);
