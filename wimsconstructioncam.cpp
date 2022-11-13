@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20221113-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20221113-2 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -615,15 +615,13 @@ bool GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 				}
 				else if (DT_DIR == dirp->d_type)
 				{
-					std::string d_name(dirp->d_name);
-					if (0 == d_name.compare("."))
+					std::string DirectoryName(dirp->d_name);
+					if ((DirectoryName.compare("..") == 0) || (DirectoryName.compare(".") == 0))
 						continue;
-					else if (0 == d_name.compare(".."))
-						continue;
-					else 
+					else
 					{
-						std::string dirname = OutputDirectoryName.str() + "/" + d_name;
-						directories.push_back(dirname);
+						std::string FullPath = OutputDirectoryName.str() + "/" + DirectoryName;
+						directories.push_back(FullPath);
 					}
 				}
 			closedir(dp);
