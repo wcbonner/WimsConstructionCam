@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20221110-2 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20221113-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -401,7 +401,7 @@ bool ValidateDirectory(std::string& DirectoryName)
 	bool rval = false;
 	// I want to make sure the directory name does not end with a "/"
 	while ((!DirectoryName.empty()) && (DirectoryName.back() == '/'))
-		DirectoryName.erase(DirectoryName.back());
+		DirectoryName.pop_back();
 	// https://linux.die.net/man/2/stat
 	struct stat StatBuffer;
 	if (0 == stat(DirectoryName.c_str(), &StatBuffer))
@@ -615,9 +615,14 @@ bool GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 				}
 				else if (DT_DIR == dirp->d_type)
 				{
-					if (!std::string(dirp->d_name).compare("..") && !std::string(dirp->d_name).compare("."))
+					std::string d_name(dirp->d_name);
+					if (0 == d_name.compare("."))
+						continue;
+					else if (0 == d_name.compare(".."))
+						continue;
+					else 
 					{
-						std::string dirname = OutputDirectoryName.str() + "/" + std::string(dirp->d_name);
+						std::string dirname = OutputDirectoryName.str() + "/" + d_name;
 						directories.push_back(dirname);
 					}
 				}
@@ -628,7 +633,15 @@ bool GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 			while ((!directories.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))
 			{
 				if (GenerateFreeSpace(MinFreeSpaceGB, *directories.begin()))
-					remove(directories.begin()->c_str());
+				{
+					if (0 == remove(directories.begin()->c_str()))
+					{
+						if (ConsoleVerbosity > 0)
+							std::cout << "[" << getTimeExcelLocal() << "] Directory Deleted: " << *files.begin() << std::endl;
+						else
+							std::cerr << " Directory Deleted: " << *files.begin() << std::endl;
+					}
+				}
 				directories.pop_front();
 				if (0 != statvfs64(OutputDirectoryName.str().c_str(), &buffer2))
 					break;
