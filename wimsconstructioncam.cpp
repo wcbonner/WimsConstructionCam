@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20221222-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20221222-2 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -1153,6 +1153,8 @@ static void usage(int argc, char** argv)
 	std::cout << "    -R | --runonce Run a single capture session and exit" << std::endl;
 	std::cout << "    -r | --rotate rotate all still pictures 180 degrees if camera is upside down" << std::endl;
 	std::cout << "    -F | --fullsensor use the default camera size for still capture" << std::endl;
+	std::cout << "    -H | --hdr run hdr image processing on all captured images" << std::endl;
+	std::cout << "    -2 | --24hour capture images around the clock. HDR mode before sunrise, normal during daylight, HDR mode after sunset" << std::endl;
 	std::cout << "    -T | --tuning-file camera module tuning file" << std::endl;
 	std::cout << std::endl;
 }
