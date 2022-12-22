@@ -64,13 +64,14 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20221113-2 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20221222-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
 bool RotateStills180Degrees = false;
 bool UseFullSensor = false;
 bool HDR_Processing = false;
+bool b24Hour = false;
 bool bRunOnce = false;
 double Latitude = 0;
 double Longitude = 0;
@@ -673,7 +674,7 @@ void SignalHandlerSIGALRM(int signal)
 	std::cerr << "***************** SIGALRM: Caught Alarm, sending child SIGINT. ************************" << std::endl;
 	kill(CameraProgram_PID, SIGINT);
 }
-bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, const time_t& Sunset, const bool bRotate, const bool bFullSensor, const std::string & TuningFileName)
+bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTime, const time_t& StopTime, const bool bRotate, const bool bFullSensor, const std::string & TuningFileName)
 {
 	bool rval = false;
 	std::ostringstream OutputFormat;	// raspistill outputname format string
@@ -682,16 +683,16 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 	// Minutes in Day = 60 * 24 = 1440
 	int MinutesLeftInDay = 1440;
 	struct tm UTC;
-	if (0 != localtime_r(&TheTime, &UTC))
+	if (0 != localtime_r(&CurrentTime, &UTC))
 	{
 		int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
-		struct tm SunsetTM;
-		if (0 != localtime_r(&Sunset, &SunsetTM))
+		struct tm StopTimeTM;
+		if (0 != localtime_r(&StopTime, &StopTimeTM))
 		{
-			if (UTC.tm_mday == SunsetTM.tm_mday)
-				MinutesLeftInDay = (SunsetTM.tm_hour * 60 + SunsetTM.tm_min) - CurrentMinuteInDay;
+			if (UTC.tm_mday == StopTimeTM.tm_mday)
+				MinutesLeftInDay = (StopTimeTM.tm_hour * 60 + StopTimeTM.tm_min) - CurrentMinuteInDay;
 			else
-				MinutesLeftInDay = 1440 - CurrentMinuteInDay;
+				MinutesLeftInDay = 1440 - CurrentMinuteInDay; //1440 is the maximum number of minutes in a day = 24*60
 		}
 		else
 			MinutesLeftInDay = 1440 - CurrentMinuteInDay;
@@ -700,13 +701,13 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& TheTime, 
 		else
 			Timeout << TimeoutMinutes * 60 * 1000;
 		OutputFormat.fill('0');
-		OutputFormat << GetImageDirectory(DestinationDir, TheTime) << "/";
+		OutputFormat << GetImageDirectory(DestinationDir, CurrentTime) << "/";
 		OutputFormat.width(2);
 		OutputFormat << UTC.tm_mon + 1;
 		OutputFormat.width(2);
 		OutputFormat << UTC.tm_mday;
 		OutputFormat << "\%04d.jpg";
-		FrameStart << GetLastImageNum(GetImageDirectory(DestinationDir, TheTime)) + 1;
+		FrameStart << GetLastImageNum(GetImageDirectory(DestinationDir, CurrentTime)) + 1;
 
 		if (ConsoleVerbosity > 0)
 		{
@@ -1155,7 +1156,7 @@ static void usage(int argc, char** argv)
 	std::cout << "    -T | --tuning-file camera module tuning file" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:f:t:l:L:Gn:RrFHT:";
+static const char short_options[] = "hv:d:f:t:l:L:Gn:RrFH2T:";
 static const struct option long_options[] = {
 	{ "help",no_argument,			NULL, 'h' },
 	{ "verbose",required_argument,	NULL, 'v' },
@@ -1170,6 +1171,7 @@ static const struct option long_options[] = {
 	{ "rotate",no_argument,			NULL, 'r' },
 	{ "fullsensor",no_argument,		NULL, 'F' },
 	{ "hdr",no_argument,			NULL, 'H' },
+	{ "24hour",no_argument,			NULL, '2' },
 	{ "tuning-file",required_argument,	NULL, 'T' },
 	{ 0, 0, 0, 0 }
 };
@@ -1246,6 +1248,9 @@ int main(int argc, char** argv)
 			break;
 		case 'H':
 			HDR_Processing = true;
+			break;
+		case '2':
+			b24Hour = true;
 			break;
 		case 'T':
 			TempString = std::string(optarg);
@@ -1348,28 +1353,62 @@ int main(int argc, char** argv)
 
 		if (LoopStartTime < SunriseNOAA)
 		{
-			// if before sunrise we wait for sunrise, then loop back to the top
-			if (ConsoleVerbosity > 0)
-				std::cout << "[" << getTimeExcelLocal() << "] before Sunrise: " << timeToExcelLocal(SunriseNOAA) << " sleeping for " << (SunriseNOAA - LoopStartTime) / 60 << " minutes" << std::endl;
-			else 
-				std::cerr << "before Sunrise: " << timeToExcelLocal(SunriseNOAA) << " sleeping for " << (SunriseNOAA - LoopStartTime) / 60 << " minutes" << std::endl;
-			sleep(SunriseNOAA - LoopStartTime);
-			sleep(60); // sleep for an extra minute
+			if (b24Hour)
+			{
+				// if before sunrise, but we want to run 24hours a day, we want to run the camera in HDR mode. 
+				auto oldHDRStat = HDR_Processing;
+				HDR_Processing = true;
+				bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunriseNOAA, RotateStills180Degrees, UseFullSensor, SensorTuningFile);
+				HDR_Processing = oldHDRStat;
+			}
+			else
+			{
+				// if before sunrise and not running 24 hours a day we wait for sunrise, then loop back to the top
+				if (ConsoleVerbosity > 0)
+					std::cout << "[" << getTimeExcelLocal() << "] before Sunrise: " << timeToExcelLocal(SunriseNOAA) << " sleeping for " << (SunriseNOAA - LoopStartTime) / 60 << " minutes" << std::endl;
+				else
+					std::cerr << "before Sunrise: " << timeToExcelLocal(SunriseNOAA) << " sleeping for " << (SunriseNOAA - LoopStartTime) / 60 << " minutes" << std::endl;
+				sleep(SunriseNOAA - LoopStartTime);
+				sleep(60); // sleep for an extra minute
+			}
 		}
 		else if (LoopStartTime > SunsetNOAA)
 		{
-			// If after Sunset we want to sleep till tomorrow
-			struct tm UTC;
-			if (0 != localtime_r(&LoopStartTime, &UTC))
+			if (b24Hour)
 			{
-				int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
-				int MinutesLeftInDay = 24*60 - CurrentMinuteInDay;
-				if (ConsoleVerbosity > 0)
-					std::cout << "[" << getTimeExcelLocal() << "] after Sunset: " << timeToExcelLocal(SunsetNOAA) << " sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
-				else
-					std::cerr << "after Sunset: " << timeToExcelLocal(SunsetNOAA) << " sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
-				sleep(MinutesLeftInDay * 60);
-				sleep(60); // sleep for an extra minute
+				// if after sunset and running 24 hour mode we want to run the camera in HDR mode until midnight, then make the daily movie
+				auto oldHDRStat = HDR_Processing;
+				HDR_Processing = true;
+				// Calculate end of day and pass it to the still creation routine
+				struct tm UTC;
+				if (0 != localtime_r(&LoopStartTime, &UTC))
+				{
+					UTC.tm_hour = 0;
+					UTC.tm_min = 0;
+					UTC.tm_sec = 0;
+					time_t Midnight = timelocal(&UTC);
+					Midnight += 24 * 60 * 60;
+					bRun = CreateDailyStills(DestinationDir, LoopStartTime, Midnight, RotateStills180Degrees, UseFullSensor, SensorTuningFile);
+					if (bRun)
+						bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, UseFullSensor);
+				}
+				HDR_Processing = oldHDRStat;
+			}
+			else
+			{
+				// If after Sunset we want to sleep till tomorrow
+				struct tm UTC;
+				if (0 != localtime_r(&LoopStartTime, &UTC))
+				{
+					int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
+					int MinutesLeftInDay = 24 * 60 - CurrentMinuteInDay;
+					if (ConsoleVerbosity > 0)
+						std::cout << "[" << getTimeExcelLocal() << "] after Sunset: " << timeToExcelLocal(SunsetNOAA) << " sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
+					else
+						std::cerr << "after Sunset: " << timeToExcelLocal(SunsetNOAA) << " sleeping for " << MinutesLeftInDay << " minutes" << std::endl;
+					sleep(MinutesLeftInDay * 60);
+					sleep(60); // sleep for an extra minute
+				}
 			}
 		}
 		else
@@ -1378,7 +1417,7 @@ int main(int argc, char** argv)
 			if (GigabytesFreeSpace > 0)
 				GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
 			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA, RotateStills180Degrees, UseFullSensor, SensorTuningFile);
-			if (bRun)
+			if (bRun && !b24Hour)
 				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, UseFullSensor);
 		}
 		if (bRunOnce)
