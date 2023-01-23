@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230117-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230123-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -844,6 +844,7 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 						// One last try because the standard libcamera-still program doesn't have the --continue-autofocus option
 						mycommand.pop_back(); // pop auto
 						mycommand.pop_back(); // pop --afmode
+						mycommand.push_back("--autofocus-on-capture"); // new option with PiCamera V3 (20230123) https://www.raspberrypi.com/documentation/computers/camera_software.html
 						if (ConsoleVerbosity > 0)
 						{
 							std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
