@@ -31,3 +31,11 @@ Usage: /usr/local/bin/wimsconstructioncam [options]
     -2 | --24hour capture images around the clock. HDR mode before sunrise, normal during daylight, HDR mode after sunset
     -T | --tuning-file camera module tuning file
 ```
+
+## To build on a fresh Raspian Bullseye platform:
+```
+sudo apt install -y libgps-dev
+git clone https://github.com/wcbonner/WimsConstructionCam.git
+cd WimsConstructionCam/
+make deb
+```
