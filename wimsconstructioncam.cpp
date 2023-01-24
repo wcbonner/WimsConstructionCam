@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230124-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230124-2 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -788,8 +788,10 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 				{
 					// The next three pair of arguments are an HDR experiment
 					//mycommand.push_back("--ev"); mycommand.push_back("-2");
-					mycommand.push_back("--denoise"); mycommand.push_back("cdn_off");
-					mycommand.push_back("--post-process-file"); mycommand.push_back("/usr/local/etc/wimsconstructioncam/hdr.json");
+					//mycommand.push_back("--denoise"); mycommand.push_back("cdn_off");
+					//mycommand.push_back("--post-process-file"); mycommand.push_back("/usr/local/etc/wimsconstructioncam/hdr.json");
+					// with the Raspberry Pi Camera Module 3 there is a new option
+					mycommand.push_back("--hdr");
 				}
 				// The following pair is for the arducam_64mp camera
 				mycommand.push_back("--afmode"); mycommand.push_back("continuous");
