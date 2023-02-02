@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230129-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230202-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -914,13 +914,14 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 	}
 	return(rval);
 }
-bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOverlay)
+bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOverlay, const bool bVideoHD = true, const bool bVideo4k = true)
 {
 	bool rval = false;
 	DIR* dp;
 	if ((dp = opendir(DailyDirectory.c_str())) != NULL)
 	{
 		std::deque<std::string> JPGfiles;
+		std::queue<std::string> VideoFiles;
 		struct dirent* dirp;
 		while ((dirp = readdir(dp)) != NULL)
 			if (DT_REG == dirp->d_type)
@@ -954,116 +955,147 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 					StillFormat << UTC.tm_mday;
 					StillFormat << "\%04d.jpg";
 
-					std::ostringstream VideoFileName;	// ffmpeg output video name
-					VideoFileName.fill('0');
-					VideoFileName << VideoDirectory << "/";
-					VideoFileName.width(4);
-					VideoFileName << UTC.tm_year + 1900;
-					VideoFileName.width(2);
-					VideoFileName << UTC.tm_mon + 1;
-					VideoFileName.width(2);
-					VideoFileName << UTC.tm_mday;
+					std::ostringstream ssVideoFileName;	// ffmpeg output video name
+					ssVideoFileName.fill('0');
+					ssVideoFileName << VideoDirectory << "/";
+					ssVideoFileName.width(4);
+					ssVideoFileName << UTC.tm_year + 1900;
+					ssVideoFileName.width(2);
+					ssVideoFileName << UTC.tm_mon + 1;
+					ssVideoFileName.width(2);
+					ssVideoFileName << UTC.tm_mday;
 					char MyHostName[HOST_NAME_MAX] = { 0 }; // hostname used for data recordkeeping
 					if (gethostname(MyHostName, sizeof(MyHostName)) == 0)
-						VideoFileName << "-" << MyHostName;
-					VideoFileName << ".mp4";
-					struct stat MP4Stat;
-					if (-1 == stat(VideoFileName.str().c_str(), &MP4Stat))
+						ssVideoFileName << "-" << MyHostName;
+					if (bVideoHD)
 					{
-						if (ConsoleVerbosity > 0)
-						{
-							std::cout << "[" << getTimeExcelLocal() << "]   StillFormat: " << StillFormat.str() << std::endl;
-							std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << JPGfiles.size() << std::endl;
-							std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << VideoFileName.str() << std::endl;
-						}
-						std::vector<std::string> mycommand;
-						mycommand.push_back("ffmpeg");
-						mycommand.push_back("-hide_banner");
-						mycommand.push_back("-loglevel"); mycommand.push_back("warning");
-						mycommand.push_back("-r"); mycommand.push_back("30");
-						mycommand.push_back("-i"); mycommand.push_back(StillFormat.str());
-						auto found = VideoTextOverlay.find_first_of(":'\"\\");
-						while (found != std::string::npos)
-						{
-							VideoTextOverlay.erase(found, 1);
-							found = VideoTextOverlay.find_first_of(":'\"\\");
-						}
-						std::ostringstream vfParam;
-						vfParam << "crop=in_w:9/16*in_w,";
-						vfParam << "drawtext=font=mono:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=10:text=%{metadata\\\\:DateTimeOriginal},";
-						vfParam << "drawtext=font=sans:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=main_w-text_w-10:text=" << VideoTextOverlay;
-						mycommand.push_back("-vf"); mycommand.push_back(vfParam.str());
-						mycommand.push_back("-c:v"); mycommand.push_back("libx264");
-						mycommand.push_back("-crf"); mycommand.push_back("23");
-						mycommand.push_back("-preset"); mycommand.push_back("veryfast");
-						mycommand.push_back("-s"); mycommand.push_back("1920x1080");
-						mycommand.push_back("-movflags"); mycommand.push_back("+faststart");
-						mycommand.push_back("-bf"); mycommand.push_back("2");
-						mycommand.push_back("-g"); mycommand.push_back("15");
-						mycommand.push_back("-pix_fmt"); mycommand.push_back("yuv420p");
-						mycommand.push_back("-y");
-						mycommand.push_back(VideoFileName.str());
-						if (ConsoleVerbosity > 0)
-						{
-							std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
-							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-								std::cout << " " << *iter;
-							std::cout << std::endl;
-						}
-						else
-						{
-							std::cerr << " JPG File Count: " << JPGfiles.size() << std::endl;
-							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-								std::cerr << " " << *iter;
-							std::cerr << std::endl;
-						}
-						std::vector<char*> args;
-						for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
-							args.push_back((char*)arg->c_str());
-						args.push_back(NULL);
+						std::string VideoFileName(ssVideoFileName.str());
+						VideoFileName.append("-1080p.mp4");
+						VideoFiles.push(VideoFileName);
+					}
+					if (bVideo4k)
+					{
+						std::string VideoFileName(ssVideoFileName.str());
+						VideoFileName.append("-2160p.mp4");
+						VideoFiles.push(VideoFileName);
+					}
+					if (VideoFiles.empty())
+					{
+						// If we have not specified a file resolution, create a catch all file that uses the original still format size
+						std::string VideoFileName(ssVideoFileName.str());
+						VideoFileName.append(".mp4");
+						VideoFiles.push(VideoFileName);
+					}
+					while (!VideoFiles.empty())
+					{
+						std::string VideoFileName(VideoFiles.front());
+						VideoFiles.pop();
 
-						pid_t pid_FFMPEG = fork();
-						if (pid_FFMPEG == 0)
+						struct stat MP4Stat;
+						if (-1 == stat(VideoFileName.c_str(), &MP4Stat))
 						{
-							/* A zero PID indicates that this is the child process */
-							/* Replace the child fork with a new process */
-							if (execvp(args[0], &args[0]) == -1)
-								exit(EXIT_FAILURE);	// this exit value will only get hit if the exec fails, since the exec overwrites the process
-						}
-						else if (pid_FFMPEG > 0)
-						{
-							/* A positive (non-negative) PID indicates the parent process */
-							int ffmpeg_exit_status = 0;
-							wait(&ffmpeg_exit_status);				/* Wait for child process to end */
+							if (ConsoleVerbosity > 0)
+							{
+								std::cout << "[" << getTimeExcelLocal() << "]   StillFormat: " << StillFormat.str() << std::endl;
+								std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << JPGfiles.size() << std::endl;
+								std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << VideoFileName << std::endl;
+							}
+							std::vector<std::string> mycommand;
+							mycommand.push_back("ffmpeg");
+							mycommand.push_back("-hide_banner");
+							mycommand.push_back("-loglevel"); mycommand.push_back("warning");
+							mycommand.push_back("-r"); mycommand.push_back("30");
+							mycommand.push_back("-i"); mycommand.push_back(StillFormat.str());
+							auto found = VideoTextOverlay.find_first_of(":'\"\\");
+							while (found != std::string::npos)
+							{
+								VideoTextOverlay.erase(found, 1);
+								found = VideoTextOverlay.find_first_of(":'\"\\");
+							}
+							std::ostringstream vfParam;
+							vfParam << "crop=in_w:9/16*in_w,";
+							vfParam << "drawtext=font=mono:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=10:text=%{metadata\\\\:DateTimeOriginal},";
+							vfParam << "drawtext=font=sans:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=main_w-text_w-10:text=" << VideoTextOverlay;
+							mycommand.push_back("-vf"); mycommand.push_back(vfParam.str());
+							mycommand.push_back("-c:v"); mycommand.push_back("libx264");
+							mycommand.push_back("-crf"); mycommand.push_back("23");
+							mycommand.push_back("-preset"); mycommand.push_back("veryfast");
+							if (VideoFileName.find("1080p") != std::string::npos)
+							{
+								mycommand.push_back("-s"); mycommand.push_back("1920x1080");
+							}
+							else if (VideoFileName.find("2160p") != std::string::npos)
+							{
+								mycommand.push_back("-s"); mycommand.push_back("3840x2160");
+							}
+							mycommand.push_back("-movflags"); mycommand.push_back("+faststart");
+							mycommand.push_back("-bf"); mycommand.push_back("2");
+							mycommand.push_back("-g"); mycommand.push_back("15");
+							mycommand.push_back("-pix_fmt"); mycommand.push_back("yuv420p");
+							mycommand.push_back("-y");
+							mycommand.push_back(VideoFileName);
+							if (ConsoleVerbosity > 0)
+							{
+								std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
+								for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+									std::cout << " " << *iter;
+								std::cout << std::endl;
+							}
+							else
+							{
+								std::cerr << " JPG File Count: " << JPGfiles.size() << std::endl;
+								for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+									std::cerr << " " << *iter;
+								std::cerr << std::endl;
+							}
+							std::vector<char*> args;
+							for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
+								args.push_back((char*)arg->c_str());
+							args.push_back(NULL);
 
-							if (EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status))
+							pid_t pid_FFMPEG = fork();
+							if (pid_FFMPEG == 0)
 							{
-								std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
-								std::cerr << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
+								/* A zero PID indicates that this is the child process */
+								/* Replace the child fork with a new process */
+								if (execvp(args[0], &args[0]) == -1)
+									exit(EXIT_FAILURE);	// this exit value will only get hit if the exec fails, since the exec overwrites the process
 							}
-							else if (ConsoleVerbosity > 0)
+							else if (pid_FFMPEG > 0)
 							{
-								std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
-								std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
-							}
+								/* A positive (non-negative) PID indicates the parent process */
+								int ffmpeg_exit_status = 0;
+								wait(&ffmpeg_exit_status);				/* Wait for child process to end */
 
-							if (EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status))
-							{
-								std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
-								rval = true;
-								// change file date on mp4 file to match the last jpg file
-								struct timeval MP4TimeToSet[2];
-								MP4TimeToSet[0].tv_usec = 0;
-								MP4TimeToSet[1].tv_usec = 0;
-								MP4TimeToSet[0].tv_sec = LastJPGStat.st_mtim.tv_sec;
-								MP4TimeToSet[1].tv_sec = LastJPGStat.st_mtim.tv_sec;
-								if (0 != utimes(VideoFileName.str().c_str(), MP4TimeToSet))
-									std::cerr << "could not set the modification and access times on " << VideoFileName.str() << std::endl;
+								if (EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status))
+								{
+									std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
+									std::cerr << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
+								}
+								else if (ConsoleVerbosity > 0)
+								{
+									std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
+									std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
+								}
+
+								if (EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status))
+								{
+									std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
+									rval = true;
+									// change file date on mp4 file to match the last jpg file
+									struct timeval MP4TimeToSet[2];
+									MP4TimeToSet[0].tv_usec = 0;
+									MP4TimeToSet[1].tv_usec = 0;
+									MP4TimeToSet[0].tv_sec = LastJPGStat.st_mtim.tv_sec;
+									MP4TimeToSet[1].tv_sec = LastJPGStat.st_mtim.tv_sec;
+									if (0 != utimes(VideoFileName.c_str(), MP4TimeToSet))
+										std::cerr << "could not set the modification and access times on " << VideoFileName << std::endl;
+								}
 							}
-						}
-						else
-						{
-							std::cerr << "Fork error! ffmpeg." << std::endl;  /* something went wrong */
+							else
+							{
+								std::cerr << "Fork error! ffmpeg." << std::endl;  /* something went wrong */
+							}
 						}
 					}
 				}
@@ -1072,7 +1104,7 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 	}
 	return(rval);
 }
-void CreateAllDailyMovies(const std::string DestinationDir, const std::string & VideoTextOverlay)
+void CreateAllDailyMovies(const std::string DestinationDir, const std::string & VideoTextOverlay, const bool bVideoHD = true, const bool bVideo4k = true)
 {
 	DIR* dp;
 	if ((dp = opendir(DestinationDir.c_str())) != NULL)
@@ -1112,7 +1144,7 @@ void CreateAllDailyMovies(const std::string DestinationDir, const std::string & 
 		sort(Subdirectories.begin(), Subdirectories.end());
 		while (!Subdirectories.empty())
 		{
-			CreateDailyMovie(Subdirectories.front(), VideoTextOverlay);
+			CreateDailyMovie(Subdirectories.front(), VideoTextOverlay, bVideoHD, bVideo4k);
 			Subdirectories.pop_front();
 		}
 	}
