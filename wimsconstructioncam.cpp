@@ -68,6 +68,8 @@ static const std::string ProgramVersionString("WimsConstructionCam 1.20230202-1 
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
+bool VideoHD = true;
+bool Video4k = false;
 bool RotateStills180Degrees = false;
 bool HDR_Processing = false;
 bool b24Hour = false;
@@ -914,7 +916,7 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 	}
 	return(rval);
 }
-bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOverlay, const bool bVideoHD = true, const bool bVideo4k = true)
+bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOverlay, const bool bVideoHD, const bool bVideo4k)
 {
 	bool rval = false;
 	DIR* dp;
@@ -1104,7 +1106,7 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 	}
 	return(rval);
 }
-void CreateAllDailyMovies(const std::string DestinationDir, const std::string & VideoTextOverlay, const bool bVideoHD = true, const bool bVideo4k = true)
+void CreateAllDailyMovies(const std::string DestinationDir, const std::string & VideoTextOverlay, const bool bVideoHD, const bool bVideo4k)
 {
 	DIR* dp;
 	if ((dp = opendir(DestinationDir.c_str())) != NULL)
@@ -1177,6 +1179,7 @@ static void usage(int argc, char** argv)
 	std::cout << "    -l | --lat latitude for sunrise/sunset [" << Latitude << "]" << std::endl;
 	std::cout << "    -L | --lon longitude for sunrise/sunset [" << Longitude << "]" << std::endl;
 	std::cout << "    -G | --gps prefer gpsd lat/lon, if available, to command line" << std::endl;
+	std::cout << "    -s | --size video size. Valid options are 1080p and 2160p. Option may be repeated." << std::endl;
 	std::cout << "    -n | --name Text to display on the bottom right of the video" << std::endl;
 	std::cout << "    -R | --runonce Run a single capture session and exit" << std::endl;
 	std::cout << "    -r | --rotate rotate all still pictures 180 degrees if camera is upside down" << std::endl;
@@ -1185,7 +1188,7 @@ static void usage(int argc, char** argv)
 	std::cout << "    -T | --tuning-file camera module tuning file" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:f:t:l:L:Gn:RrH2T:";
+static const char short_options[] = "hv:d:f:t:l:L:Gs:n:RrH2T:";
 static const struct option long_options[] = {
 	{ "help",no_argument,			NULL, 'h' },
 	{ "verbose",required_argument,	NULL, 'v' },
@@ -1195,6 +1198,7 @@ static const struct option long_options[] = {
 	{ "lat",required_argument,		NULL, 'l' },
 	{ "lon",required_argument,		NULL, 'L' },
 	{ "gps",no_argument,			NULL, 'G' },
+	{ "size",required_argument,		NULL, 's' },
 	{ "name",required_argument,		NULL, 'n' },
 	{ "runonce",no_argument,		NULL, 'R' },
 	{ "rotate",no_argument,			NULL, 'r' },
@@ -1262,6 +1266,13 @@ int main(int argc, char** argv)
 		case 'G':
 			UseGPSD = true;
 			break;
+		case 's':
+			TempString = std::string(optarg);
+			if (TempString.find("1080p") != std::string::npos)
+				VideoHD = true;
+			if (TempString.find("2160p") != std::string::npos)
+				Video4k = true;
+			break;
 		case 'n':
 			VideoOverlayText = std::string(optarg);
 			break;
@@ -1311,7 +1322,7 @@ int main(int argc, char** argv)
 		usage(argc, argv);
 		exit(EXIT_FAILURE);
 	}
-	CreateAllDailyMovies(DestinationDir, VideoOverlayText);
+	CreateAllDailyMovies(DestinationDir, VideoOverlayText, VideoHD, Video4k);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
 	typedef void (*SignalHandlerPointer)(int);
@@ -1415,7 +1426,7 @@ int main(int argc, char** argv)
 					Midnight += 24 * 60 * 60;
 					bRun = CreateDailyStills(DestinationDir, LoopStartTime, Midnight, RotateStills180Degrees, SensorTuningFile);
 					if (bRun)
-						bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText);
+						bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, VideoHD, Video4k);
 				}
 				HDR_Processing = oldHDRStat;
 			}
@@ -1443,7 +1454,7 @@ int main(int argc, char** argv)
 				GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
 			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA, RotateStills180Degrees, SensorTuningFile);
 			if (bRun && !b24Hour)
-				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText);
+				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, VideoHD, Video4k);
 		}
 		if (bRunOnce)
 			bRun = false;

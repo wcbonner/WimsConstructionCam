@@ -11,7 +11,7 @@ Type=simple
 Restart=always
 RestartSec=10
 Environment=LIBCAMERA_LOG_LEVELS=*:4
-ExecStart=/usr/local/bin/wimsconstructioncam -v 0 --gps --lat 44.54456390 --lon -115.99408540 --destination /media/%H/DCIM --freespace 2 --runonce
+ExecStart=/usr/local/bin/wimsconstructioncam -v 0 --gps --lat 44.54456390 --lon -115.99408540 --destination /media/%H/DCIM --freespace 2 --runonce --size 1080p --size 2160p
 KillSignal=SIGINT
 
 [Install]
