@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230203-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230203-2 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -789,8 +789,8 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 					// with the Raspberry Pi Camera Module 3 there is a new option
 					mycommand.push_back("--hdr");
 				}
-				// The following pair is for the arducam_64mp camera
-				mycommand.push_back("--afmode"); mycommand.push_back("continuous");
+				mycommand.push_back("--autofocus-mode"); // new option with PiCamera V3 (20230124) https://www.raspberrypi.com/documentation/computers/camera_software.html
+				mycommand.push_back("continuous"); // new option with PiCamera V3 (20230124)
 				if (ConsoleVerbosity > 0)
 				{
 					std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
@@ -836,62 +836,7 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 					signal(SIGALRM, OldAlarmHandler);	// restore alarm handler
 					// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
 					// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
-					if ((EXIT_FAILURE == WEXITSTATUS(CameraProgram_exit_status)) || 
-						(255 == WEXITSTATUS(CameraProgram_exit_status))) // ERROR: *** unrecognised option '--continue-autofocus' ***
-					{
-						// One last try because the standard libcamera-still program doesn't have the --continue-autofocus option
-						mycommand.pop_back(); // pop auto
-						mycommand.pop_back(); // pop --afmode
-						mycommand.push_back("--autofocus-mode"); // new option with PiCamera V3 (20230124) https://www.raspberrypi.com/documentation/computers/camera_software.html
-						mycommand.push_back("continuous"); // new option with PiCamera V3 (20230124)
-						if (ConsoleVerbosity > 0)
-						{
-							std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
-							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-								std::cout << " " << *iter;
-							std::cout << std::endl;
-						}
-						else
-						{
-							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-								std::cerr << " " << *iter;
-							std::cerr << std::endl;
-						}
-						args.clear();
-						for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-							args.push_back((char*)iter->c_str());
-						args.push_back(NULL);
-
-						pid = fork();
-						if (pid == 0)
-						{
-							/* A zero PID indicates that this is the child process */
-							/* Replace the child fork with a new process */
-							//HACK: Redirecting stderr to /dev/null so that libcamera app doesn't fill up syslog
-							//FILE* devnull = fopen("/dev/null", "w");
-							//if (devnull != NULL)
-							//{
-							//	dup2(fileno(devnull), STDERR_FILENO);
-							//	fclose(devnull);
-							//}
-							if (execvp(args[0], &args[0]) == -1)
-								exit(EXIT_FAILURE);
-						}
-						else if (pid > 0)
-						{
-							/* A positive (non-negative) PID indicates the parent process */
-							// I've been having problems with the camera app locking up. This alarm sequence should let me kill it if it doesn't exit in the specified number of minutes.
-							CameraProgram_PID = pid;
-							auto OldAlarmHandler = signal(SIGALRM, SignalHandlerSIGALRM);
-							alarm((MinutesLeftInDay + 1) * 60);
-							wait(&CameraProgram_exit_status);	// Wait for child process to end
-							alarm(0);	// disable alarm
-							signal(SIGALRM, OldAlarmHandler);	// restore alarm handler
-							if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status) && (EXIT_SUCCESS == WTERMSIG(CameraProgram_exit_status)))
-								rval = true;
-						}
-					}
-					else if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status) && (EXIT_SUCCESS == WTERMSIG(CameraProgram_exit_status)))
+					if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status) && (EXIT_SUCCESS == WTERMSIG(CameraProgram_exit_status)))
 						rval = true;
 				}
 			}
