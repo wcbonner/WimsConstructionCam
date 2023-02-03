@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230202-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230203-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -1019,16 +1019,25 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 							vfParam << "drawtext=font=mono:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=10:text=%{metadata\\\\:DateTimeOriginal},";
 							vfParam << "drawtext=font=sans:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=main_w-text_w-10:text=" << VideoTextOverlay;
 							mycommand.push_back("-vf"); mycommand.push_back(vfParam.str());
-							mycommand.push_back("-c:v"); mycommand.push_back("libx264");
-							mycommand.push_back("-crf"); mycommand.push_back("23");
-							mycommand.push_back("-preset"); mycommand.push_back("veryfast");
 							if (VideoFileName.find("1080p") != std::string::npos)
 							{
+								mycommand.push_back("-c:v"); mycommand.push_back("libx264");
+								mycommand.push_back("-crf"); mycommand.push_back("23");
+								mycommand.push_back("-preset"); mycommand.push_back("veryfast");
 								mycommand.push_back("-s"); mycommand.push_back("1920x1080");
 							}
 							else if (VideoFileName.find("2160p") != std::string::npos)
 							{
+								mycommand.push_back("-c:v"); mycommand.push_back("libx265");	// use h.265 instead of default because it gets better compression results on larger resolution
+								mycommand.push_back("-crf"); mycommand.push_back("23");
+								mycommand.push_back("-preset"); mycommand.push_back("veryfast");
 								mycommand.push_back("-s"); mycommand.push_back("3840x2160");
+							}
+							else
+							{
+								mycommand.push_back("-c:v"); mycommand.push_back("libx264");
+								mycommand.push_back("-crf"); mycommand.push_back("23");
+								mycommand.push_back("-preset"); mycommand.push_back("veryfast");
 							}
 							mycommand.push_back("-movflags"); mycommand.push_back("+faststart");
 							mycommand.push_back("-bf"); mycommand.push_back("2");
