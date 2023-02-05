@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230203-2 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230205-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -384,9 +384,9 @@ bool getLatLon(double& Latitude, double& Longitude)
 						timespec SystemTime;
 						timespec_get(&SystemTime, TIME_UTC);
 						if (ConsoleVerbosity > 0)
-							std::cout << "[" << getTimeExcelLocal() << "] SystemTime: " << timeToISO8601(mktime(gmtime(&SystemTime.tv_sec))) << " GPSTime: " << timeToISO8601(mktime(gmtime(&GPSTime.tv_sec))) << " Seconds Difference: " << fabs(difftime(GPSTime.tv_sec, SystemTime.tv_sec)) << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "] SystemTime: " << timeToISO8601(mkgmtime(gmtime(&SystemTime.tv_sec))) << " GPSTime: " << timeToISO8601(mkgmtime(gmtime(&GPSTime.tv_sec))) << " Seconds Difference: " << fabs(difftime(GPSTime.tv_sec, SystemTime.tv_sec)) << std::endl;
 						else
-							std::cerr << "SystemTime: " << timeToISO8601(mktime(gmtime(&SystemTime.tv_sec))) << " GPSTime: " << timeToISO8601(mktime(gmtime(&GPSTime.tv_sec))) << " Seconds Difference: " << fabs(difftime(GPSTime.tv_sec, SystemTime.tv_sec)) << std::endl;
+							std::cerr << "SystemTime: " << timeToISO8601(mkgmtime(gmtime(&SystemTime.tv_sec))) << " GPSTime: " << timeToISO8601(mkgmtime(gmtime(&GPSTime.tv_sec))) << " Seconds Difference: " << fabs(difftime(GPSTime.tv_sec, SystemTime.tv_sec)) << std::endl;
 						if (fabs(difftime(GPSTime.tv_sec, SystemTime.tv_sec)) > 60 * 60) // if GPSTime is an hour or more ahead of SystemTime, we want to set the SystemTime.
 							clock_settime(CLOCK_REALTIME, &GPSTime);
 						doloop++;
