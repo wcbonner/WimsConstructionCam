@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230205-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230207-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -789,8 +789,9 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 					// with the Raspberry Pi Camera Module 3 there is a new option
 					mycommand.push_back("--hdr");
 				}
-				mycommand.push_back("--autofocus-mode"); // new option with PiCamera V3 (20230124) https://www.raspberrypi.com/documentation/computers/camera_software.html
-				mycommand.push_back("continuous"); // new option with PiCamera V3 (20230124)
+				//mycommand.push_back("--autofocus-mode"); // new option with PiCamera V3 (20230124) https://www.raspberrypi.com/documentation/computers/camera_software.html
+				//mycommand.push_back("continuous"); // new option with PiCamera V3 (20230124)
+				mycommand.push_back("--lens-position"); mycommand.push_back("0.0"); // Moves the lens to a fixed focal distance, 0.0 will move the lens to the "infinity" position (20230207)
 				if (ConsoleVerbosity > 0)
 				{
 					std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
