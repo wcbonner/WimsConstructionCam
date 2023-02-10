@@ -64,7 +64,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230207-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230209-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity = 1;
 int TimeoutMinutes = 0;
 bool UseGPSD = false;
@@ -1061,7 +1061,7 @@ bool CreateDailyMovie(const std::string DailyDirectory, std::string VideoTextOve
 	}
 	return(rval);
 }
-void CreateAllDailyMovies(const std::string DestinationDir, const std::string & VideoTextOverlay, const bool bVideoHD, const bool bVideo4k)
+void CreateAllDailyMovies(const std::string DestinationDir, const std::string & VideoTextOverlay, const int MaxDailyMoviesToCreate, const bool bVideoHD, const bool bVideo4k)
 {
 	DIR* dp;
 	if ((dp = opendir(DestinationDir.c_str())) != NULL)
@@ -1099,10 +1099,12 @@ void CreateAllDailyMovies(const std::string DestinationDir, const std::string & 
 			}
 		closedir(dp);
 		sort(Subdirectories.begin(), Subdirectories.end());
-		while (!Subdirectories.empty())
+		auto MoviesToCreate = MaxDailyMoviesToCreate;
+		while (!Subdirectories.empty() && (MoviesToCreate > 0))
 		{
 			CreateDailyMovie(Subdirectories.front(), VideoTextOverlay, bVideoHD, bVideo4k);
 			Subdirectories.pop_front();
+			MoviesToCreate--;
 		}
 	}
 }
@@ -1277,7 +1279,7 @@ int main(int argc, char** argv)
 		usage(argc, argv);
 		exit(EXIT_FAILURE);
 	}
-	CreateAllDailyMovies(DestinationDir, VideoOverlayText, VideoHD, Video4k);
+	CreateAllDailyMovies(DestinationDir, VideoOverlayText, 2, VideoHD, Video4k);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
 	typedef void (*SignalHandlerPointer)(int);
