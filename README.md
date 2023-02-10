@@ -13,7 +13,7 @@ Can either crop still pictures to 1920x1080 to reduce still image storage space,
 
 ```
 Usage: /usr/local/bin/wimsconstructioncam [options]
-  WimsConstructionCam 1.20221228-1 Built Dec 28 2022 at 08:40:22
+  WimsConstructionCam 1.20230207-1 Built Feb  7 2023 at 09:04:07
   Options:
     -h | --help          Print this message
     -v | --verbose level stdout verbosity level [1]
@@ -23,10 +23,10 @@ Usage: /usr/local/bin/wimsconstructioncam [options]
     -l | --lat latitude for sunrise/sunset [0]
     -L | --lon longitude for sunrise/sunset [0]
     -G | --gps prefer gpsd lat/lon, if available, to command line
+    -s | --size video size. Valid options are 1080p and 2160p. Option may be repeated.
     -n | --name Text to display on the bottom right of the video
     -R | --runonce Run a single capture session and exit
     -r | --rotate rotate all still pictures 180 degrees if camera is upside down
-    -F | --fullsensor use the default camera size for still capture
     -H | --hdr run hdr image processing on all captured images
     -2 | --24hour capture images around the clock. HDR mode before sunrise, normal during daylight, HDR mode after sunset
     -T | --tuning-file camera module tuning file
