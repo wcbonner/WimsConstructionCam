@@ -64,19 +64,19 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230209-1 Built " __DATE__ " at " __TIME__);
-int ConsoleVerbosity = 1;
-int TimeoutMinutes = 0;
-bool UseGPSD = false;
-bool VideoHD = true;
-bool Video4k = false;
-bool RotateStills180Degrees = false;
-bool HDR_Processing = false;
-bool b24Hour = false;
-bool bRunOnce = false;
-double Latitude = 0;
-double Longitude = 0;
-int GigabytesFreeSpace = 3;
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230306-1 Built " __DATE__ " at " __TIME__);
+int ConsoleVerbosity(1);
+int TimeoutMinutes(0);
+bool UseGPSD(false);
+bool VideoHD(false);
+bool Video4k(false);
+bool RotateStills180Degrees(false);
+bool HDR_Processing(false);
+bool b24Hour(false);
+bool bRunOnce(false);
+double Latitude(0);
+double Longitude(0);
+int GigabytesFreeSpace(3);
 /////////////////////////////////////////////////////////////////////////////
 std::string timeToISO8601(const time_t& TheTime)
 {
@@ -1279,6 +1279,11 @@ int main(int argc, char** argv)
 		usage(argc, argv);
 		exit(EXIT_FAILURE);
 	}
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	// Make sure at least one video resolution is selected
+	if (!VideoHD && !Video4k)
+		VideoHD = true;
+	///////////////////////////////////////////////////////////////////////////////////////////////
 	CreateAllDailyMovies(DestinationDir, VideoOverlayText, 2, VideoHD, Video4k);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
