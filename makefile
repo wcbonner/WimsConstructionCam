@@ -1,5 +1,5 @@
 CXX ?= g++
-CXXFLAGS += -D_USE_GPSD
+CXXFLAGS += -D_USE_GPSD -std=c++17
 
 WimsConstructionCam/usr/local/bin/wimsconstructioncam: wimsconstructioncam.o
 	mkdir -p $(shell dirname $@)
