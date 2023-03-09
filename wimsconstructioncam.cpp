@@ -65,7 +65,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230309-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230309-2 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -1147,9 +1147,12 @@ void CreateMonthlyMovie(const std::string DailyDirectory)
 				FQDestVideoName.append("/");
 				FQDestVideoName.append(Video->first);
 				bool ConcatenateVideoFiles(true);
+				std::string FQSourceVideoName(DailyDirectory);
+				FQSourceVideoName.append("/");
+				FQSourceVideoName.append(Video->second.back());
 				struct stat64 StatBufferSource;
 				StatBufferSource.st_mtim.tv_sec = 0;
-				if (0 == stat64(Video->second.back().c_str(), &StatBufferSource))
+				if (0 == stat64(FQSourceVideoName.c_str(), &StatBufferSource))
 				{
 					struct stat64 StatBufferDest;
 					StatBufferDest.st_mtim.tv_sec = 0;
