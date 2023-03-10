@@ -65,7 +65,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230309-2 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230309-3 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -1132,7 +1132,7 @@ void CreateMonthlyMovie(const std::string DailyDirectory)
 					if (filename.find(VideoFileTemplate) != std::string::npos)
 						if (filename.length() == 8 + VideoFileTemplate.length())
 						{
-							std::string OutPutName = filename.substr(0, 6) + VideoFileTemplate;
+							std::string OutPutName = filename.substr(0, 4) + "-" + filename.substr(4, 2) + VideoFileTemplate;
 							std::vector<std::string> foo;
 							auto iter = VideoFiles.insert(std::make_pair(OutPutName, foo));
 							iter.first->second.push_back(filename);
