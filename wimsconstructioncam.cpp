@@ -65,7 +65,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230309-3 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230320-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -1532,6 +1532,8 @@ int main(int argc, char** argv)
 					bRun = CreateDailyStills(DestinationDir, LoopStartTime, Midnight, RotateStills180Degrees, SensorTuningFile);
 					if (bRun)
 						bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, VideoHD, Video4k);
+					if (bRun)
+						CreateMonthlyMovie(DestinationDir);
 				}
 				HDR_Processing = oldHDRStat;
 			}

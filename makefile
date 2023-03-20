@@ -6,7 +6,7 @@ WimsConstructionCam/usr/local/bin/wimsconstructioncam: wimsconstructioncam.o
 	$(CXX) $? -o$@ -lgps
 
 wimsconstructioncam.o: wimsconstructioncam.cpp makefile
-	$(CXX) -c -Wno-psabi -O3 -std=c++11 $(CXXFLAGS) $? -o$@
+	$(CXX) -c -Wno-psabi -O3 $(CXXFLAGS) $? -o$@
 
 deb: WimsConstructionCam/usr/local/bin/wimsconstructioncam WimsConstructionCam/DEBIAN/control WimsConstructionCam/usr/local/lib/systemd/system/wimsconstructioncam.service
 	# Set architecture for the resulting .deb to the actually built architecture
