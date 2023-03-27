@@ -65,7 +65,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230320-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230327-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -1423,11 +1423,8 @@ int main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Make sure at least one video resolution is selected
-	if (!VideoHD && !Video4k)
-		VideoHD = true;
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	CreateAllDailyMovies(DestinationDir, VideoOverlayText, 2, VideoHD, Video4k);
+	if (VideoHD || Video4k) // Only create movies if a size is declared
+		CreateAllDailyMovies(DestinationDir, VideoOverlayText, 2, VideoHD, Video4k);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
 	typedef void (*SignalHandlerPointer)(int);
@@ -1530,9 +1527,9 @@ int main(int argc, char** argv)
 					time_t Midnight = timelocal(&UTC);
 					Midnight += 24 * 60 * 60;
 					bRun = CreateDailyStills(DestinationDir, LoopStartTime, Midnight, RotateStills180Degrees, SensorTuningFile);
-					if (bRun)
+					if (bRun && (VideoHD || Video4k))
 						bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, VideoHD, Video4k);
-					if (bRun)
+					if (bRun && (VideoHD || Video4k))
 						CreateMonthlyMovie(DestinationDir);
 				}
 				HDR_Processing = oldHDRStat;
@@ -1560,9 +1557,9 @@ int main(int argc, char** argv)
 			if (GigabytesFreeSpace > 0)
 				GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
 			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA, RotateStills180Degrees, SensorTuningFile);
-			if (bRun && !b24Hour)
+			if (bRun && !b24Hour && (VideoHD || Video4k))
 				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, VideoHD, Video4k);
-			if (bRun && !b24Hour)
+			if (bRun && !b24Hour && (VideoHD || Video4k))
 				CreateMonthlyMovie(DestinationDir);
 		}
 		if (bRunOnce)
