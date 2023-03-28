@@ -65,7 +65,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230327-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230328-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -1264,7 +1264,7 @@ void SignalHandlerSIGHUP(int signal)
 	std::cerr << "***************** SIGHUP: Caught HangUp, finishing loop and quitting. *****************" << std::endl;
 }
 /////////////////////////////////////////////////////////////////////////////
-std::string DestinationDir;
+std::vector<std::string> DestinationDirs;
 std::string SensorTuningFile;
 static void usage(int argc, char** argv)
 {
@@ -1273,7 +1273,7 @@ static void usage(int argc, char** argv)
 	std::cout << "  Options:" << std::endl;
 	std::cout << "    -h | --help          Print this message" << std::endl;
 	std::cout << "    -v | --verbose level stdout verbosity level [" << ConsoleVerbosity << "]" << std::endl;
-	std::cout << "    -d | --destination location pictures will be stored [" << DestinationDir << "]" << std::endl;
+	std::cout << "    -d | --destination location pictures will be stored" << std::endl;
 	std::cout << "    -f | --freespace gigabytes free space per day [" << GigabytesFreeSpace << "]" << std::endl;
 	std::cout << "    -t | --time minutes of stills to capture [" << TimeoutMinutes << "]" << std::endl;
 	std::cout << "    -l | --lat latitude for sunrise/sunset [" << Latitude << "]" << std::endl;
@@ -1341,7 +1341,7 @@ int main(int argc, char** argv)
 		case 'd':
 			TempString = std::string(optarg);
 			if (ValidateDirectory(TempString))
-				DestinationDir = TempString;
+				DestinationDirs.push_back(TempString);
 			break;
 		case 'f':
 			try { GigabytesFreeSpace = std::stoi(optarg); }
@@ -1417,14 +1417,15 @@ int main(int argc, char** argv)
 		std::cerr << startupargs.str() << std::endl;
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	if (DestinationDir.empty())
+	if (DestinationDirs.empty())
 	{
 		usage(argc, argv);
 		exit(EXIT_FAILURE);
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	if (VideoHD || Video4k) // Only create movies if a size is declared
-		CreateAllDailyMovies(DestinationDir, VideoOverlayText, 2, VideoHD, Video4k);
+		for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
+			CreateAllDailyMovies(*DestinationDir, VideoOverlayText, 2, VideoHD, Video4k);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
 	typedef void (*SignalHandlerPointer)(int);
@@ -1496,7 +1497,7 @@ int main(int argc, char** argv)
 				// if before sunrise, but we want to run 24hours a day, we want to run the camera in HDR mode. 
 				auto oldHDRStat = HDR_Processing;
 				HDR_Processing = true;
-				bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunriseNOAA, RotateStills180Degrees, SensorTuningFile);
+				bRun = CreateDailyStills(DestinationDirs[0], LoopStartTime, SunriseNOAA, RotateStills180Degrees, SensorTuningFile);
 				HDR_Processing = oldHDRStat;
 			}
 			else
@@ -1526,11 +1527,13 @@ int main(int argc, char** argv)
 					UTC.tm_sec = 0;
 					time_t Midnight = timelocal(&UTC);
 					Midnight += 24 * 60 * 60;
-					bRun = CreateDailyStills(DestinationDir, LoopStartTime, Midnight, RotateStills180Degrees, SensorTuningFile);
-					if (bRun && (VideoHD || Video4k))
-						bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, VideoHD, Video4k);
-					if (bRun && (VideoHD || Video4k))
-						CreateMonthlyMovie(DestinationDir);
+					bRun = CreateDailyStills(DestinationDirs[0], LoopStartTime, Midnight, RotateStills180Degrees, SensorTuningFile);
+					for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
+						if (bRun && (VideoHD || Video4k))
+							bRun = CreateDailyMovie(GetImageDirectory(*DestinationDir, LoopStartTime), VideoOverlayText, VideoHD, Video4k);
+					for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
+						if (bRun && (VideoHD || Video4k))
+							CreateMonthlyMovie(*DestinationDir);
 				}
 				HDR_Processing = oldHDRStat;
 			}
@@ -1555,12 +1558,14 @@ int main(int argc, char** argv)
 		{
 			// largest file in sample was 1,310,523, multiply by minutes in day 1440, 1887153120, round up to 2000000000 or 2GB.
 			if (GigabytesFreeSpace > 0)
-				GenerateFreeSpace(GigabytesFreeSpace, DestinationDir);
-			bRun = CreateDailyStills(DestinationDir, LoopStartTime, SunsetNOAA, RotateStills180Degrees, SensorTuningFile);
-			if (bRun && !b24Hour && (VideoHD || Video4k))
-				bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, VideoHD, Video4k);
-			if (bRun && !b24Hour && (VideoHD || Video4k))
-				CreateMonthlyMovie(DestinationDir);
+				GenerateFreeSpace(GigabytesFreeSpace, DestinationDirs[0]);
+			bRun = CreateDailyStills(DestinationDirs[0], LoopStartTime, SunsetNOAA, RotateStills180Degrees, SensorTuningFile);
+			for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
+				if (bRun && !b24Hour && (VideoHD || Video4k))
+					bRun = CreateDailyMovie(GetImageDirectory(*DestinationDir, LoopStartTime), VideoOverlayText, VideoHD, Video4k);
+			for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
+				if (bRun && !b24Hour && (VideoHD || Video4k))
+					CreateMonthlyMovie(*DestinationDir);
 		}
 		if (bRunOnce)
 			bRun = false;

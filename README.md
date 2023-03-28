@@ -7,7 +7,9 @@ Calculates sunrise and sunset times based on GPS coordintes. Can take longitude 
 
 If gpsd coordinates are aquired from the gps, will attempt to set the system clock if the results differ by more than an hour. This is useful when running in a remote location without reliable internet access because the raspberry pi has no real time clock and will lose time if it loses power.
 
-Runs a daily process of deleting old images to free up an appropriate amount of space for new images. Attempts to delete the oldest images until the specified amount of fee space is created. The free space size is specified by command line parameter.
+If multiple destinations for picture storage are specified, movies are created in the auxilary locations. Useful for recieving pictures from underpowered remote machines.
+
+Runs a daily process of deleting old images to free up an appropriate amount of space for new images. Attempts to delete the oldest images until the specified amount of fee space is created. The free space size is specified by command line parameter. Only the first destination is processed in the free space routine.
 
 The jpeg images stored are the default sensor resolution. 
 
