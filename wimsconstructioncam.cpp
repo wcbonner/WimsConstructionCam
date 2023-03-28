@@ -65,7 +65,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230328-4 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230328-5 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -679,7 +679,7 @@ std::string GetHostnameFromMediaDirectory(const std::string& MediaDirectory)
 	{
 		HostName.erase(HostName.find("/DCIM"));
 		if (HostName.rfind("/") != std::string::npos)
-			HostName.erase(0, HostName.rfind("/"));
+			HostName.erase(0, 1+HostName.rfind("/"));
 	}
 	return(HostName);
 }
