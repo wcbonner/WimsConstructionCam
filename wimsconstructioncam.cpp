@@ -65,7 +65,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230328-5 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230329-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -683,6 +683,14 @@ std::string GetHostnameFromMediaDirectory(const std::string& MediaDirectory)
 	}
 	return(HostName);
 }
+std::string GetHostname(void)
+{
+	std::string HostName;
+	char MyHostName[HOST_NAME_MAX] = { 0 }; // hostname used for data recordkeeping
+	if (gethostname(MyHostName, sizeof(MyHostName)) == 0)
+		HostName = MyHostName;
+	return(HostName);
+}
 /////////////////////////////////////////////////////////////////////////////
 volatile pid_t CameraProgram_PID = 0;
 void SignalHandlerSIGALRM(int signal)
@@ -806,6 +814,9 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 				}
 				//mycommand.push_back("--autofocus-mode"); // new option with PiCamera V3 (20230124) https://www.raspberrypi.com/documentation/computers/camera_software.html
 				//mycommand.push_back("continuous"); // new option with PiCamera V3 (20230124)
+				// Add EXIF tags with the ImageDescription as programversion and Artist as machine hostname
+				mycommand.push_back("--exif"); mycommand.push_back("IFD0.ImageDescription='" + ProgramVersionString + "'"); // (20230329)
+				mycommand.push_back("--exif"); mycommand.push_back("IFD0.Artist='" + GetHostname() + "'"); // (20230329)
 				mycommand.push_back("--lens-position"); mycommand.push_back("0.0"); // Moves the lens to a fixed focal distance, 0.0 will move the lens to the "infinity" position (20230207)
 				if (ConsoleVerbosity > 0)
 				{
