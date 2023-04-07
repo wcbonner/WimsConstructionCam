@@ -34,9 +34,11 @@
 #include <dirent.h>
 #include <filesystem>
 #include <fstream>
+#include <gd.h>	// apt install libgd-dev
 #include <getopt.h>
 #include <iomanip>
 #include <iostream>
+#include <libexif/exif-data.h>	// apt install libexif-dev
 #include <locale>
 #include <locale>
 #include <map>
@@ -65,7 +67,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230329-2 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230407-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -692,6 +694,117 @@ std::string GetHostname(void)
 	return(HostName);
 }
 /////////////////////////////////////////////////////////////////////////////
+void DrawClock(const std::string& FileName, const time_t ClockTime, const int Radius = 256)
+{
+	/* Declare the image */
+	gdImagePtr im;
+	/* Declare color indexes */
+	int black;
+	int white;
+
+	// I want my Clock to have a center point, So a 64 pixel hand needs to be drawn in a 2*64+1 circle
+
+	/* Allocate the image: 64 pixels across by 64 pixels tall */
+	im = gdImageCreate(Radius * 2 + 1, Radius * 2 + 1);
+	//im = gdImageCreateTrueColor(Radius * 2 + 1, Radius * 2 + 1);
+	gdImageSaveAlpha(im, GD_TRUE);
+
+	/* Allocate the color black (red, green and blue all minimum). Since this is the first color in a new image, it will be the background color. */
+	black = gdImageColorAllocateAlpha(im, 0, 0, 0, gdAlphaTransparent);
+	gdImageColorTransparent(im, black);
+
+	// 2.0.2: first color allocated would automatically be background in a
+	// palette based image. Since this is a truecolor image, with an
+	// automatic background of black, we must fill it explicitly.
+	// gdImageFilledRectangle(im, 0, 0, gdImageSX(im), gdImageSY(im), black);
+
+	/* Allocate the color white (red, green and blue all maximum). */
+	white = gdImageColorAllocateAlpha(im, gdRedMax, gdGreenMax, gdBlueMax, (gdAlphaOpaque + gdAlphaTransparent) / 2);
+	gdImageSetAntiAliased(im, white);
+
+	/* Draw a line from the upper left to the lower right, using white color index. */
+	gdImageSetThickness(im, 2);
+	//gdImageLine(im, 0, 0, Radius * 2 - 1, Radius * 2 - 1, white);
+
+	auto CenterX = Radius;
+	auto CenterY = Radius;
+	//gdImageEllipse(im, CenterX, CenterY, Radius * 2, Radius * 2, white);
+
+	auto TickLength = Radius / 16;
+	auto MinuteHandLength = Radius - TickLength * 2;
+	auto HourHandLength = MinuteHandLength * 2 / 3;
+	for (auto minutes = 0; minutes < 60; minutes++)
+	{
+		auto TickXo = CenterX + Radius * sin(((double(minutes) * 6.0 * M_PI) / 180.0));
+		auto TickYo = CenterY - Radius * cos(((double(minutes) * 6.0 * M_PI) / 180.0));
+		auto TickXi = CenterX + (Radius - TickLength) * sin(((double(minutes) * 6.0 * M_PI) / 180.0));
+		auto TickYi = CenterY - (Radius - TickLength) * cos(((double(minutes) * 6.0 * M_PI) / 180.0));
+		gdImageLine(im, TickXi, TickYi, TickXo, TickYo, white);
+	}
+	for (auto hour = 0; hour < 12; hour++)
+	{
+		auto TickXo = CenterX + Radius * sin(((double(hour) * 30.0 * M_PI) / 180.0));
+		auto TickYo = CenterY - Radius * cos(((double(hour) * 30.0 * M_PI) / 180.0));
+		auto TickXi = CenterX + (Radius - TickLength * 2) * sin(((double(hour) * 30.0 * M_PI) / 180.0));
+		auto TickYi = CenterY - (Radius - TickLength * 2) * cos(((double(hour) * 30.0 * M_PI) / 180.0));
+		gdImageLine(im, TickXi, TickYi, TickXo, TickYo, white);
+	}
+	struct tm UTC;
+	if (nullptr != gmtime_r(&ClockTime, &UTC))
+	{
+		double HourDegrees(UTC.tm_hour * 30);
+		double MinuteDegrees(UTC.tm_min * 6);
+		auto MinuteXo = CenterX + MinuteHandLength * sin(((double(MinuteDegrees) * M_PI) / 180.0));
+		auto MinuteYo = CenterY - MinuteHandLength * cos(((double(MinuteDegrees) * M_PI) / 180.0));
+		gdImageLine(im, CenterX, CenterY, MinuteXo, MinuteYo, white);
+		auto HourXo = CenterX + HourHandLength * sin(((double(HourDegrees) * M_PI) / 180.0));
+		auto HourYo = CenterY - HourHandLength * cos(((double(HourDegrees) * M_PI) / 180.0));
+		gdImageLine(im, CenterX, CenterY, HourXo, HourYo, white);
+	}
+
+	//gdImageLine(im, 0, 0, Radius * 2 - 1, Radius * 2 - 1, white);
+
+	/* Output the image to the disk file in PNG format. */
+	int PNG_Memory_Blob_Size(0);
+	auto PNG_Memory_Blob = gdImagePngPtr(im, &PNG_Memory_Blob_Size);
+	if (PNG_Memory_Blob != NULL)
+	{
+		std::ofstream OutFile(FileName);
+		if (OutFile.is_open())
+			OutFile.write((const char*)PNG_Memory_Blob, PNG_Memory_Blob_Size);
+		gdFree(PNG_Memory_Blob);
+	}
+
+	/* Destroy the image in memory. */
+	gdImageDestroy(im);
+}
+/** Callback function handling an ExifEntry. */
+static void content_foreach_EXIF(ExifEntry* entry, void* callback_data)
+{
+	if (entry->tag == EXIF_TAG_DATE_TIME_ORIGINAL)
+	{
+		char valuebuffer[32];
+		exif_entry_get_value(entry, valuebuffer, sizeof(valuebuffer));
+		time_t TheTime(ISO8601totime(std::string(valuebuffer)));
+		time_t* ptrTime = (time_t*)callback_data;
+		*ptrTime = TheTime;
+	}
+}
+/** Callback function handling an ExifContent (corresponds 1:1 to an IFD). */
+static void data_foreach_IFD(ExifContent* content, void* callback_data) { exif_content_foreach_entry(content, content_foreach_EXIF, callback_data); }
+time_t getTimeFromExif(const std::string FileName)
+{
+	time_t TheTime(0);
+	ExifData* d = exif_data_new_from_file(FileName.c_str());
+	if (nullptr != d)
+	{
+		void* callback_data = (void*)&TheTime;
+		exif_data_foreach_content(d, data_foreach_IFD, callback_data);
+		exif_data_unref(d);
+	}
+	return(TheTime);
+}
+/////////////////////////////////////////////////////////////////////////////
 volatile pid_t CameraProgram_PID = 0;
 void SignalHandlerSIGALRM(int signal)
 {
@@ -888,6 +1001,22 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 	}
 	return(rval);
 }
+bool CreateDailyClocks(const std::filesystem::path& DailyDirectory, const std::filesystem::path& ClockDirectory)
+{ 
+	for (auto const& dir_entry : std::filesystem::directory_iterator{ DailyDirectory })
+	{
+		if (dir_entry.is_regular_file())
+			if (dir_entry.path().extension() == ".jpg")
+			{
+				time_t TheTime(getTimeFromExif(dir_entry.path()));
+				std::filesystem::path ClockName(ClockDirectory);
+				ClockName /= dir_entry.path().filename();
+				ClockName.replace_extension(".png");
+				DrawClock(ClockName, TheTime);
+			}
+	}
+	return(false); 
+}
 bool CreateDailyMovie(const std::string & DailyDirectory, std::string VideoTextOverlay, const bool bVideoHD, const bool bVideo4k)
 {
 	bool rval = false;
@@ -960,6 +1089,9 @@ bool CreateDailyMovie(const std::string & DailyDirectory, std::string VideoTextO
 						VideoFileName.append(".mp4");
 						VideoFiles.push(VideoFileName);
 					}
+					std::filesystem::path ClockDirectory(std::tmpnam(nullptr));
+					std::filesystem::create_directory(ClockDirectory);
+					CreateDailyClocks(DailyDirectory, ClockDirectory);
 					while (!VideoFiles.empty())
 					{
 						std::string VideoFileName(VideoFiles.front());
@@ -1081,6 +1213,7 @@ bool CreateDailyMovie(const std::string & DailyDirectory, std::string VideoTextO
 							}
 						}
 					}
+					std::filesystem::remove_all(ClockDirectory);
 				}
 			}
 		}
@@ -1190,7 +1323,7 @@ void CreateMonthlyMovie(const std::string DailyDirectory)
 			}
 			if (ConcatenateVideoFiles)
 			{
-				// this is where we will concatenate all the sorce files into the destination
+				// this is where we will concatenate all the source files into the destination
 				std::string FileNamesToBeConcatenated = std::tmpnam(nullptr);
 				std::ofstream TmpFileMP4(FileNamesToBeConcatenated, std::ios_base::out | std::ios_base::app | std::ios_base::ate);
 				if (TmpFileMP4.is_open())

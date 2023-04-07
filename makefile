@@ -3,7 +3,7 @@ CXXFLAGS += -D_USE_GPSD -std=c++17
 
 WimsConstructionCam/usr/local/bin/wimsconstructioncam: wimsconstructioncam.o
 	mkdir -p $(shell dirname $@)
-	$(CXX) $? -o$@ -lgps
+	$(CXX) $? -o$@ -lgps -lgd -lexif
 
 wimsconstructioncam.o: wimsconstructioncam.cpp makefile
 	$(CXX) -c -Wno-psabi -O3 $(CXXFLAGS) $? -o$@
