@@ -1092,6 +1092,15 @@ bool CreateDailyMovie(const std::string & DailyDirectory, std::string VideoTextO
 					std::filesystem::path ClockDirectory(std::tmpnam(nullptr));
 					std::filesystem::create_directory(ClockDirectory);
 					CreateDailyClocks(DailyDirectory, ClockDirectory);
+					std::ostringstream ClockFormat;	// raspistill outputname format string
+					ClockFormat.fill('0');
+					ClockFormat.width(2);
+					ClockFormat << UTC.tm_mon + 1;
+					ClockFormat.width(2);
+					ClockFormat << UTC.tm_mday;
+					ClockFormat << "\%04d.png";
+					std::filesystem::path ClockSpec(ClockDirectory);
+					ClockSpec /= ClockFormat.str();
 					while (!VideoFiles.empty())
 					{
 						std::string VideoFileName(VideoFiles.front());
@@ -1112,17 +1121,21 @@ bool CreateDailyMovie(const std::string & DailyDirectory, std::string VideoTextO
 							mycommand.push_back("-loglevel"); mycommand.push_back("warning");
 							mycommand.push_back("-r"); mycommand.push_back("30");
 							mycommand.push_back("-i"); mycommand.push_back(StillFormat.str());
-							auto found = VideoTextOverlay.find_first_of(":'\"\\");
+							mycommand.push_back("-i"); mycommand.push_back(ClockSpec);
+							auto found = VideoTextOverlay.find_first_of(":'\"\\ ");
 							while (found != std::string::npos)
 							{
 								VideoTextOverlay.erase(found, 1);
-								found = VideoTextOverlay.find_first_of(":'\"\\");
+								found = VideoTextOverlay.find_first_of(":'\"\\ ");
 							}
-							std::ostringstream vfParam;
-							vfParam << "crop=in_w:9/16*in_w,";
-							vfParam << "drawtext=font=mono:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=10:text=%{metadata\\\\:DateTimeOriginal},";
-							vfParam << "drawtext=font=sans:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=main_w-text_w-10:text=" << VideoTextOverlay;
-							mycommand.push_back("-vf"); mycommand.push_back(vfParam.str());
+							std::ostringstream filterParam;
+							filterParam << "[0]";
+							filterParam << "crop=in_w:9/16*in_w,";
+							filterParam << "drawtext=font=mono:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=10:text=%{metadata\\\\:DateTimeOriginal},";
+							filterParam << "drawtext=font=sans:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=main_w-text_w-10:text=" << VideoTextOverlay;
+							filterParam << "[bg];[bg][1]overlay=50:main_h-main_h/16-overlay_h-50[out]";
+							mycommand.push_back("-filter_complex"); mycommand.push_back(filterParam.str());
+							mycommand.push_back("-map"); mycommand.push_back("[out]");
 							if (VideoFileName.find("1080p") != std::string::npos)
 							{
 								mycommand.push_back("-c:v"); mycommand.push_back("libx264");
