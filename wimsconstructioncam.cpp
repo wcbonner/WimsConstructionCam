@@ -67,7 +67,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230407-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230408-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -1105,6 +1105,7 @@ bool CreateDailyMovie(const std::string & DailyDirectory, std::string VideoTextO
 							mycommand.push_back("-loglevel"); mycommand.push_back("warning");
 							mycommand.push_back("-r"); mycommand.push_back("30");
 							mycommand.push_back("-i"); mycommand.push_back(StillFormat.str());
+							mycommand.push_back("-r"); mycommand.push_back("30");
 							mycommand.push_back("-i"); mycommand.push_back(ClockSpec);
 							auto found = VideoTextOverlay.find_first_of(":'\"\\");
 							while (found != std::string::npos)
