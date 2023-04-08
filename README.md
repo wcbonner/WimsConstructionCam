@@ -40,7 +40,7 @@ Usage: /usr/local/bin/wimsconstructioncam [options]
 
 ## To build on a fresh Raspian Bullseye platform:
 ```
-sudo apt install -y libgps-dev
+sudo apt install -y libgps-dev libgd-dev libexif-dev
 git clone https://github.com/wcbonner/WimsConstructionCam.git
 cd WimsConstructionCam/
 make deb
