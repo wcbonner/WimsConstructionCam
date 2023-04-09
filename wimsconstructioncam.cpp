@@ -67,7 +67,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230408-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230409-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -1119,7 +1119,9 @@ bool CreateDailyMovie(const std::string & DailyDirectory, std::string VideoTextO
 							filterParam << "crop=in_w:9/16*in_w,";
 							filterParam << "drawtext=font=mono:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=10:text=%{metadata\\\\:DateTimeOriginal},";
 							filterParam << "drawtext=font=sans:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=main_w-text_w-10:text=" << VideoTextOverlay;
-							filterParam << "[bg];[bg][1]overlay=50:main_h-main_h/16-overlay_h-50[out]";
+							filterParam << "[bg];[bg][1]";
+							filterParam << "overlay=10:main_h-main_h/32-overlay_h-10";
+							filterParam << "[out]";
 							mycommand.push_back("-filter_complex"); mycommand.push_back(filterParam.str());
 							mycommand.push_back("-map"); mycommand.push_back("[out]");
 							if (VideoFileName.find("1080p") != std::string::npos)
