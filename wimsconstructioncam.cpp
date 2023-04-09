@@ -77,6 +77,7 @@ bool RotateStills180Degrees(false);
 bool HDR_Processing(false);
 bool b24Hour(false);
 bool bRunOnce(false);
+int MaxDailyMovies(2);
 double Latitude(0);
 double Longitude(0);
 int GigabytesFreeSpace(3);
@@ -1441,9 +1442,10 @@ static void usage(int argc, char** argv)
 	std::cout << "    -H | --hdr run hdr image processing on all captured images" << std::endl;
 	std::cout << "    -2 | --24hour capture images around the clock. HDR mode before sunrise, normal during daylight, HDR mode after sunset" << std::endl;
 	std::cout << "    -T | --tuning-file camera module tuning file" << std::endl;
+	std::cout << "    -M | --max-daily-movies number of movies to create before normal processing [" << MaxDailyMovies << "]" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:f:t:l:L:Gs:n:RrH2T:";
+static const char short_options[] = "hv:d:f:t:l:L:Gs:n:RrH2T:M:";
 static const struct option long_options[] = {
 	{ "help",no_argument,			NULL, 'h' },
 	{ "verbose",required_argument,	NULL, 'v' },
@@ -1460,6 +1462,7 @@ static const struct option long_options[] = {
 	{ "hdr",no_argument,			NULL, 'H' },
 	{ "24hour",no_argument,			NULL, '2' },
 	{ "tuning-file",required_argument,	NULL, 'T' },
+	{ "max-daily-movies",required_argument,	NULL, 'M' },
 	{ 0, 0, 0, 0 }
 };
 /////////////////////////////////////////////////////////////////////////////
@@ -1548,6 +1551,11 @@ int main(int argc, char** argv)
 			if (ValidateFile(TempString))
 				SensorTuningFile = TempString;
 			break;
+		case 'M':
+			try { MaxDailyMovies = std::stoi(optarg); }
+			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
+			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
+			break;
 		default:
 			usage(argc, argv);
 			exit(EXIT_FAILURE);
@@ -1580,7 +1588,7 @@ int main(int argc, char** argv)
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	if (VideoHD || Video4k) // Only create movies if a size is declared
 		for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
-			CreateAllDailyMovies(*DestinationDir, VideoOverlayText, 2, VideoHD, Video4k);
+			CreateAllDailyMovies(*DestinationDir, VideoOverlayText, MaxDailyMovies, VideoHD, Video4k);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
 	typedef void (*SignalHandlerPointer)(int);
