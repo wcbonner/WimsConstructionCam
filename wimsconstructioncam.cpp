@@ -67,7 +67,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230409-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230410-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -1002,78 +1002,82 @@ bool CreateDailyClocks(const std::filesystem::path& DailyDirectory, const std::f
 	}
 	return(false); 
 }
-bool CreateDailyMovie(const std::string & DailyDirectory, std::string VideoTextOverlay, const bool bVideoHD, const bool bVideo4k)
+bool CreateDailyMovie(const std::filesystem::path& DailyDirectory, std::string VideoTextOverlay, const bool bVideoHD, const bool bVideo4k, const bool bVideoNative = false)
 {
 	bool rval = false;
-	DIR* dp;
-	if ((dp = opendir(DailyDirectory.c_str())) != NULL)
+	std::deque<std::filesystem::path> JPGfiles;
+	for (auto const& dir_entry : std::filesystem::directory_iterator{ DailyDirectory })
+		if (dir_entry.is_regular_file())
+			if (dir_entry.path().extension() == ".jpg")
+				JPGfiles.push_back(dir_entry);
+	if (!JPGfiles.empty())
 	{
-		std::deque<std::string> JPGfiles;
-		std::queue<std::string> VideoFiles;
-		struct dirent* dirp;
-		while ((dirp = readdir(dp)) != NULL)
-			if (DT_REG == dirp->d_type)
-			{
-				std::string filename = DailyDirectory + "/" + std::string(dirp->d_name);
-				if (filename.find(".jpg") != std::string::npos)
-					JPGfiles.push_back(filename);
-			}
-		closedir(dp);
-		if (!JPGfiles.empty())
+		sort(JPGfiles.begin(), JPGfiles.end());
+		// What follows is a simple test that if there are newer images 
+		// than the video files, empty the deque of video files and create 
+		// a video file, possibly overwriting an older video.
+		struct stat64 FirstJPGStat, LastJPGStat;
+		if ((0 == stat64(JPGfiles.front().c_str(), &FirstJPGStat)) &&
+			(0 == stat64(JPGfiles.back().c_str(), &LastJPGStat)))
 		{
-			sort(JPGfiles.begin(), JPGfiles.end());
-			std::string VideoDirectory(DailyDirectory);
-			VideoDirectory.erase(VideoDirectory.find_last_of("/\\"));
-			// What follows is a simple test that if there are newer images 
-			// than the video files, empty the deque of video files and create 
-			// a video file, possibly overwriting an older video.
-			struct stat FirstJPGStat, LastJPGStat;
-			if ((0 == stat(JPGfiles.front().c_str(), &FirstJPGStat)) &&
-				(0 == stat(JPGfiles.back().c_str(), &LastJPGStat)))
+			struct tm UTC;
+			if (0 != localtime_r(&FirstJPGStat.st_mtim.tv_sec, &UTC))
 			{
-				struct tm UTC;
-				if (0 != localtime_r(&FirstJPGStat.st_mtim.tv_sec, &UTC))
-				{
-					std::ostringstream StillFormat;	// raspistill outputname format string
-					StillFormat.fill('0');
-					StillFormat << DailyDirectory << "/";
-					StillFormat.width(2);
-					StillFormat << UTC.tm_mon + 1;
-					StillFormat.width(2);
-					StillFormat << UTC.tm_mday;
-					StillFormat << "\%04d.jpg";
+				std::queue<std::filesystem::path> VideoFiles;
+				std::filesystem::path VideoDirectory(DailyDirectory.parent_path());
 
-					std::ostringstream ssVideoFileName;	// ffmpeg output video name
-					ssVideoFileName.fill('0');
-					ssVideoFileName << VideoDirectory << "/";
-					ssVideoFileName.width(4);
-					ssVideoFileName << UTC.tm_year + 1900;
-					ssVideoFileName.width(2);
-					ssVideoFileName << UTC.tm_mon + 1;
-					ssVideoFileName.width(2);
-					ssVideoFileName << UTC.tm_mday;
-					const std::string HostName(GetHostnameFromMediaDirectory(DailyDirectory));
-					if (!HostName.empty())
-						ssVideoFileName << "-" << HostName;
-					if (bVideoHD)
+				std::ostringstream ssVideoFileName;	// ffmpeg output video name
+				ssVideoFileName.fill('0');
+				ssVideoFileName.width(4);
+				ssVideoFileName << UTC.tm_year + 1900;
+				ssVideoFileName.width(2);
+				ssVideoFileName << UTC.tm_mon + 1;
+				ssVideoFileName.width(2);
+				ssVideoFileName << UTC.tm_mday;
+				const std::string HostName(GetHostnameFromMediaDirectory(DailyDirectory));
+				if (!HostName.empty())
+					ssVideoFileName << "-" << HostName;
+				if (bVideoHD)
+				{
+					std::filesystem::path VideoFileName(VideoDirectory / ssVideoFileName.str());
+					VideoFileName += "-1080p.mp4";
+					struct stat64 VideoStat;
+					if (0 == stat64(VideoFileName.c_str(), &VideoStat))
 					{
-						std::string VideoFileName(ssVideoFileName.str());
-						VideoFileName.append("-1080p.mp4");
-						VideoFiles.push(VideoFileName);
+						if (LastJPGStat.st_mtim.tv_sec > VideoStat.st_mtim.tv_sec)
+							VideoFiles.push(VideoFileName);
 					}
-					if (bVideo4k)
+					else
+						VideoFiles.push(VideoFileName);
+				}
+				if (bVideo4k)
+				{
+					std::filesystem::path VideoFileName(VideoDirectory / ssVideoFileName.str());
+					VideoFileName += "-2160p.mp4";
+					struct stat64 VideoStat;
+					if (0 == stat64(VideoFileName.c_str(), &VideoStat))
 					{
-						std::string VideoFileName(ssVideoFileName.str());
-						VideoFileName.append("-2160p.mp4");
-						VideoFiles.push(VideoFileName);
+						if (LastJPGStat.st_mtim.tv_sec > VideoStat.st_mtim.tv_sec)
+							VideoFiles.push(VideoFileName);
 					}
-					if (VideoFiles.empty())
+					else
+						VideoFiles.push(VideoFileName);
+				}
+				if (bVideoNative)
+				{
+					std::filesystem::path VideoFileName(VideoDirectory / ssVideoFileName.str());
+					VideoFileName += ".mp4";
+					struct stat64 VideoStat;
+					if (0 == stat64(VideoFileName.c_str(), &VideoStat))
 					{
-						// If we have not specified a file resolution, create a catch all file that uses the original still format size
-						std::string VideoFileName(ssVideoFileName.str());
-						VideoFileName.append(".mp4");
-						VideoFiles.push(VideoFileName);
+						if (LastJPGStat.st_mtim.tv_sec > VideoStat.st_mtim.tv_sec)
+							VideoFiles.push(VideoFileName);
 					}
+					else
+						VideoFiles.push(VideoFileName);
+				}
+				if (!VideoFiles.empty())
+				{
 					std::filesystem::path ClockDirectory(std::tmpnam(nullptr));
 					std::filesystem::create_directory(ClockDirectory);
 					CreateDailyClocks(DailyDirectory, ClockDirectory);
@@ -1084,134 +1088,140 @@ bool CreateDailyMovie(const std::string & DailyDirectory, std::string VideoTextO
 					ClockFormat.width(2);
 					ClockFormat << UTC.tm_mday;
 					ClockFormat << "\%04d.png";
-					std::filesystem::path ClockSpec(ClockDirectory);
-					ClockSpec /= ClockFormat.str();
-					while (!VideoFiles.empty())
+					std::filesystem::path ClockSpec(ClockDirectory / ClockFormat.str());
+
+					while (!VideoFiles.empty()) 
 					{
-						std::string VideoFileName(VideoFiles.front());
+						std::filesystem::path VideoFileName(VideoFiles.front());
 						VideoFiles.pop();
 
-						struct stat MP4Stat;
-						if (-1 == stat(VideoFileName.c_str(), &MP4Stat))
+						std::ostringstream StillFormat;	// raspistill outputname format string
+						StillFormat.fill('0');
+						StillFormat.width(2);
+						StillFormat << UTC.tm_mon + 1;
+						StillFormat.width(2);
+						StillFormat << UTC.tm_mday;
+						StillFormat << "\%04d.jpg";
+						std::filesystem::path StillSpec(DailyDirectory / StillFormat.str());
+
+						if (ConsoleVerbosity > 0)
 						{
-							if (ConsoleVerbosity > 0)
-							{
-								std::cout << "[" << getTimeExcelLocal() << "]   StillFormat: " << StillFormat.str() << std::endl;
-								std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << JPGfiles.size() << std::endl;
-								std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << VideoFileName << std::endl;
-							}
-							std::vector<std::string> mycommand;
-							mycommand.push_back("ffmpeg");
-							mycommand.push_back("-hide_banner");
-							mycommand.push_back("-loglevel"); mycommand.push_back("warning");
-							mycommand.push_back("-r"); mycommand.push_back("30");
-							mycommand.push_back("-i"); mycommand.push_back(StillFormat.str());
-							mycommand.push_back("-r"); mycommand.push_back("30");
-							mycommand.push_back("-i"); mycommand.push_back(ClockSpec);
-							auto found = VideoTextOverlay.find_first_of(":'\"\\");
-							while (found != std::string::npos)
-							{
-								VideoTextOverlay.erase(found, 1);
-								found = VideoTextOverlay.find_first_of(":'\"\\");
-							}
-							std::ostringstream filterParam;
-							filterParam << "[0]";
-							filterParam << "crop=in_w:9/16*in_w,";
-							filterParam << "drawtext=font=mono:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=10:text=%{metadata\\\\:DateTimeOriginal},";
-							filterParam << "drawtext=font=sans:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=main_w-text_w-10:text=" << VideoTextOverlay;
-							filterParam << "[bg];[bg][1]";
-							filterParam << "overlay=10:main_h-main_h/32-overlay_h-10";
-							filterParam << "[out]";
-							mycommand.push_back("-filter_complex"); mycommand.push_back(filterParam.str());
-							mycommand.push_back("-map"); mycommand.push_back("[out]");
-							if (VideoFileName.find("1080p") != std::string::npos)
-							{
-								mycommand.push_back("-c:v"); mycommand.push_back("libx264");
-								mycommand.push_back("-crf"); mycommand.push_back("23");
-								mycommand.push_back("-preset"); mycommand.push_back("veryfast");
-								mycommand.push_back("-s"); mycommand.push_back("1920x1080");
-							}
-							else if (VideoFileName.find("2160p") != std::string::npos)
-							{
-								mycommand.push_back("-c:v"); mycommand.push_back("libx265");	// use h.265 instead of default because it gets better compression results on larger resolution
-								mycommand.push_back("-crf"); mycommand.push_back("23");
-								mycommand.push_back("-preset"); mycommand.push_back("veryfast");
-								mycommand.push_back("-s"); mycommand.push_back("3840x2160");
-							}
-							else
-							{
-								mycommand.push_back("-c:v"); mycommand.push_back("libx264");
-								mycommand.push_back("-crf"); mycommand.push_back("23");
-								mycommand.push_back("-preset"); mycommand.push_back("veryfast");
-							}
-							mycommand.push_back("-movflags"); mycommand.push_back("+faststart");
-							mycommand.push_back("-bf"); mycommand.push_back("2");
-							mycommand.push_back("-g"); mycommand.push_back("15");
-							mycommand.push_back("-pix_fmt"); mycommand.push_back("yuv420p");
-							mycommand.push_back("-y");
-							mycommand.push_back(VideoFileName);
-							if (ConsoleVerbosity > 0)
-							{
-								std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
-								for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-									std::cout << " " << *iter;
-								std::cout << std::endl;
-							}
-							else
-							{
-								std::cerr << " JPG File Count: " << JPGfiles.size() << std::endl;
-								for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-									std::cerr << " " << *iter;
-								std::cerr << std::endl;
-							}
-							std::vector<char*> args;
-							for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
-								args.push_back((char*)arg->c_str());
-							args.push_back(NULL);
+							std::cout << "[" << getTimeExcelLocal() << "]     StillSpec: " << StillSpec << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << JPGfiles.size() << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "]     ClockSpec: " << ClockSpec << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << VideoFileName << std::endl;
+						}
+						std::vector<std::string> mycommand;
+						mycommand.push_back("ffmpeg");
+						mycommand.push_back("-hide_banner");
+						mycommand.push_back("-loglevel"); mycommand.push_back("warning");
+						mycommand.push_back("-r"); mycommand.push_back("30");
+						mycommand.push_back("-i"); mycommand.push_back(StillSpec);
+						mycommand.push_back("-r"); mycommand.push_back("30");
+						mycommand.push_back("-i"); mycommand.push_back(ClockSpec);
+						auto found = VideoTextOverlay.find_first_of(":'\"\\");
+						while (found != std::string::npos)
+						{
+							VideoTextOverlay.erase(found, 1);
+							found = VideoTextOverlay.find_first_of(":'\"\\");
+						}
+						std::ostringstream filterParam;
+						filterParam << "[0]";
+						filterParam << "crop=in_w:9/16*in_w,";
+						filterParam << "drawtext=font=mono:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=10:text=%{metadata\\\\:DateTimeOriginal},";
+						filterParam << "drawtext=font=sans:fontcolor=white:fontsize=main_h/32:y=main_h-text_h-10:x=main_w-text_w-10:text=" << VideoTextOverlay;
+						filterParam << "[bg];[bg][1]";
+						filterParam << "overlay=10:main_h-main_h/32-overlay_h-10";
+						filterParam << "[out]";
+						mycommand.push_back("-filter_complex"); mycommand.push_back(filterParam.str());
+						mycommand.push_back("-map"); mycommand.push_back("[out]");
+						if (VideoFileName.string().find("1080p") != std::string::npos)
+						{
+							mycommand.push_back("-c:v"); mycommand.push_back("libx264");
+							mycommand.push_back("-crf"); mycommand.push_back("23");
+							mycommand.push_back("-preset"); mycommand.push_back("veryfast");
+							mycommand.push_back("-s"); mycommand.push_back("1920x1080");
+						}
+						else if (VideoFileName.string().find("2160p") != std::string::npos)
+						{
+							mycommand.push_back("-c:v"); mycommand.push_back("libx265");	// use h.265 instead of default because it gets better compression results on larger resolution
+							mycommand.push_back("-crf"); mycommand.push_back("23");
+							mycommand.push_back("-preset"); mycommand.push_back("veryfast");
+							mycommand.push_back("-s"); mycommand.push_back("3840x2160");
+						}
+						else
+						{
+							mycommand.push_back("-c:v"); mycommand.push_back("libx264");
+							mycommand.push_back("-crf"); mycommand.push_back("23");
+							mycommand.push_back("-preset"); mycommand.push_back("veryfast");
+						}
+						mycommand.push_back("-movflags"); mycommand.push_back("+faststart");
+						mycommand.push_back("-bf"); mycommand.push_back("2");
+						mycommand.push_back("-g"); mycommand.push_back("15");
+						mycommand.push_back("-pix_fmt"); mycommand.push_back("yuv420p");
+						mycommand.push_back("-y");
+						mycommand.push_back(VideoFileName);
+						if (ConsoleVerbosity > 0)
+						{
+							std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
+							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+								std::cout << " " << *iter;
+							std::cout << std::endl;
+						}
+						else
+						{
+							std::cerr << " JPG File Count: " << JPGfiles.size() << std::endl;
+							for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+								std::cerr << " " << *iter;
+							std::cerr << std::endl;
+						}
+						std::vector<char*> args;
+						for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
+							args.push_back((char*)arg->c_str());
+						args.push_back(NULL);
 
-							pid_t pid_FFMPEG = fork();
-							if (pid_FFMPEG == 0)
-							{
-								/* A zero PID indicates that this is the child process */
-								/* Replace the child fork with a new process */
-								if (execvp(args[0], &args[0]) == -1)
-									exit(EXIT_FAILURE);	// this exit value will only get hit if the exec fails, since the exec overwrites the process
-							}
-							else if (pid_FFMPEG > 0)
-							{
-								/* A positive (non-negative) PID indicates the parent process */
-								int ffmpeg_exit_status = 0;
-								wait(&ffmpeg_exit_status);				/* Wait for child process to end */
+						pid_t pid_FFMPEG = fork();
+						if (pid_FFMPEG == 0)
+						{
+							/* A zero PID indicates that this is the child process */
+							/* Replace the child fork with a new process */
+							if (execvp(args[0], &args[0]) == -1)
+								exit(EXIT_FAILURE);	// this exit value will only get hit if the exec fails, since the exec overwrites the process
+						}
+						else if (pid_FFMPEG > 0)
+						{
+							/* A positive (non-negative) PID indicates the parent process */
+							int ffmpeg_exit_status = 0;
+							wait(&ffmpeg_exit_status);				/* Wait for child process to end */
 
-								if (EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status))
-								{
-									std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
-									std::cerr << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
-								}
-								else if (ConsoleVerbosity > 0)
-								{
-									std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
-									std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
-								}
-
-								if (EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status))
-								{
-									std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
-									rval = true;
-									// change file date on mp4 file to match the last jpg file
-									struct timeval MP4TimeToSet[2];
-									MP4TimeToSet[0].tv_usec = 0;
-									MP4TimeToSet[1].tv_usec = 0;
-									MP4TimeToSet[0].tv_sec = LastJPGStat.st_mtim.tv_sec;
-									MP4TimeToSet[1].tv_sec = LastJPGStat.st_mtim.tv_sec;
-									if (0 != utimes(VideoFileName.c_str(), MP4TimeToSet))
-										std::cerr << "could not set the modification and access times on " << VideoFileName << std::endl;
-								}
-							}
-							else
+							if (EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status))
 							{
-								std::cerr << "Fork error! ffmpeg." << std::endl;  /* something went wrong */
+								std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
+								std::cerr << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
 							}
+							else if (ConsoleVerbosity > 0)
+							{
+								std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
+								std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
+							}
+
+							if (EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status))
+							{
+								std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
+								rval = true;
+								// change file date on mp4 file to match the last jpg file
+								struct timeval MP4TimeToSet[2];
+								MP4TimeToSet[0].tv_usec = 0;
+								MP4TimeToSet[1].tv_usec = 0;
+								MP4TimeToSet[0].tv_sec = LastJPGStat.st_mtim.tv_sec;
+								MP4TimeToSet[1].tv_sec = LastJPGStat.st_mtim.tv_sec;
+								if (0 != utimes(VideoFileName.c_str(), MP4TimeToSet))
+									std::cerr << "could not set the modification and access times on " << VideoFileName << std::endl;
+							}
+						}
+						else
+						{
+							std::cerr << "Fork error! ffmpeg." << std::endl;  /* something went wrong */
 						}
 					}
 					std::filesystem::remove_all(ClockDirectory);
@@ -1221,51 +1231,39 @@ bool CreateDailyMovie(const std::string & DailyDirectory, std::string VideoTextO
 	}
 	return(rval);
 }
-void CreateAllDailyMovies(const std::string DestinationDir, const std::string & VideoTextOverlay, const int MaxDailyMoviesToCreate, const bool bVideoHD, const bool bVideo4k)
+void CreateAllDailyMovies(const std::filesystem::path DestinationDir, const std::string & VideoTextOverlay, const int MaxDailyMoviesToCreate, const bool bVideoHD, const bool bVideo4k)
 {
-	DIR* dp;
-	if ((dp = opendir(DestinationDir.c_str())) != NULL)
-	{
-		std::deque<std::string> Subdirectories;
-		struct dirent* dirp;
-		while ((dirp = readdir(dp)) != NULL)
-			if (DT_DIR == dirp->d_type)
+	std::deque<std::filesystem::path> Subdirectories;
+	for (auto const& dir_entry : std::filesystem::directory_iterator{ DestinationDir })
+		if (dir_entry.is_directory())
+			if ((dir_entry.path().filename().compare("..") == 0) || (dir_entry.path().filename().compare(".") == 0))
+				continue;
+			else
 			{
-				std::string DirectoryName(dirp->d_name);
-				if ((DirectoryName.compare("..") == 0) || (DirectoryName.compare(".") == 0))
-					continue;
-				else
+				// this time stuff is a hack so that if I'm restarting during the day I don't create the video for today.
+				time_t TheTime;
+				time(&TheTime);
+				struct tm UTC;
+				if (0 != localtime_r(&TheTime, &UTC))
 				{
-					// this time stuff is a hack so that if I'm restarting during the day I don't create the video for today.
-					time_t TheTime;
-					time(&TheTime);
-					struct tm UTC;
-					if (0 != localtime_r(&TheTime, &UTC))
-					{
-						std::ostringstream TodaysDirectoryName;
-						TodaysDirectoryName.fill('0');
-						TodaysDirectoryName << UTC.tm_year + 1900;
-						TodaysDirectoryName.width(2);
-						TodaysDirectoryName << UTC.tm_mon + 1;
-						TodaysDirectoryName.width(2);
-						TodaysDirectoryName << UTC.tm_mday;
-						if (DirectoryName.compare(TodaysDirectoryName.str()) != 0)
-						{
-							std::string FullPath = DestinationDir + "/" + DirectoryName;
-							Subdirectories.push_back(FullPath);
-						}
-					}
+					std::ostringstream TodaysDirectoryName;
+					TodaysDirectoryName.fill('0');
+					TodaysDirectoryName << UTC.tm_year + 1900;
+					TodaysDirectoryName.width(2);
+					TodaysDirectoryName << UTC.tm_mon + 1;
+					TodaysDirectoryName.width(2);
+					TodaysDirectoryName << UTC.tm_mday;
+					if (dir_entry.path().filename().compare(TodaysDirectoryName.str()) != 0)
+						Subdirectories.push_back(dir_entry);
 				}
 			}
-		closedir(dp);
-		sort(Subdirectories.begin(), Subdirectories.end());
-		auto MoviesToCreate = MaxDailyMoviesToCreate;
-		while (!Subdirectories.empty() && (MoviesToCreate > 0))
-		{
-			CreateDailyMovie(Subdirectories.front(), VideoTextOverlay, bVideoHD, bVideo4k);
-			Subdirectories.pop_front();
+	sort(Subdirectories.begin(), Subdirectories.end());
+	auto MoviesToCreate = MaxDailyMoviesToCreate;
+	while (!Subdirectories.empty() && (MoviesToCreate > 0))
+	{
+		if (CreateDailyMovie(Subdirectories.front(), VideoTextOverlay, bVideoHD, bVideo4k))
 			MoviesToCreate--;
-		}
+		Subdirectories.pop_front();
 	}
 }
 void CreateMonthlyMovie(const std::string DailyDirectory)
