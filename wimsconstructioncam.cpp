@@ -1194,20 +1194,16 @@ bool CreateDailyMovie(const std::filesystem::path& DailyDirectory, std::string V
 							int ffmpeg_exit_status = 0;
 							wait(&ffmpeg_exit_status);				/* Wait for child process to end */
 
+							if (ConsoleVerbosity > 0)
+								std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
+							else
+								std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
+
 							if (EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status))
-							{
-								std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
-								std::cerr << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
-							}
-							else if (ConsoleVerbosity > 0)
-							{
-								std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
-								std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
-							}
+								std::filesystem::remove(VideoFileName);
 
 							if (EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status))
 							{
-								std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
 								rval = true;
 								// change file date on mp4 file to match the last jpg file
 								struct timeval MP4TimeToSet[2];
@@ -1266,10 +1262,10 @@ void CreateAllDailyMovies(const std::filesystem::path DestinationDir, const std:
 		Subdirectories.pop_front();
 	}
 }
-void CreateMonthlyMovie(const std::string DailyDirectory)
+void CreateMonthlyMovie(const std::filesystem::path DestinationDir)
 {
 	std::string VideoFileTemplate;
-	const std::string HostName(GetHostnameFromMediaDirectory(DailyDirectory));
+	const std::string HostName(GetHostnameFromMediaDirectory(DestinationDir));
 	if (!HostName.empty())
 	{
 		VideoFileTemplate.append("-");
@@ -1277,133 +1273,115 @@ void CreateMonthlyMovie(const std::string DailyDirectory)
 	}
 	VideoFileTemplate.append("-2160p.mp4");
 
-	DIR* dp;
-	if ((dp = opendir(DailyDirectory.c_str())) != NULL)
+	std::map <std::filesystem::path, std::vector<std::filesystem::path>> VideoFiles;
+	for (auto const& dir_entry : std::filesystem::directory_iterator{ DestinationDir })
+		if (dir_entry.is_regular_file())
+			if (dir_entry.path().filename().string().find(VideoFileTemplate) != std::string::npos)
+				if (dir_entry.path().filename().string().length() == 8 + VideoFileTemplate.length())
+				{
+					std::string rawname(dir_entry.path().filename().string().substr(0, 4) + "-" + dir_entry.path().filename().string().substr(4, 2) + VideoFileTemplate);
+					std::filesystem::path OutPutName(DestinationDir / rawname);
+					std::vector<std::filesystem::path> foo;
+					auto iter = VideoFiles.insert(std::make_pair(OutPutName, foo));
+					iter.first->second.push_back(dir_entry.path());
+				}
+	for (auto Video = VideoFiles.begin(); Video != VideoFiles.end(); Video++)
 	{
-		std::map <std::string, std::vector<std::string>> VideoFiles;
-		struct dirent* dirp;
-		while ((dirp = readdir(dp)) != NULL)
-			if (DT_REG == dirp->d_type)
-			{
-				std::string filename(dirp->d_name);
-				if (filename.find(VideoFileTemplate) != std::string::npos)
-					if (filename.length() == 8 + VideoFileTemplate.length())
-					{
-						std::string OutPutName = filename.substr(0, 4) + "-" + filename.substr(4, 2) + VideoFileTemplate;
-						std::vector<std::string> foo;
-						auto iter = VideoFiles.insert(std::make_pair(OutPutName, foo));
-						iter.first->second.push_back(filename);
-					}
-			}
-		closedir(dp);
-		for (auto Video = VideoFiles.begin(); Video != VideoFiles.end(); Video++)
+		// First make sure that all the source files are sorted
+		std::sort(Video->second.begin(), Video->second.end());
+		bool ConcatenateVideoFiles(true);
+		struct stat64 StatBufferSource;
+		StatBufferSource.st_mtim.tv_sec = 0;
+		if (0 == stat64(Video->second.back().c_str(), &StatBufferSource))
 		{
-			// First make sure that all the source files are sorted
-			std::sort(Video->second.begin(), Video->second.end());
-			std::string FQDestVideoName(DailyDirectory);
-			FQDestVideoName.append("/");
-			FQDestVideoName.append(Video->first);
-			bool ConcatenateVideoFiles(true);
-			std::string FQSourceVideoName(DailyDirectory);
-			FQSourceVideoName.append("/");
-			FQSourceVideoName.append(Video->second.back());
-			struct stat64 StatBufferSource;
-			StatBufferSource.st_mtim.tv_sec = 0;
-			if (0 == stat64(FQSourceVideoName.c_str(), &StatBufferSource))
+			struct stat64 StatBufferDest;
+			StatBufferDest.st_mtim.tv_sec = 0;
+			if (0 == stat64(Video->first.c_str(), &StatBufferDest))
+				// compare the date of the file with the most recent data in the structure.
+				if (StatBufferSource.st_mtim.tv_sec <= StatBufferDest.st_mtim.tv_sec)
+					ConcatenateVideoFiles = false;
+		}
+		if (ConcatenateVideoFiles)
+		{
+			// this is where we will concatenate all the source files into the destination
+			std::filesystem::path FileNamesToBeConcatenated(std::tmpnam(nullptr));
+			std::ofstream TmpFileMP4(FileNamesToBeConcatenated, std::ios_base::out | std::ios_base::app | std::ios_base::ate);
+			if (TmpFileMP4.is_open())
 			{
-				struct stat64 StatBufferDest;
-				StatBufferDest.st_mtim.tv_sec = 0;
-				if (0 == stat64(FQDestVideoName.c_str(), &StatBufferDest))
+				for (auto mp4 = Video->second.begin(); mp4 != Video->second.end(); mp4++)
+					TmpFileMP4 << "file " << mp4->string() << std::endl;
+				TmpFileMP4.close();
+				std::vector<std::string> mycommand;
+				mycommand.push_back("ffmpeg");
+				mycommand.push_back("-hide_banner");
+				mycommand.push_back("-loglevel"); mycommand.push_back("warning");
+				mycommand.push_back("-f"); mycommand.push_back("concat");
+				mycommand.push_back("-safe"); mycommand.push_back("0");
+				mycommand.push_back("-i"); mycommand.push_back(FileNamesToBeConcatenated);
+				//mycommand.push_back("-map"); mycommand.push_back("0:v");
+				mycommand.push_back("-c:v"); mycommand.push_back("copy");
+				mycommand.push_back("-movflags"); mycommand.push_back("+faststart");
+				mycommand.push_back("-y");
+				mycommand.push_back(Video->first);
+				if (ConsoleVerbosity > 0)
 				{
-					// compare the date of the file with the most recent data in the structure.
-					if (StatBufferSource.st_mtim.tv_sec <= StatBufferDest.st_mtim.tv_sec)
-						ConcatenateVideoFiles = false;
+					std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
+					for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+						std::cout << " " << *iter;
+					std::cout << std::endl;
 				}
-			}
-			if (ConcatenateVideoFiles)
-			{
-				// this is where we will concatenate all the source files into the destination
-				std::string FileNamesToBeConcatenated = std::tmpnam(nullptr);
-				std::ofstream TmpFileMP4(FileNamesToBeConcatenated, std::ios_base::out | std::ios_base::app | std::ios_base::ate);
-				if (TmpFileMP4.is_open())
+				else
 				{
-					for (auto mp4 = Video->second.begin(); mp4 != Video->second.end(); mp4++)
-						TmpFileMP4 << "file " << DailyDirectory << "/" << *mp4 << std::endl;
-					TmpFileMP4.close();
-					std::vector<std::string> mycommand;
-					mycommand.push_back("ffmpeg");
-					mycommand.push_back("-hide_banner");
-					mycommand.push_back("-loglevel"); mycommand.push_back("warning");
-					mycommand.push_back("-f"); mycommand.push_back("concat");
-					mycommand.push_back("-safe"); mycommand.push_back("0");
-					mycommand.push_back("-i"); mycommand.push_back(FileNamesToBeConcatenated);
-					//mycommand.push_back("-map"); mycommand.push_back("0:v");
-					mycommand.push_back("-c:v"); mycommand.push_back("copy");
-					mycommand.push_back("-movflags"); mycommand.push_back("+faststart");
-					mycommand.push_back("-y");
-					mycommand.push_back(FQDestVideoName);
+					for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
+						std::cerr << " " << *iter;
+					std::cerr << std::endl;
+				}
+				std::vector<char*> args;
+				for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
+					args.push_back((char*)arg->c_str());
+				args.push_back(NULL);
+				pid_t pid_FFMPEG = fork();
+				if (pid_FFMPEG == 0)
+				{
+					/* A zero PID indicates that this is the child process */
+					/* Replace the child fork with a new process */
+					if (execvp(args[0], &args[0]) == -1)
+						exit(EXIT_FAILURE);	// this exit value will only get hit if the exec fails, since the exec overwrites the process
+				}
+				else if (pid_FFMPEG > 0)
+				{
+					/* A positive (non-negative) PID indicates the parent process */
+					int ffmpeg_exit_status = 0;
+					wait(&ffmpeg_exit_status);				/* Wait for child process to end */
+
 					if (ConsoleVerbosity > 0)
-					{
-						std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
-						for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-							std::cout << " " << *iter;
-						std::cout << std::endl;
-					}
+						std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
 					else
-					{
-						for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
-							std::cerr << " " << *iter;
-						std::cerr << std::endl;
-					}
-					std::vector<char*> args;
-					for (auto arg = mycommand.begin(); arg != mycommand.end(); arg++)
-						args.push_back((char*)arg->c_str());
-					args.push_back(NULL);
-					pid_t pid_FFMPEG = fork();
-					if (pid_FFMPEG == 0)
-					{
-						/* A zero PID indicates that this is the child process */
-						/* Replace the child fork with a new process */
-						if (execvp(args[0], &args[0]) == -1)
-							exit(EXIT_FAILURE);	// this exit value will only get hit if the exec fails, since the exec overwrites the process
-					}
-					else if (pid_FFMPEG > 0)
-					{
-						/* A positive (non-negative) PID indicates the parent process */
-						int ffmpeg_exit_status = 0;
-						wait(&ffmpeg_exit_status);				/* Wait for child process to end */
+						std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
 
-						if (EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status))
-						{
-							std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
-							std::cerr << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
-						}
-						else if (ConsoleVerbosity > 0)
-						{
-							std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ")" << std::endl;
-							std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
-						}
-
-						if (EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status))
-						{
-							std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
-							// change file date on dest file to match the last source file
-							struct timeval MP4TimeToSet[2];
-							MP4TimeToSet[0].tv_usec = 0;
-							MP4TimeToSet[1].tv_usec = 0;
-							MP4TimeToSet[0].tv_sec = StatBufferSource.st_mtim.tv_sec;
-							MP4TimeToSet[1].tv_sec = StatBufferSource.st_mtim.tv_sec;
-							if (0 != utimes(FQDestVideoName.c_str(), MP4TimeToSet))
-								std::cerr << "could not set the modification and access times on " << FQDestVideoName << std::endl;
-						}
-					}
-					else
+					if (EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status))
 					{
-						std::cerr << "Fork error! ffmpeg." << std::endl;  /* something went wrong */
+						std::filesystem::remove(Video->first);
+					}
+
+					if (EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status))
+					{
+						// change file date on dest file to match the last source file
+						struct timeval MP4TimeToSet[2];
+						MP4TimeToSet[0].tv_usec = 0;
+						MP4TimeToSet[1].tv_usec = 0;
+						MP4TimeToSet[0].tv_sec = StatBufferSource.st_mtim.tv_sec;
+						MP4TimeToSet[1].tv_sec = StatBufferSource.st_mtim.tv_sec;
+						if (0 != utimes(Video->first.c_str(), MP4TimeToSet))
+							std::cerr << "could not set the modification and access times on " << Video->first << std::endl;
 					}
 				}
-				std::filesystem::remove(FileNamesToBeConcatenated);
+				else
+				{
+					std::cerr << "Fork error! ffmpeg." << std::endl;  /* something went wrong */
+				}
 			}
+			std::filesystem::remove(FileNamesToBeConcatenated);
 		}
 	}
 }
@@ -1588,7 +1566,11 @@ int main(int argc, char** argv)
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	if (VideoHD || Video4k) // Only create movies if a size is declared
 		for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
+		{
 			CreateAllDailyMovies(*DestinationDir, VideoOverlayText, MaxDailyMovies, VideoHD, Video4k);
+			CreateMonthlyMovie(*DestinationDir);
+		}
+	
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
 	typedef void (*SignalHandlerPointer)(int);
