@@ -1565,12 +1565,12 @@ int main(int argc, char** argv)
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	if (VideoHD || Video4k) // Only create movies if a size is declared
+	{
 		for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
-		{
 			CreateAllDailyMovies(*DestinationDir, VideoOverlayText, MaxDailyMovies, VideoHD, Video4k);
+		for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
 			CreateMonthlyMovie(*DestinationDir);
-		}
-	
+	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
 	typedef void (*SignalHandlerPointer)(int);
