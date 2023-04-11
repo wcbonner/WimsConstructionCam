@@ -1327,6 +1327,8 @@ void CreateMonthlyMovie(const std::filesystem::path DestinationDir)
 				mycommand.push_back(Video->first);
 				if (ConsoleVerbosity > 0)
 				{
+					std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << Video->second.size() << std::endl;
+					std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << Video->first.string() << std::endl;
 					std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
 					for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
 						std::cout << " " << *iter;
