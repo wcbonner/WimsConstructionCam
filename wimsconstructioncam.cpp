@@ -1106,10 +1106,10 @@ bool CreateDailyMovie(const std::filesystem::path& DailyDirectory, std::string V
 
 						if (ConsoleVerbosity > 0)
 						{
-							std::cout << "[" << getTimeExcelLocal() << "]     StillSpec: " << StillSpec << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "]     StillSpec: " << StillSpec.string() << std::endl;
 							std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << JPGfiles.size() << std::endl;
-							std::cout << "[" << getTimeExcelLocal() << "]     ClockSpec: " << ClockSpec << std::endl;
-							std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << VideoFileName << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "]     ClockSpec: " << ClockSpec.string() << std::endl;
+							std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << VideoFileName.string() << std::endl;
 						}
 						std::vector<std::string> mycommand;
 						mycommand.push_back("ffmpeg");
