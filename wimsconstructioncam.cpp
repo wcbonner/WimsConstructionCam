@@ -1115,10 +1115,10 @@ bool CreateDailyMovie(const std::filesystem::path& DailyDirectory, std::string V
 						mycommand.push_back("ffmpeg");
 						mycommand.push_back("-hide_banner");
 						mycommand.push_back("-loglevel"); mycommand.push_back("warning");
-						mycommand.push_back("-thread_queue_size"); mycommand.push_back("64");	// Attempt to get rid of warning: Thread message queue blocking; consider raising the thread_queue_size option (current value: 8)
+						mycommand.push_back("-thread_queue_size"); mycommand.push_back("256");	// Attempt to get rid of warning: Thread message queue blocking; consider raising the thread_queue_size option (current value: 8)
 						mycommand.push_back("-r"); mycommand.push_back("30");
 						mycommand.push_back("-i"); mycommand.push_back(StillSpec);
-						mycommand.push_back("-thread_queue_size"); mycommand.push_back("64");	// Attempt to get rid of warning: Thread message queue blocking; consider raising the thread_queue_size option (current value: 8)
+						mycommand.push_back("-thread_queue_size"); mycommand.push_back("256");	// Attempt to get rid of warning: Thread message queue blocking; consider raising the thread_queue_size option (current value: 8)
 						mycommand.push_back("-r"); mycommand.push_back("30");
 						mycommand.push_back("-i"); mycommand.push_back(ClockSpec);
 						auto found = VideoTextOverlay.find_first_of(":'\"\\");
