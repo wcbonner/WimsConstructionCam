@@ -345,7 +345,12 @@ bool getLatLon(double& Latitude, double& Longitude)
 #ifdef _USE_GPSD
 	gpsmm gps_rec("localhost", DEFAULT_GPSD_PORT);
 	if (gps_rec.stream(WATCH_ENABLE | WATCH_JSON) == NULL)
-		std::cerr << "No GPSD running." << std::endl;
+	{
+		if (ConsoleVerbosity > 0)
+			std::cout << "[" << getTimeExcelLocal() << "] " << "No GPSD running." << std::endl;
+		else
+			std::cerr << "No GPSD running." << std::endl;
+	}
 	else
 	{
 #if GPSD_API_MAJOR_VERSION < 9
