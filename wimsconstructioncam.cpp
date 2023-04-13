@@ -968,10 +968,10 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 			else if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status) && (EXIT_SUCCESS == WTERMSIG(CameraProgram_exit_status)))
 				rval = true;
 
-			if (!rval)
-				std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(CameraProgram_exit_status) << ") and signal (" << WTERMSIG(CameraProgram_exit_status) << ")" << std::endl;
-			else if (ConsoleVerbosity > 0)
+			if (ConsoleVerbosity > 0)
 				std::cout << "[" << getTimeExcelLocal() << "] " << mycommand.front() << " ended with exit (" << WEXITSTATUS(CameraProgram_exit_status) << ") and signal (" << WTERMSIG(CameraProgram_exit_status) << ")" << std::endl;
+			else if (!rval)
+				std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(CameraProgram_exit_status) << ") and signal (" << WTERMSIG(CameraProgram_exit_status) << ")" << std::endl;
 		}
 		else
 		{
