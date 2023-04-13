@@ -1596,7 +1596,7 @@ int main(int argc, char** argv)
 		{
 			SunriseNOAA -= 60 * 30; // Start half an hour before calculated Sunrise
 			SunsetNOAA += 60 * 30;	// End half an hour after calculated Sunset
-			if (ConsoleVerbosity > 1)
+			if (ConsoleVerbosity > 0)
 				std::cout << "[" << getTimeExcelLocal() << "] Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Longitude << " Sunrise: " << timeToExcelLocal(SunriseNOAA) << " Sunset: " << timeToExcelLocal(SunsetNOAA) << std::endl;
 			else
 				std::cerr << "Latitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Latitude << " Longitude: " << std::setprecision(std::numeric_limits<double>::max_digits10) << Longitude << " Sunrise: " << timeToExcelLocal(SunriseNOAA) << " Sunset: " << timeToExcelLocal(SunsetNOAA) << std::endl;
