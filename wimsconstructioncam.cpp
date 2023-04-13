@@ -1717,6 +1717,9 @@ int main(int argc, char** argv)
 	signal(SIGINT, previousHandler);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	std::cerr << ProgramVersionString << " (exiting)" << std::endl;
+	if (ConsoleVerbosity > 0)
+		std::cout << "[" << getTimeExcelLocal() << "] " << ProgramVersionString << " (exiting)" << std::endl;
+	else
+		std::cerr << ProgramVersionString << " (exiting)" << std::endl;
 	return(EXIT_SUCCESS);
 }
