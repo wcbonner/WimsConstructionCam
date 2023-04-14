@@ -82,11 +82,16 @@ double Latitude(0);
 double Longitude(0);
 int GigabytesFreeSpace(3);
 /////////////////////////////////////////////////////////////////////////////
-std::string timeToISO8601(const time_t& TheTime)
+std::string timeToISO8601(const time_t& TheTime, const bool LocalTime = false)
 {
 	std::ostringstream ISOTime;
 	struct tm UTC;
-	if (0 != gmtime_r(&TheTime, &UTC))
+	struct tm* timecallresult(nullptr);
+	if (LocalTime)
+		timecallresult = localtime_r(&TheTime, &UTC);
+	else
+		timecallresult = gmtime_r(&TheTime, &UTC);
+	if (nullptr != timecallresult)
 	{
 		ISOTime.fill('0');
 		if (!((UTC.tm_year == 70) && (UTC.tm_mon == 0) && (UTC.tm_mday == 1)))
@@ -106,95 +111,61 @@ std::string timeToISO8601(const time_t& TheTime)
 	}
 	return(ISOTime.str());
 }
-std::string getTimeISO8601(void)
+std::string getTimeISO8601(const bool LocalTime = false)
 {
 	time_t timer;
 	time(&timer);
-	std::string isostring(timeToISO8601(timer));
+	std::string isostring(timeToISO8601(timer, LocalTime));
 	std::string rval;
 	rval.assign(isostring.begin(), isostring.end());
-
 	return(rval);
 }
 time_t ISO8601totime(const std::string& ISOTime)
 {
-	struct tm UTC;
-	UTC.tm_year = stoi(ISOTime.substr(0, 4)) - 1900;
-	UTC.tm_mon = stoi(ISOTime.substr(5, 2)) - 1;
-	UTC.tm_mday = stoi(ISOTime.substr(8, 2));
-	UTC.tm_hour = stoi(ISOTime.substr(11, 2));
-	UTC.tm_min = stoi(ISOTime.substr(14, 2));
-	UTC.tm_sec = stoi(ISOTime.substr(17, 2));
-	UTC.tm_gmtoff = 0;
-	UTC.tm_isdst = -1;
-	UTC.tm_zone = 0;
+	time_t timer(0);
+	if (ISOTime.length() >= 19)
+	{
+		struct tm UTC;
+		UTC.tm_year = stoi(ISOTime.substr(0, 4)) - 1900;
+		UTC.tm_mon = stoi(ISOTime.substr(5, 2)) - 1;
+		UTC.tm_mday = stoi(ISOTime.substr(8, 2));
+		UTC.tm_hour = stoi(ISOTime.substr(11, 2));
+		UTC.tm_min = stoi(ISOTime.substr(14, 2));
+		UTC.tm_sec = stoi(ISOTime.substr(17, 2));
+		UTC.tm_gmtoff = 0;
+		UTC.tm_isdst = -1;
+		UTC.tm_zone = 0;
 #ifdef _MSC_VER
-	_tzset();
-	_get_daylight(&(UTC.tm_isdst));
+		_tzset();
+		_get_daylight(&(UTC.tm_isdst));
 #endif
-# ifdef __USE_MISC
-	time_t timer = timegm(&UTC);
+#ifdef __USE_MISC
+		timer = timegm(&UTC);
+		if (timer == -1)
+			return(0);	// if timegm() returned an error value, leave time set at epoch
 #else
-	time_t timer = mktime(&UTC);
-	timer -= timezone; // HACK: Works in my initial testing on the raspberry pi, but it's currently not DST
+		timer = mktime(&UTC);
+		if (timer == -1)
+			return(0);	// if mktime() returned an error value, leave time set at epoch
+		timer -= timezone; // HACK: Works in my initial testing on the raspberry pi, but it's currently not DST
 #endif
 #ifdef _MSC_VER
-	long Timezone_seconds = 0;
-	_get_timezone(&Timezone_seconds);
-	timer -= Timezone_seconds;
-	int DST_hours = 0;
-	_get_daylight(&DST_hours);
-	long DST_seconds = 0;
-	_get_dstbias(&DST_seconds);
-	timer += DST_hours * DST_seconds;
-#else
+		long Timezone_seconds = 0;
+		_get_timezone(&Timezone_seconds);
+		timer -= Timezone_seconds;
+		int DST_hours = 0;
+		_get_daylight(&DST_hours);
+		long DST_seconds = 0;
+		_get_dstbias(&DST_seconds);
+		timer += DST_hours * DST_seconds;
 #endif
+	}
 	return(timer);
 }
 // Microsoft Excel doesn't recognize ISO8601 format dates with the "T" seperating the date and time
 // This function puts a space where the T goes for ISO8601. The dates can be decoded with ISO8601totime()
-std::string timeToExcelDate(const time_t& TheTime)
-{
-	std::ostringstream ExcelDate;
-	struct tm UTC;
-	if (0 != gmtime_r(&TheTime, &UTC))
-	{
-		ExcelDate.fill('0');
-		ExcelDate << UTC.tm_year + 1900 << "-";
-		ExcelDate.width(2);
-		ExcelDate << UTC.tm_mon + 1 << "-";
-		ExcelDate.width(2);
-		ExcelDate << UTC.tm_mday << " ";
-		ExcelDate.width(2);
-		ExcelDate << UTC.tm_hour << ":";
-		ExcelDate.width(2);
-		ExcelDate << UTC.tm_min << ":";
-		ExcelDate.width(2);
-		ExcelDate << UTC.tm_sec;
-	}
-	return(ExcelDate.str());
-}
-std::string timeToExcelLocal(const time_t& TheTime)
-{
-	std::ostringstream ExcelDate;
-	struct tm UTC;
-	if (0 != localtime_r(&TheTime, &UTC))
-	{
-		ExcelDate.fill('0');
-		ExcelDate << UTC.tm_year + 1900 << "-";
-		ExcelDate.width(2);
-		ExcelDate << UTC.tm_mon + 1 << "-";
-		ExcelDate.width(2);
-		ExcelDate << UTC.tm_mday << " ";
-		ExcelDate.width(2);
-		ExcelDate << UTC.tm_hour << ":";
-		ExcelDate.width(2);
-		ExcelDate << UTC.tm_min << ":";
-		ExcelDate.width(2);
-		ExcelDate << UTC.tm_sec;
-	}
-	return(ExcelDate.str());
-}
+std::string timeToExcelDate(const time_t& TheTime, const bool LocalTime = false) { std::string ExcelDate(timeToISO8601(TheTime, LocalTime)); ExcelDate.replace(10, 1, " "); return(ExcelDate); }
+std::string timeToExcelLocal(const time_t& TheTime) { return(timeToExcelDate(TheTime, true)); }
 std::string getTimeExcelLocal(void)
 {
 	time_t timer;
