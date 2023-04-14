@@ -372,29 +372,14 @@ bool getLatLon(double& Latitude, double& Longitude)
 	return(rval);
 }
 /////////////////////////////////////////////////////////////////////////////
-bool ValidateDirectory(std::string& DirectoryName)
+bool ValidateDirectory(const std::filesystem::path& DirectoryName)
 {
 	bool rval = false;
-	// I want to make sure the directory name does not end with a "/"
-	while ((!DirectoryName.empty()) && (DirectoryName.back() == '/'))
-		DirectoryName.pop_back();
 	// https://linux.die.net/man/2/stat
 	struct stat StatBuffer;
 	if (0 == stat(DirectoryName.c_str(), &StatBuffer))
 		if (S_ISDIR(StatBuffer.st_mode))
 		{
-#define USE_ACCESS
-#ifndef USE_ACCESS
-			std::ostringstream TemporaryFilename;
-			TemporaryFilename << DirectoryName << "/WimsCam.tmp";
-			std::ofstream TheTemporaryFile(TemporaryFilename.str());
-			if (TheTemporaryFile.is_open())
-			{
-				TheTemporaryFile.close();
-				remove(TemporaryFilename.str().c_str());
-				rval = true;
-			}
-#else
 			// https://linux.die.net/man/2/access
 			if (0 == access(DirectoryName.c_str(), R_OK | W_OK))
 				rval = true;
@@ -439,12 +424,13 @@ bool ValidateDirectory(std::string& DirectoryName)
 					std::cerr << DirectoryName << " (" << errno << ") An unknown error." << std::endl;
 				}
 			}
-#endif // USE_ACCESS
 		}
 	return(rval);
 }
-bool ValidateFile(std::string& FileName)
+bool ValidateFile(const std::filesystem::path& FileName)
 {
+	//auto FileStatus(std::filesystem::status(FileName));
+	//bool rval = FileStatus.permissions();
 	bool rval = false;
 	// https://linux.die.net/man/2/stat
 	struct stat StatBuffer;
@@ -499,11 +485,10 @@ bool ValidateFile(std::string& FileName)
 	return(rval);
 }
 /////////////////////////////////////////////////////////////////////////////
-std::string GetImageDirectory(const std::string DestinationDir, const time_t& TheTime)
+std::filesystem::path GetImageDirectory(const std::filesystem::path DestinationDir, const time_t& TheTime)
 {
-	// returns valid image directory name without trailing "/"
+	std::filesystem::path OutputDirectoryPath(DestinationDir);
 	std::ostringstream OutputDirectoryName;
-	OutputDirectoryName << DestinationDir << "/";
 	struct tm UTC;
 	if (0 != localtime_r(&TheTime, &UTC))
 	{
@@ -513,54 +498,43 @@ std::string GetImageDirectory(const std::string DestinationDir, const time_t& Th
 		OutputDirectoryName << UTC.tm_mon + 1;
 		OutputDirectoryName.width(2);
 		OutputDirectoryName << UTC.tm_mday;
+		OutputDirectoryPath /= OutputDirectoryName.str();
 	}
-
-	struct statvfs buffer;
-	if (0 != statvfs(OutputDirectoryName.str().c_str(), &buffer))
-		//if (!(buffer.st_mode & _S_IFDIR))
+	if (!std::filesystem::exists(OutputDirectoryPath))
 	{
-		if (0 == mkdir(OutputDirectoryName.str().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
+		if (std::filesystem::create_directory(OutputDirectoryPath))
 		{
+			std::filesystem::permissions(OutputDirectoryPath,
+				std::filesystem::perms::owner_all | std::filesystem::perms::group_all | std::filesystem::perms::others_read | std::filesystem::perms::others_exec,
+				std::filesystem::perm_options::add);
 			if (ConsoleVerbosity > 0)
-				std::cout << "[" << getTimeExcelLocal() << "] Directory Created: " << OutputDirectoryName.str() << std::endl;
+				std::cout << "[" << getTimeExcelLocal() << "] Directory Created: " << OutputDirectoryPath << std::endl;
 			else
-				std::cerr << "Directory Created : " << OutputDirectoryName.str() << std::endl;
+				std::cerr << "Directory Created : " << OutputDirectoryPath << std::endl;
 		}
 	}
-	return(OutputDirectoryName.str());
+	return(OutputDirectoryPath);
 }
-int GetLastImageNum(const std::string DestinationDir)
+int GetLastImageNum(const std::filesystem::path DestinationDir)
 {
 	int LastImageNum = 0;
-	struct statvfs buffer2;
-	if (0 == statvfs(DestinationDir.c_str(), &buffer2))
+	if (std::filesystem::exists(DestinationDir))
 	{
-		DIR* dp;
-		if ((dp = opendir(DestinationDir.c_str())) != NULL)
+		std::deque<std::filesystem::path> files;
+		for (auto const& dir_entry : std::filesystem::directory_iterator{ DestinationDir })
+			if (dir_entry.is_regular_file())
+				if (dir_entry.path().extension() == ".jpg")
+					files.push_back(dir_entry);
+		if (!files.empty())
 		{
-			std::deque<std::string> files;
-			struct dirent* dirp;
-			while ((dirp = readdir(dp)) != NULL)
-				if (DT_REG == dirp->d_type)
-					files.push_back(std::string(dirp->d_name));
-			closedir(dp);
-			if (!files.empty())
-			{
-				sort(files.begin(), files.end());
-				std::string LastFile(files.back());
-				while (LastFile.find(".mp4") != std::string::npos)
-				{
-					files.pop_back();
-					LastFile = files.back();
-				}
-				LastImageNum = atoi(LastFile.substr(4, 4).c_str());
-			}
+			sort(files.begin(), files.end());
+			LastImageNum = atoi(files.back().stem().string().substr(4, 4).c_str());
 		}
 	}
 	return(LastImageNum);
 }
 /////////////////////////////////////////////////////////////////////////////
-bool GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDir)
+bool GenerateFreeSpace(const int MinFreeSpaceGB, const std::filesystem::path DestinationDir)
 {
 	bool bDirectoryEmpty = false;
 	unsigned long long MinFreeSpace = (unsigned long long)(MinFreeSpaceGB) << 30ll;
@@ -643,7 +617,7 @@ bool GenerateFreeSpace(const int MinFreeSpaceGB, const std::string DestinationDi
 	return(bDirectoryEmpty);
 }
 /////////////////////////////////////////////////////////////////////////////
-std::string GetHostnameFromMediaDirectory(const std::string& MediaDirectory)
+std::string GetHostnameFromMediaDirectory(const std::filesystem::path& MediaDirectory)
 {
 	std::string HostName(MediaDirectory);
 	if (HostName.find("/DCIM") == std::string::npos)
@@ -665,7 +639,7 @@ std::string GetHostname(void)
 	return(HostName);
 }
 /////////////////////////////////////////////////////////////////////////////
-void CreateClockFile(const std::string& FileName, const time_t ClockTime, const int Width = 512)
+void CreateClockFile(const std::filesystem::path& FileName, const time_t ClockTime, const int Width = 512)
 {
 	const int Radius = Width / 2;
 	/* Declare the image */
@@ -747,7 +721,7 @@ void content_foreach_EXIF(ExifEntry* entry, void* callback_data)
 }
 /** Callback function handling an ExifContent (corresponds 1:1 to an IFD). */
 void data_foreach_IFD(ExifContent* content, void* callback_data) { exif_content_foreach_entry(content, content_foreach_EXIF, callback_data); }
-time_t getTimeFromExif(const std::string FileName)
+time_t getTimeFromExif(const std::filesystem::path FileName)
 {
 	time_t TheTime(0);
 	ExifData* d = exif_data_new_from_file(FileName.c_str());
@@ -793,17 +767,17 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 		else
 			Timeout << TimeoutMinutes * 60 * 1000;
 		OutputFormat.fill('0');
-		OutputFormat << GetImageDirectory(DestinationDir, CurrentTime) << "/";
 		OutputFormat.width(2);
 		OutputFormat << UTC.tm_mon + 1;
 		OutputFormat.width(2);
 		OutputFormat << UTC.tm_mday;
 		OutputFormat << "\%04d.jpg";
+		std::filesystem::path OutPutSpec(GetImageDirectory(DestinationDir, CurrentTime) / OutputFormat.str());
 		FrameStart << GetLastImageNum(GetImageDirectory(DestinationDir, CurrentTime)) + 1;
 
 		if (ConsoleVerbosity > 0)
 		{
-			std::cout << "[" << getTimeExcelLocal() << "]  OutputFormat: " << OutputFormat.str() << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "]  OutputFormat: " << OutPutSpec.string() << std::endl;
 			std::cout << "[" << getTimeExcelLocal() << "]    FrameStart: " << FrameStart.str() << std::endl;
 			std::cout << "[" << getTimeExcelLocal() << "]       Timeout: " << Timeout.str() << std::endl;
 		}
@@ -819,7 +793,7 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 		mycommand.push_back("--thumb"); mycommand.push_back("none");
 		mycommand.push_back("--timeout"); mycommand.push_back(Timeout.str());
 		mycommand.push_back("--timelapse"); mycommand.push_back("60000");
-		mycommand.push_back("--output"); mycommand.push_back(OutputFormat.str());
+		mycommand.push_back("--output"); mycommand.push_back(OutPutSpec);
 		mycommand.push_back("--framestart"); mycommand.push_back(FrameStart.str());
 		if (ConsoleVerbosity > 0)
 		{
@@ -1426,6 +1400,7 @@ int main(int argc, char** argv)
 	for (;;)
 	{
 		std::string TempString;
+		std::filesystem::path TempPath;
 		int idx;
 		int c = getopt_long(argc, argv, short_options, long_options, &idx);
 		if (-1 == c)
@@ -1443,9 +1418,9 @@ int main(int argc, char** argv)
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
 			break;
 		case 'd':
-			TempString = std::string(optarg);
-			if (ValidateDirectory(TempString))
-				DestinationDirs.push_back(TempString);
+			TempPath = std::string(optarg);
+			if (ValidateDirectory(TempPath))
+				DestinationDirs.push_back(TempPath);
 			break;
 		case 'f':
 			try { GigabytesFreeSpace = std::stoi(optarg); }
@@ -1493,9 +1468,9 @@ int main(int argc, char** argv)
 			b24Hour = true;
 			break;
 		case 'T':
-			TempString = std::string(optarg);
-			if (ValidateFile(TempString))
-				SensorTuningFile = TempString;
+			TempPath = std::string(optarg);
+			if (ValidateFile(TempPath))
+				SensorTuningFile = TempPath;
 			break;
 		case 'M':
 			try { MaxDailyMovies = std::stoi(optarg); }
