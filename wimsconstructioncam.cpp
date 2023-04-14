@@ -176,14 +176,8 @@ std::string getTimeExcelLocal(void)
 	return(rval);
 }
 /////////////////////////////////////////////////////////////////////////////
-double radians(const double degrees)
-{
-	return((degrees * M_PI) / 180.0);
-}
-double degrees(const double radians)
-{
-	return((radians * 180.0) / M_PI);
-}
+inline double radians(const double& degrees) { return((degrees * M_PI) / 180.0); }
+inline double degrees(const double& radians) { return((radians * 180.0) / M_PI); }
 double Time2JulianDate(const time_t& TheTime)
 {
 	double JulianDay = 0;
@@ -698,20 +692,20 @@ void CreateClockFile(const std::string& FileName, const time_t ClockTime, const 
 	auto TickLength = Radius / 16;
 	auto MinuteHandLength = Radius - TickLength * 2;
 	auto HourHandLength = MinuteHandLength * 2 / 3;
-	for (auto minutes = 0; minutes < 60; minutes++)
+	for (auto minutes = 0; minutes < 60; minutes++)	// create shorter tick marks on the minutes
 	{
-		auto TickXo = CenterX + Radius * sin(((double(minutes) * 6.0 * M_PI) / 180.0));
-		auto TickYo = CenterY - Radius * cos(((double(minutes) * 6.0 * M_PI) / 180.0));
-		auto TickXi = CenterX + (Radius - TickLength) * sin(((double(minutes) * 6.0 * M_PI) / 180.0));
-		auto TickYi = CenterY - (Radius - TickLength) * cos(((double(minutes) * 6.0 * M_PI) / 180.0));
+		auto TickXo = CenterX + Radius * sin(radians(minutes * 6.0));	// outer end of tick mark
+		auto TickYo = CenterY - Radius * cos(radians(minutes * 6.0));	// outer end of tick mark
+		auto TickXi = CenterX + (Radius - TickLength) * sin(radians(minutes * 6.0));	// inner end of tick mark
+		auto TickYi = CenterY - (Radius - TickLength) * cos(radians(minutes * 6.0));	// inner end of tick mark
 		gdImageLine(im, TickXi, TickYi, TickXo, TickYo, white);
 	}
-	for (auto hour = 0; hour < 12; hour++)
+	for (auto hour = 0; hour < 12; hour++)	// create longer tick marks one the hour markers
 	{
-		auto TickXo = CenterX + Radius * sin(((double(hour) * 30.0 * M_PI) / 180.0));
-		auto TickYo = CenterY - Radius * cos(((double(hour) * 30.0 * M_PI) / 180.0));
-		auto TickXi = CenterX + (Radius - TickLength * 2) * sin(((double(hour) * 30.0 * M_PI) / 180.0));
-		auto TickYi = CenterY - (Radius - TickLength * 2) * cos(((double(hour) * 30.0 * M_PI) / 180.0));
+		auto TickXo = CenterX + Radius * sin(radians(hour * 30.0));	// outer end of tick mark
+		auto TickYo = CenterY - Radius * cos(radians(hour * 30.0));	// outer end of tick mark
+		auto TickXi = CenterX + (Radius - TickLength * 2) * sin(radians(hour * 30.0));	// inner end of tick mark
+		auto TickYi = CenterY - (Radius - TickLength * 2) * cos(radians(hour * 30.0));	// inner end of tick mark
 		gdImageLine(im, TickXi, TickYi, TickXo, TickYo, white);
 	}
 	struct tm UTC;
@@ -719,11 +713,11 @@ void CreateClockFile(const std::string& FileName, const time_t ClockTime, const 
 	{
 		double HourDegrees(UTC.tm_hour * 30 + UTC.tm_min / 2);
 		double MinuteDegrees(UTC.tm_min * 6);
-		auto MinuteXo = CenterX + MinuteHandLength * sin(((double(MinuteDegrees) * M_PI) / 180.0));
-		auto MinuteYo = CenterY - MinuteHandLength * cos(((double(MinuteDegrees) * M_PI) / 180.0));
+		auto MinuteXo = CenterX + MinuteHandLength * sin(radians(MinuteDegrees));
+		auto MinuteYo = CenterY - MinuteHandLength * cos(radians(MinuteDegrees));
 		gdImageLine(im, CenterX, CenterY, MinuteXo, MinuteYo, white);
-		auto HourXo = CenterX + HourHandLength * sin(((double(HourDegrees) * M_PI) / 180.0));
-		auto HourYo = CenterY - HourHandLength * cos(((double(HourDegrees) * M_PI) / 180.0));
+		auto HourXo = CenterX + HourHandLength * sin(radians(HourDegrees));
+		auto HourYo = CenterY - HourHandLength * cos(radians(HourDegrees));
 		gdImageLine(im, CenterX, CenterY, HourXo, HourYo, white);
 	}
 	/* Output the image to the disk file in PNG format. */
