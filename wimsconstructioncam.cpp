@@ -803,12 +803,12 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 			/* A positive (non-negative) PID indicates the parent process */
 			// I've been having problems with the camera app locking up. This alarm sequence should let me kill it if it doesn't exit in the specified number of minutes.
 			CameraProgram_PID = pid;
-			auto OldAlarmHandler = signal(SIGALRM, SignalHandlerSIGALRM);
+			auto OldAlarmHandler = std::signal(SIGALRM, SignalHandlerSIGALRM);
 			alarm((MinutesLeftInDay + 1) * 60);
 			int CameraProgram_exit_status = 0;
 			wait(&CameraProgram_exit_status);	// Wait for child process to end
 			alarm(0); // disable alarm
-			signal(SIGALRM, OldAlarmHandler);	// restore alarm handler
+			std::signal(SIGALRM, OldAlarmHandler);	// restore alarm handler
 			// https://github.com/raspberrypi/userland/blob/master/host_applications/linux/apps/raspicam/RaspiStill.c
 			// raspistill should exit with a 0 (EX_OK) on success, or 70 (EX_SOFTWARE)
 			if ((EXIT_FAILURE == WEXITSTATUS(CameraProgram_exit_status)) || 
@@ -874,11 +874,11 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 					/* A positive (non-negative) PID indicates the parent process */
 					// I've been having problems with the camera app locking up. This alarm sequence should let me kill it if it doesn't exit in the specified number of minutes.
 					CameraProgram_PID = pid;
-					auto OldAlarmHandler = signal(SIGALRM, SignalHandlerSIGALRM);
+					auto OldAlarmHandler = std::signal(SIGALRM, SignalHandlerSIGALRM);
 					alarm((MinutesLeftInDay + 1) * 60);
 					wait(&CameraProgram_exit_status);	// Wait for child process to end
 					alarm(0); // disable alarm
-					signal(SIGALRM, OldAlarmHandler);	// restore alarm handler
+					std::signal(SIGALRM, OldAlarmHandler);	// restore alarm handler
 					// https://github.com/raspberrypi/libcamera-apps/blob/main/apps/libcamera_still.cpp
 					// libcamera-still exits with a 0 on success, or -1 if it catches an exception.
 					if (EXIT_SUCCESS == WEXITSTATUS(CameraProgram_exit_status) && (EXIT_SUCCESS == WTERMSIG(CameraProgram_exit_status)))
@@ -1496,8 +1496,7 @@ int main(int argc, char** argv)
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
-	typedef void (*SignalHandlerPointer)(int);
-	SignalHandlerPointer previousHandler = signal(SIGINT, SignalHandlerSIGINT);
+	auto previousHandler = std::signal(SIGINT, SignalHandlerSIGINT);
 	bRun = true;
 	while (bRun)
 	{
@@ -1639,7 +1638,7 @@ int main(int argc, char** argv)
 			bRun = false;
 	}
 	// remove our special Ctrl-C signal handler and restore previous one
-	signal(SIGINT, previousHandler);
+	std::signal(SIGINT, previousHandler);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	if (ConsoleVerbosity > 0)
