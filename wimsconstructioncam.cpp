@@ -39,7 +39,6 @@
 #include <iostream>
 #include <libexif/exif-data.h>	// apt install libexif-dev
 #include <locale>
-#include <locale>
 #include <map>
 #include <netdb.h>
 #include <netinet/in.h>
