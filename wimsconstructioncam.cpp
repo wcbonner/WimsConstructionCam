@@ -31,7 +31,6 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
-#include <dirent.h>
 #include <filesystem>
 #include <fstream>
 #include <gd.h>	// apt install libgd-dev
@@ -67,7 +66,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230414-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230415-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -538,80 +537,58 @@ bool GenerateFreeSpace(const int MinFreeSpaceGB, const std::filesystem::path Des
 {
 	bool bDirectoryEmpty = false;
 	unsigned long long MinFreeSpace = (unsigned long long)(MinFreeSpaceGB) << 30ll;
-	std::ostringstream OutputDirectoryName;
-	OutputDirectoryName << DestinationDir;
 	struct statvfs64 buffer2;
-	if (0 == statvfs64(OutputDirectoryName.str().c_str(), &buffer2))
+	if (0 == statvfs64(DestinationDir.c_str(), &buffer2))
 	{
 		if (ConsoleVerbosity > 0)
 		{
-			std::cout << "[" << getTimeExcelLocal() << "] " << OutputDirectoryName.str() << " optimal transfer block size: " << buffer2.f_bsize << std::endl;
-			std::cout << "[" << getTimeExcelLocal() << "] " << OutputDirectoryName.str() << " total data blocks in file system: " << buffer2.f_blocks << std::endl;
-			std::cout << "[" << getTimeExcelLocal() << "] " << OutputDirectoryName.str() << " free blocks in fs: " << buffer2.f_bfree << std::endl;
-			std::cout << "[" << getTimeExcelLocal() << "] " << OutputDirectoryName.str() << " free blocks avail to non-superuser: " << buffer2.f_bavail << std::endl;
-			std::cout << "[" << getTimeExcelLocal() << "] " << OutputDirectoryName.str() << " Drive Size: " << buffer2.f_bsize * buffer2.f_blocks << " Free Space: " << buffer2.f_bsize * buffer2.f_bavail << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "] " << DestinationDir.string() << " optimal transfer block size: " << buffer2.f_bsize << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "] " << DestinationDir.string() << " total data blocks in file system: " << buffer2.f_blocks << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "] " << DestinationDir.string() << " free blocks in fs: " << buffer2.f_bfree << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "] " << DestinationDir.string() << " free blocks avail to non-superuser: " << buffer2.f_bavail << std::endl;
+			std::cout << "[" << getTimeExcelLocal() << "] " << DestinationDir.string() << " Drive Size: " << buffer2.f_bsize * buffer2.f_blocks << " Free Space: " << buffer2.f_bsize * buffer2.f_bavail << std::endl;
 		}
-		DIR* dp;
-		if ((dp = opendir(OutputDirectoryName.str().c_str())) != NULL)
+		std::deque<std::filesystem::path> files;
+		std::deque<std::filesystem::path> directories;
+		for (auto const& dir_entry : std::filesystem::directory_iterator{ DestinationDir })
+			if (dir_entry.is_regular_file())
+				files.push_back(dir_entry);
+			else if (dir_entry.is_directory())
+			{
+				if ((dir_entry.path().stem() == "..") || (dir_entry.path().stem() == "."))
+					continue;
+				else
+					directories.push_back(dir_entry);
+			}
+		// delete directories first, theoretically deleting the images before deleting the movies.
+		sort(directories.begin(), directories.end());
+		while ((!directories.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))
 		{
-			std::deque<std::string> files;
-			std::deque<std::string> directories;
-			struct dirent* dirp;
-			while ((dirp = readdir(dp)) != NULL)
-				if (DT_REG == dirp->d_type)
+			auto count_removed = std::filesystem::remove_all(*directories.begin());
+			if (0 != statvfs64(DestinationDir.c_str(), &buffer2))
+				break;
+			if (ConsoleVerbosity > 0)
+				std::cout << "[" << getTimeExcelLocal() << "] Directory Deleted: " << *directories.begin() << " (files deleted:: " << count_removed << ") Free Space: " << buffer2.f_bsize * buffer2.f_bavail << " < " << MinFreeSpace << std::endl;
+			else
+				std::cerr << " Directory Deleted: " << *directories.begin() << " (files deleted:: " << count_removed << ") Free Space: " << buffer2.f_bsize * buffer2.f_bavail << " < " << MinFreeSpace << std::endl;
+			directories.pop_front();
+		}
+		sort(files.begin(), files.end());
+		while ((!files.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))	// This loop will make sure that there's free space on the drive.
+		{
+			struct stat buffer;
+			if (0 == stat(files.begin()->c_str(), &buffer))
+				if (std::filesystem::remove(*files.begin()))
 				{
-					std::string filename = OutputDirectoryName.str() + "/" + std::string(dirp->d_name);
-					files.push_back(filename);
-				}
-				else if (DT_DIR == dirp->d_type)
-				{
-					std::string DirectoryName(dirp->d_name);
-					if ((DirectoryName.compare("..") == 0) || (DirectoryName.compare(".") == 0))
-						continue;
+					if (ConsoleVerbosity > 0)
+						std::cout << "[" << getTimeExcelLocal() << "] File Deleted: " << *files.begin() << "(" << buffer.st_size << ") Free Space: " << buffer2.f_bsize * buffer2.f_bavail << " < " << MinFreeSpace << std::endl;
 					else
-					{
-						std::string FullPath = OutputDirectoryName.str() + "/" + DirectoryName;
-						directories.push_back(FullPath);
-					}
+						std::cerr << " File Deleted: " << *files.begin() << "(" << buffer.st_size << ") Free Space: " << buffer2.f_bsize * buffer2.f_bavail << " < " << MinFreeSpace << std::endl;
 				}
-			closedir(dp);
-			// recursivly dive into directories first, theoretically deleting the images before deleting the movies.
-			if (!directories.empty())
-				sort(directories.begin(), directories.end());
-			while ((!directories.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))
-			{
-				if (GenerateFreeSpace(MinFreeSpaceGB, *directories.begin()))
-				{
-					if (0 == remove(directories.begin()->c_str()))
-					{
-						if (ConsoleVerbosity > 0)
-							std::cout << "[" << getTimeExcelLocal() << "] Directory Deleted: " << *files.begin() << std::endl;
-						else
-							std::cerr << " Directory Deleted: " << *files.begin() << std::endl;
-					}
-				}
-				directories.pop_front();
-				if (0 != statvfs64(OutputDirectoryName.str().c_str(), &buffer2))
-					break;
-			}
-			if (!files.empty())
-				sort(files.begin(), files.end());
-			while ((!files.empty()) && (buffer2.f_bsize * buffer2.f_bavail < MinFreeSpace))	// This loop will make sure that there's free space on the drive.
-			{
-				struct stat buffer;
-				if (0 == stat(files.begin()->c_str(), &buffer))
-					if (0 == remove(files.begin()->c_str()))
-					{
-						if (ConsoleVerbosity > 0)
-							std::cout << "[" << getTimeExcelLocal() << "] File Deleted: " << *files.begin() << "(" << buffer.st_size << ") Free Space: " << buffer2.f_bsize * buffer2.f_bavail << " < " << MinFreeSpace << std::endl;
-						else
-							std::cerr << " File Deleted: " << *files.begin() << "(" << buffer.st_size << ") Free Space: " << buffer2.f_bsize * buffer2.f_bavail << " < " << MinFreeSpace << std::endl;
-					}
-				files.pop_front();
-				bDirectoryEmpty = files.empty();	// if the last file from the current directory was deleted, we can signal to the calling function that it can delete the directpry
-				if (0 != statvfs64(OutputDirectoryName.str().c_str(), &buffer2))
-					break;
-			}
+			files.pop_front();
+			bDirectoryEmpty = files.empty();	// if the last file from the current directory was deleted, we can signal to the calling function that it can delete the directpry
+			if (0 != statvfs64(DestinationDir.c_str(), &buffer2))
+				break;
 		}
 	}
 	return(bDirectoryEmpty);
@@ -1419,6 +1396,8 @@ int main(int argc, char** argv)
 			break;
 		case 'd':
 			TempPath = std::string(optarg);
+			while (TempPath.filename().empty() && (TempPath != TempPath.root_directory())) // This gets rid of the "/" on the end of the path
+				TempPath = TempPath.parent_path();
 			if (ValidateDirectory(TempPath))
 				DestinationDirs.push_back(TempPath);
 			break;
@@ -1469,6 +1448,8 @@ int main(int argc, char** argv)
 			break;
 		case 'T':
 			TempPath = std::string(optarg);
+			while (TempPath.filename().empty() && (TempPath != TempPath.root_directory())) // This gets rid of the "/" on the end of the path
+				TempPath = TempPath.parent_path();
 			if (ValidateFile(TempPath))
 				SensorTuningFile = TempPath;
 			break;
