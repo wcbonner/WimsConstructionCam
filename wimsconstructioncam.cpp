@@ -65,7 +65,7 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230415-1 Built " __DATE__ " at " __TIME__);
+static const std::string ProgramVersionString("WimsConstructionCam 1.20230512-1 Built " __DATE__ " at " __TIME__);
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
@@ -521,7 +521,7 @@ int GetLastImageNum(const std::filesystem::path DestinationDir)
 		std::deque<std::filesystem::path> files;
 		for (auto const& dir_entry : std::filesystem::directory_iterator{ DestinationDir })
 			if (dir_entry.is_regular_file())
-				if (dir_entry.path().extension() == ".jpg")
+				if ((dir_entry.path().extension() == ".jpg") && (dir_entry.file_size() > 0))
 					files.push_back(dir_entry);
 		if (!files.empty())
 		{
