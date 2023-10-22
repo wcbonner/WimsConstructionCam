@@ -65,7 +65,15 @@
 // https://www.ubuntupit.com/best-gps-tools-for-linux/
 // https://www.linuxlinks.com/GPSTools/
 /////////////////////////////////////////////////////////////////////////////
-static const std::string ProgramVersionString("WimsConstructionCam 1.20230512-1 Built " __DATE__ " at " __TIME__);
+#if __has_include("wimsconstructioncam-version.h")
+#include "wimsconstructioncam-version.h"
+#endif
+#ifndef WimsConstructionCam_VERSION
+#define WimsConstructionCam_VERSION "(non-CMake)"
+#endif // !GoveeBTTempLogger_VERSION
+/////////////////////////////////////////////////////////////////////////////
+static const std::string ProgramVersionString("WimsConstructionCam Version " WimsConstructionCam_VERSION " Built on: " __DATE__ " at " __TIME__);
+/////////////////////////////////////////////////////////////////////////////
 int ConsoleVerbosity(1);
 int TimeoutMinutes(0);
 bool UseGPSD(false);
