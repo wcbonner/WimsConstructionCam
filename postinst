@@ -2,7 +2,6 @@
 # POSTINST script for wimsconstructioncam
 
 echo "$(tput setaf 3) HI I'M A POSTINST SCRIPT `date +"%s"`$(tput sgr0)"
-/bin/mkdir -p /media/`hostname`/DCIM/
 systemctl daemon-reload
 systemctl enable wimsconstructioncam.service
 systemctl start wimsconstructioncam.service

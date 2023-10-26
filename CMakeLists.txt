@@ -1,12 +1,12 @@
-﻿# CMakeList.txt : CMake project for GoveeBTTempLogger, include source and define
+﻿# CMakeList.txt : CMake project for WimsConstructionCam, include source and define
 # project specific logic here.
 #
 
 # This set of commands should build the package
-# git clone https://github.com/wcbonner/GoveeBTTempLogger.git
-# cmake -S GoveeBTTempLogger -B GoveeBTTempLogger/build
-# cmake --build GoveeBTTempLogger/build
-# pushd GoveeBTTempLogger/build && cpack . && popd
+# git clone https://github.com/wcbonner/WimsConstructionCam.git
+# cmake -S WimsConstructionCam -B WimsConstructionCam/build
+# cmake --build WimsConstructionCam/build
+# pushd WimsConstructionCam/build && cpack . && popd
 
 cmake_minimum_required(VERSION 3.12.0)
 
@@ -17,7 +17,7 @@ if (POLICY CMP0141)
 endif()
 
 project (WimsConstructionCam
-    VERSION 1.20231022.1
+    VERSION 1.20231025.1
     DESCRIPTION "Records TimeLapse Pictures at one minute intervals and turns them into a daily video"
     HOMEPAGE_URL https://github.com/wcbonner/WimsConstructionCam
 )

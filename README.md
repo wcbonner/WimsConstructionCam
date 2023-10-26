@@ -38,10 +38,11 @@ Usage: /usr/local/bin/wimsconstructioncam [options]
     -T | --tuning-file camera module tuning file
 ```
 
-## To build on a fresh Raspian Bullseye platform:
+## To build on a fresh Raspian platform:
 ```
-sudo apt install -y libgps-dev libgd-dev libexif-dev
+sudo apt install -y build-essential git cmake libgps-dev libgd-dev libexif-dev 
 git clone https://github.com/wcbonner/WimsConstructionCam.git
-cd WimsConstructionCam/
-make deb
+cmake -S WimsConstructionCam -B WimsConstructionCam/build
+cmake --build WimsConstructionCam/build
+pushd WimsConstructionCam/build && cpack . && popd
 ```

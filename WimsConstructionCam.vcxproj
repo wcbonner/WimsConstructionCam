@@ -62,28 +62,27 @@
     <None Include="README.md" />
     <None Include="SupportingDocuments\hb1321.pdf" />
     <None Include="SupportingDocuments\hb1329.pdf" />
-    <None Include="makefile" />
     <None Include="SupportingDocuments\SIM7500_SIM7600_Series_AT_Command_Manual_V1.12.pdf" />
     <None Include="SupportingDocuments\SIM7600G-H 4G HAT (B) For Raspberry Pi, LTE Cat-4 4G _ 3G _ 2G Support, GNSS Positioning, Global Band.html" />
-    <None Include="WimsConstructionCam\DEBIAN\control" />
-    <None Include="WimsConstructionCam\DEBIAN\postinst" />
-    <None Include="WimsConstructionCam\DEBIAN\postrm" />
-    <None Include="WimsConstructionCam\DEBIAN\prerm" />
-    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\hdr.json" />
-    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_100.json" />
-    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_120.json" />
-    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_160.json" />
-    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_200.json" />
-    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_20d-1.json" />
-    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_45d.json" />
-    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_55d.json" />
-    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_65.json" />
-    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_70d.json" />
-    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_80d.json" />
-    <None Include="WimsConstructionCam\usr\local\etc\wimsconstructioncam\imx219_original.json" />
-    <None Include="WimsConstructionCam\usr\local\lib\systemd\system\wimsconstructioncam.service" />
+    <None Include="postinst" />
+    <None Include="postrm" />
+    <None Include="prerm" />
+    <None Include="etc-wimsconstructioncam\hdr.json" />
+    <None Include="etc-wimsconstructioncam\imx219_100.json" />
+    <None Include="etc-wimsconstructioncam\imx219_120.json" />
+    <None Include="etc-wimsconstructioncam\imx219_160.json" />
+    <None Include="etc-wimsconstructioncam\imx219_200.json" />
+    <None Include="etc-wimsconstructioncam\imx219_20d-1.json" />
+    <None Include="etc-wimsconstructioncam\imx219_45d.json" />
+    <None Include="etc-wimsconstructioncam\imx219_55d.json" />
+    <None Include="etc-wimsconstructioncam\imx219_65.json" />
+    <None Include="etc-wimsconstructioncam\imx219_70d.json" />
+    <None Include="etc-wimsconstructioncam\imx219_80d.json" />
+    <None Include="etc-wimsconstructioncam\imx219_original.json" />
+    <None Include="wimsconstructioncam.service" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="CMakeLists.txt" />
     <Text Include="SupportingDocuments\Notes on build.txt" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
