@@ -1136,7 +1136,10 @@ bool CreateDailyMovie(const std::filesystem::path& DailyDirectory, std::string V
 								MP4TimeToSet[0].tv_sec = LastJPGStat.st_mtim.tv_sec;
 								MP4TimeToSet[1].tv_sec = LastJPGStat.st_mtim.tv_sec;
 								if (0 != utimes(VideoFileName.c_str(), MP4TimeToSet))
-									std::cerr << "could not set the modification and access times on " << VideoFileName << std::endl;
+									if (ConsoleVerbosity > 0)
+										std::cout << "[" << getTimeExcelLocal() << "] could not set the modification and access times on " << VideoFileName << std::endl;
+									else
+										std::cerr << "could not set the modification and access times on " << VideoFileName << std::endl;
 							}
 						}
 						else
