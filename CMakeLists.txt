@@ -17,7 +17,7 @@ if (POLICY CMP0141)
 endif()
 
 project (WimsConstructionCam
-    VERSION 1.20231025.1
+    VERSION 1.20231025.2
     DESCRIPTION "Records TimeLapse Pictures at one minute intervals and turns them into a daily video"
     HOMEPAGE_URL https://github.com/wcbonner/WimsConstructionCam
 )
@@ -66,4 +66,5 @@ set(CPACK_DEBIAN_PACKAGE_SECTION custom)
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/postinst" "${CMAKE_CURRENT_SOURCE_DIR}/prerm" "${CMAKE_CURRENT_SOURCE_DIR}/postrm")
 set(CPACK_STRIP_FILES YES)
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS YES)
+set(CPACK_DEBIAN_PACKAGE_DEPENDS ffmpeg)
 include(CPack)
