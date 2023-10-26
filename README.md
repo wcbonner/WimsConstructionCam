@@ -18,12 +18,12 @@ If one ore more --size options is provided, ffmpeg is run daily to create a dail
 If daily movies are created, ffmpeg is run afterwards to concatenate daily movies into a monthly movie. 
 
 ```
-Usage: /usr/local/bin/wimsconstructioncam [options]
-  WimsConstructionCam 1.20230327-1 Built Mar 27 2023 at 15:30:04
+Usage: ./wimsconstructioncam [options]
+  WimsConstructionCam Version 1.20231025.2 Built on: Oct 25 2023 at 18:07:15
   Options:
     -h | --help          Print this message
     -v | --verbose level stdout verbosity level [1]
-    -d | --destination location pictures will be stored []
+    -d | --destination location pictures will be stored
     -f | --freespace gigabytes free space per day [3]
     -t | --time minutes of stills to capture [0]
     -l | --lat latitude for sunrise/sunset [0]
@@ -36,6 +36,7 @@ Usage: /usr/local/bin/wimsconstructioncam [options]
     -H | --hdr run hdr image processing on all captured images
     -2 | --24hour capture images around the clock. HDR mode before sunrise, normal during daylight, HDR mode after sunset
     -T | --tuning-file camera module tuning file
+    -M | --max-daily-movies number of movies to create before normal processing [2]
 ```
 
 ## To build on a fresh Raspian platform:
