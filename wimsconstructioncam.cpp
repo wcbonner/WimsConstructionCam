@@ -1037,9 +1037,11 @@ bool CreateDailyMovie(const std::filesystem::path& DailyDirectory, std::string V
 						mycommand.push_back("ffmpeg");
 						mycommand.push_back("-hide_banner");
 						mycommand.push_back("-loglevel"); mycommand.push_back("warning");
+						// add the images as input 0
 						mycommand.push_back("-thread_queue_size"); mycommand.push_back("1024");	// Attempt to get rid of warning: Thread message queue blocking; consider raising the thread_queue_size option (current value: 8)
 						mycommand.push_back("-r"); mycommand.push_back("30");
 						mycommand.push_back("-i"); mycommand.push_back(StillSpec);
+						// add the clocks as input 1
 						mycommand.push_back("-thread_queue_size"); mycommand.push_back("1024");	// Attempt to get rid of warning: Thread message queue blocking; consider raising the thread_queue_size option (current value: 8)
 						mycommand.push_back("-r"); mycommand.push_back("30");
 						mycommand.push_back("-i"); mycommand.push_back(ClockSpec);
@@ -1123,10 +1125,15 @@ bool CreateDailyMovie(const std::filesystem::path& DailyDirectory, std::string V
 							else
 								std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
 
-							if (EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status))
+							if ((EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status)) || (0 != WTERMSIG(ffmpeg_exit_status)))
+							{
+								// If ffmpeg exited either with an error or by signal, remove the video file and empty the processing queue
 								std::filesystem::remove(VideoFileName);
+								while (!VideoFiles.empty())
+									VideoFiles.pop();
+							}
 
-							if (EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status))
+							if ((EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status)) && (0 == WTERMSIG(ffmpeg_exit_status)))
 							{
 								rval = true;
 								// change file date on mp4 file to match the last jpg file
@@ -1196,34 +1203,35 @@ void CreateMonthlyMovie(const std::filesystem::path DestinationDir)
 	if (!HostName.empty())
 	{
 		VideoFileTemplate.append("-");
-		VideoFileTemplate.append(HostName);
+		VideoFileTemplate.append(HostName);	// example: "-WimPiZeroW-Hope"
 	}
-	VideoFileTemplate.append("-2160p.mp4");
+	VideoFileTemplate.append("-2160p.mp4");	// example: "-WimPiZeroW-Hope-2160p.mp4"
 
+	// The following map is a one to many table of a month-video-filename to individual day-video-filenames
 	std::map <std::filesystem::path, std::vector<std::filesystem::path>> VideoFiles;
 	for (auto const& dir_entry : std::filesystem::directory_iterator{ DestinationDir })
 		if (dir_entry.is_regular_file())
 			if (dir_entry.path().filename().string().find(VideoFileTemplate) != std::string::npos)
 				if (dir_entry.path().filename().string().length() == 8 + VideoFileTemplate.length())
 				{
-					std::string rawname(dir_entry.path().filename().string().substr(0, 4) + "-" + dir_entry.path().filename().string().substr(4, 2) + VideoFileTemplate);
+					std::string rawname(dir_entry.path().filename().string().substr(0, 4) + "-" + dir_entry.path().filename().string().substr(4, 2) + VideoFileTemplate); // example: "2023-10-WimPiZeroW-Hope-2160p.mp4"
 					std::filesystem::path OutPutName(DestinationDir / rawname);
 					std::vector<std::filesystem::path> foo;
 					auto iter = VideoFiles.insert(std::make_pair(OutPutName, foo));
 					iter.first->second.push_back(dir_entry.path());
 				}
-	for (auto Video = VideoFiles.begin(); Video != VideoFiles.end(); Video++)
+	for (auto& Video : VideoFiles)
 	{
 		// First make sure that all the source files are sorted
-		std::sort(Video->second.begin(), Video->second.end());
+		std::sort(Video.second.begin(), Video.second.end());
 		bool ConcatenateVideoFiles(true);
 		struct stat64 StatBufferSource;
 		StatBufferSource.st_mtim.tv_sec = 0;
-		if (0 == stat64(Video->second.back().c_str(), &StatBufferSource))
+		if (0 == stat64(Video.second.back().c_str(), &StatBufferSource))
 		{
 			struct stat64 StatBufferDest;
 			StatBufferDest.st_mtim.tv_sec = 0;
-			if (0 == stat64(Video->first.c_str(), &StatBufferDest))
+			if (0 == stat64(Video.first.c_str(), &StatBufferDest))
 				// compare the date of the file with the most recent data in the structure.
 				if (StatBufferSource.st_mtim.tv_sec <= StatBufferDest.st_mtim.tv_sec)
 					ConcatenateVideoFiles = false;
@@ -1235,7 +1243,7 @@ void CreateMonthlyMovie(const std::filesystem::path DestinationDir)
 			std::ofstream TmpFileMP4(FileNamesToBeConcatenated, std::ios_base::out | std::ios_base::app | std::ios_base::ate);
 			if (TmpFileMP4.is_open())
 			{
-				for (auto mp4 = Video->second.begin(); mp4 != Video->second.end(); mp4++)
+				for (auto mp4 = Video.second.begin(); mp4 != Video.second.end(); mp4++)
 					TmpFileMP4 << "file " << mp4->string() << std::endl;
 				TmpFileMP4.close();
 				std::vector<std::string> mycommand;
@@ -1249,11 +1257,11 @@ void CreateMonthlyMovie(const std::filesystem::path DestinationDir)
 				mycommand.push_back("-c:v"); mycommand.push_back("copy");
 				mycommand.push_back("-movflags"); mycommand.push_back("+faststart");
 				mycommand.push_back("-y");
-				mycommand.push_back(Video->first);
+				mycommand.push_back(Video.first);
 				if (ConsoleVerbosity > 0)
 				{
-					std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << Video->second.size() << std::endl;
-					std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << Video->first.string() << std::endl;
+					std::cout << "[" << getTimeExcelLocal() << "]    File Count: " << Video.second.size() << std::endl;
+					std::cout << "[" << getTimeExcelLocal() << "] VideoFileName: " << Video.first.string() << std::endl;
 					std::cout << "[" << getTimeExcelLocal() << "]        execvp:";
 					for (auto iter = mycommand.begin(); iter != mycommand.end(); iter++)
 						std::cout << " " << *iter;
@@ -1288,12 +1296,12 @@ void CreateMonthlyMovie(const std::filesystem::path DestinationDir)
 					else
 						std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
 
-					if (EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status))
+					if ((EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status)) || (0 != WTERMSIG(ffmpeg_exit_status)))
 					{
-						std::filesystem::remove(Video->first);
+						std::filesystem::remove(Video.first);
 					}
 
-					if (EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status))
+					if ((EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status)) && (0 == WTERMSIG(ffmpeg_exit_status)))
 					{
 						// change file date on dest file to match the last source file
 						struct timeval MP4TimeToSet[2];
@@ -1301,8 +1309,8 @@ void CreateMonthlyMovie(const std::filesystem::path DestinationDir)
 						MP4TimeToSet[1].tv_usec = 0;
 						MP4TimeToSet[0].tv_sec = StatBufferSource.st_mtim.tv_sec;
 						MP4TimeToSet[1].tv_sec = StatBufferSource.st_mtim.tv_sec;
-						if (0 != utimes(Video->first.c_str(), MP4TimeToSet))
-							std::cerr << "could not set the modification and access times on " << Video->first << std::endl;
+						if (0 != utimes(Video.first.c_str(), MP4TimeToSet))
+							std::cerr << "could not set the modification and access times on " << Video.first << std::endl;
 					}
 				}
 				else
@@ -1500,10 +1508,10 @@ int main(int argc, char** argv)
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	if (VideoHD || Video4k) // Only create movies if a size is declared
 	{
-		for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
-			CreateAllDailyMovies(*DestinationDir, VideoOverlayText, MaxDailyMovies, VideoHD, Video4k);
-		for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
-			CreateMonthlyMovie(*DestinationDir);
+		for (auto& DestinationDir : DestinationDirs)
+			CreateAllDailyMovies(DestinationDir, VideoOverlayText, MaxDailyMovies, VideoHD, Video4k);
+		for (auto& DestinationDir : DestinationDirs)
+			CreateMonthlyMovie(DestinationDir);
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
@@ -1638,12 +1646,12 @@ int main(int argc, char** argv)
 			if (GigabytesFreeSpace > 0)
 				GenerateFreeSpace(GigabytesFreeSpace, DestinationDirs[0]);
 			bRun = CreateDailyStills(DestinationDirs[0], LoopStartTime, SunsetNOAA, RotateStills180Degrees, SensorTuningFile);
-			for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
+			for (auto& DestinationDir : DestinationDirs)
 				if (bRun && !b24Hour && (VideoHD || Video4k))
-					bRun = CreateDailyMovie(GetImageDirectory(*DestinationDir, LoopStartTime), VideoOverlayText, VideoHD, Video4k);
-			for (auto DestinationDir = DestinationDirs.begin(); DestinationDir != DestinationDirs.end(); DestinationDir++)
+					bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, VideoHD, Video4k);
+			for (auto& DestinationDir : DestinationDirs)
 				if (bRun && !b24Hour && (VideoHD || Video4k))
-					CreateMonthlyMovie(*DestinationDir);
+					CreateMonthlyMovie(DestinationDir);
 		}
 		if (bRunOnce)
 			bRun = false;
