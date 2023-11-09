@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <cfloat>
+#include <chrono>
 #include <climits>
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -83,6 +84,7 @@ bool RotateStills180Degrees(false);
 bool HDR_Processing(false);
 bool b24Hour(false);
 bool bRunOnce(false);
+bool bRunWithNoCamera(false); // This is to run as a service, processing images from another machine
 int MaxDailyMovies(2);
 double Latitude(0);
 double Longitude(0);
@@ -1125,7 +1127,7 @@ bool CreateDailyMovie(const std::filesystem::path& DailyDirectory, std::string V
 							else
 								std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
 
-							if ((EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status)) || (0 != WTERMSIG(ffmpeg_exit_status)))
+							if ((EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status)) || (EXIT_SUCCESS != WTERMSIG(ffmpeg_exit_status)))
 							{
 								// If ffmpeg exited either with an error or by signal, remove the video file and empty the processing queue
 								std::filesystem::remove(VideoFileName);
@@ -1133,7 +1135,7 @@ bool CreateDailyMovie(const std::filesystem::path& DailyDirectory, std::string V
 									VideoFiles.pop();
 							}
 
-							if ((EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status)) && (0 == WTERMSIG(ffmpeg_exit_status)))
+							if ((EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status)) && (EXIT_SUCCESS == WTERMSIG(ffmpeg_exit_status)))
 							{
 								rval = true;
 								// change file date on mp4 file to match the last jpg file
@@ -1296,12 +1298,13 @@ void CreateMonthlyMovie(const std::filesystem::path DestinationDir)
 					else
 						std::cerr << mycommand.front() << " ended with exit (" << WEXITSTATUS(ffmpeg_exit_status) << ") and signal (" << WTERMSIG(ffmpeg_exit_status) << ")" << std::endl;
 
-					if ((EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status)) || (0 != WTERMSIG(ffmpeg_exit_status)))
+					if ((EXIT_SUCCESS != WEXITSTATUS(ffmpeg_exit_status)) || (EXIT_SUCCESS != WTERMSIG(ffmpeg_exit_status)))
 					{
 						std::filesystem::remove(Video.first);
+						VideoFiles.clear();	// empty the map, causing loop to not be restarted
 					}
 
-					if ((EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status)) && (0 == WTERMSIG(ffmpeg_exit_status)))
+					if ((EXIT_SUCCESS == WEXITSTATUS(ffmpeg_exit_status)) && (EXIT_SUCCESS == WTERMSIG(ffmpeg_exit_status)))
 					{
 						// change file date on dest file to match the last source file
 						struct timeval MP4TimeToSet[2];
@@ -1360,7 +1363,7 @@ static void usage(int argc, char** argv)
 	std::cout << "    -M | --max-daily-movies number of movies to create before normal processing [" << MaxDailyMovies << "]" << std::endl;
 	std::cout << std::endl;
 }
-static const char short_options[] = "hv:d:f:t:l:L:Gs:n:RrH2T:M:";
+static const char short_options[] = "hv:d:f:t:l:L:Gs:n:RrH2T:M:N";
 static const struct option long_options[] = {
 	{ "help",no_argument,			NULL, 'h' },
 	{ "verbose",required_argument,	NULL, 'v' },
@@ -1378,6 +1381,7 @@ static const struct option long_options[] = {
 	{ "24hour",no_argument,			NULL, '2' },
 	{ "tuning-file",required_argument,	NULL, 'T' },
 	{ "max-daily-movies",required_argument,	NULL, 'M' },
+	{ "no-camera",no_argument,		NULL, 'N' },
 	{ 0, 0, 0, 0 }
 };
 /////////////////////////////////////////////////////////////////////////////
@@ -1404,77 +1408,80 @@ int main(int argc, char** argv)
 		{
 		case 0: /* getopt_long() flag */
 			break;
-		case 'h':
+		case 'h':	// --help
 			usage(argc, argv);
 			exit(EXIT_SUCCESS);
-		case 'v':
+		case 'v':	// --verbose
 			try { ConsoleVerbosity = std::stoi(optarg); }
 			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
 			break;
-		case 'd':
+		case 'd':	// --destination
 			TempPath = std::string(optarg);
 			while (TempPath.filename().empty() && (TempPath != TempPath.root_directory())) // This gets rid of the "/" on the end of the path
 				TempPath = TempPath.parent_path();
 			if (ValidateDirectory(TempPath))
 				DestinationDirs.push_back(TempPath);
 			break;
-		case 'f':
+		case 'f':	// --freespace
 			try { GigabytesFreeSpace = std::stoi(optarg); }
 			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
 			break;
-		case 't':
+		case 't':	// --time
 			try { TimeoutMinutes = std::stoi(optarg); }
 			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
 			break;
-		case 'l':
+		case 'l':	// --lat
 			try { Latitude = std::stod(optarg); }
 			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
 			break;
-		case 'L':
+		case 'L':	// --lon
 			try { Longitude = std::stod(optarg); }
 			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
 			break;
-		case 'G':
+		case 'G':	// --gps
 			UseGPSD = true;
 			break;
-		case 's':
+		case 's':	// --size
 			TempString = std::string(optarg);
 			if (TempString.find("1080p") != std::string::npos)
 				VideoHD = true;
 			if (TempString.find("2160p") != std::string::npos)
 				Video4k = true;
 			break;
-		case 'n':
+		case 'n':	// --name
 			VideoOverlayText = std::string(optarg);
 			break;
-		case 'R':
+		case 'R':	// --runonce
 			bRunOnce = true;
 			break;
-		case 'r':
+		case 'r':	// --rotate
 			RotateStills180Degrees = true;
 			break;
-		case 'H':
+		case 'H':	// --hdr
 			HDR_Processing = true;
 			break;
-		case '2':
+		case '2':	// --24hour
 			b24Hour = true;
 			break;
-		case 'T':
+		case 'T':	// --tuning-file
 			TempPath = std::string(optarg);
 			while (TempPath.filename().empty() && (TempPath != TempPath.root_directory())) // This gets rid of the "/" on the end of the path
 				TempPath = TempPath.parent_path();
 			if (ValidateFile(TempPath))
 				SensorTuningFile = TempPath;
 			break;
-		case 'M':
+		case 'M':	// --max-daily-movies
 			try { MaxDailyMovies = std::stoi(optarg); }
 			catch (const std::invalid_argument& ia) { std::cerr << "Invalid argument: " << ia.what() << std::endl; exit(EXIT_FAILURE); }
 			catch (const std::out_of_range& oor) { std::cerr << "Out of Range error: " << oor.what() << std::endl; exit(EXIT_FAILURE); }
+			break;
+		case 'N':	// --no-camera
+			bRunWithNoCamera = true;
 			break;
 		default:
 			usage(argc, argv);
@@ -1515,7 +1522,8 @@ int main(int argc, char** argv)
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Set up CTR-C signal handler
-	auto previousHandler = std::signal(SIGINT, SignalHandlerSIGINT);
+	auto previousHandlerSIGINT = std::signal(SIGINT, SignalHandlerSIGINT);	// Install CTR-C signal handler
+	auto previousHandlerSIGHUP = std::signal(SIGHUP, SignalHandlerSIGHUP);	// Install Hangup signal handler
 	bRun = true;
 	while (bRun)
 	{
@@ -1645,7 +1653,64 @@ int main(int argc, char** argv)
 			// largest file in sample was 1,310,523, multiply by minutes in day 1440, 1887153120, round up to 2000000000 or 2GB.
 			if (GigabytesFreeSpace > 0)
 				GenerateFreeSpace(GigabytesFreeSpace, DestinationDirs[0]);
-			bRun = CreateDailyStills(DestinationDirs[0], LoopStartTime, SunsetNOAA, RotateStills180Degrees, SensorTuningFile);
+			if (bRunWithNoCamera)
+			{				
+				// wait for signal or sunset
+				// if sunset set bRun to true
+				// if signal set bRun to false
+				int MinutesLeftInDay = 1440; // Minutes in Day = 60 * 24 = 1440
+				struct tm UTC;
+				if (0 != localtime_r(&LoopStartTime, &UTC))
+				{
+					int CurrentMinuteInDay = UTC.tm_hour * 60 + UTC.tm_min;
+					struct tm StopTimeTM;
+					if (0 != localtime_r(&SunsetNOAA, &StopTimeTM))
+					{
+						if (UTC.tm_mday == StopTimeTM.tm_mday)
+							MinutesLeftInDay = (StopTimeTM.tm_hour * 60 + StopTimeTM.tm_min) - CurrentMinuteInDay;
+						else
+							MinutesLeftInDay = 1440 - CurrentMinuteInDay; //1440 is the maximum number of minutes in a day = 24*60
+					}
+					else
+						MinutesLeftInDay = 1440 - CurrentMinuteInDay;
+				}
+				sigset_t set;
+				sigemptyset(&set);
+				sigaddset(&set, SIGINT);
+				sigaddset(&set, SIGHUP);
+				siginfo_t sig({ 0 });
+				std::timespec MyTimeout({ MinutesLeftInDay * 60, 0 });
+				if (ConsoleVerbosity > 0)
+					std::cout << "[" << getTimeExcelLocal() << "] Waiting for signal or timeout (" << MyTimeout.tv_sec << " seconds) (--no-camera)" << std::endl;
+				else
+					std::cerr << "Waiting for signal or timeout (" << MyTimeout.tv_sec << " seconds) (--no-camera)" << std::endl;
+				int s = sigtimedwait(&set, &sig, &MyTimeout);
+				switch (sig.si_signo)
+				{
+				case SIGINT:
+					if (ConsoleVerbosity > 0)
+						std::cout << "[" << getTimeExcelLocal() << "] ***************** SIGINT: Caught Ctrl-C, finishing loop and quitting. *****************" << std::endl;
+					else
+						std::cerr << "***************** SIGINT: Caught Ctrl-C, finishing loop and quitting. *****************" << std::endl;
+					bRun = false;
+					break;
+				case SIGHUP:
+					if (ConsoleVerbosity > 0)
+						std::cout << "[" << getTimeExcelLocal() << "] ***************** SIGHUP: Caught HangUp, finishing loop and quitting. *****************" << std::endl;
+					else
+						std::cerr << "***************** SIGHUP: Caught HangUp, finishing loop and quitting. *****************" << std::endl;
+					bRun = false;
+					break;
+				default:
+					if (ConsoleVerbosity > 0)
+						std::cout << "[" << getTimeExcelLocal() << "] Sunset after timeout (" << MyTimeout.tv_sec << " seconds)" << std::endl;
+					else
+						std::cerr << "Sunset after timeout (" << MyTimeout.tv_sec << " seconds)" << std::endl;
+					bRun = true;
+				}
+			}
+			else
+				bRun = CreateDailyStills(DestinationDirs[0], LoopStartTime, SunsetNOAA, RotateStills180Degrees, SensorTuningFile);
 			for (auto& DestinationDir : DestinationDirs)
 				if (bRun && !b24Hour && (VideoHD || Video4k))
 					bRun = CreateDailyMovie(GetImageDirectory(DestinationDir, LoopStartTime), VideoOverlayText, VideoHD, Video4k);
@@ -1657,8 +1722,8 @@ int main(int argc, char** argv)
 			bRun = false;
 	}
 	// remove our special Ctrl-C signal handler and restore previous one
-	std::signal(SIGINT, previousHandler);
-
+	std::signal(SIGHUP, previousHandlerSIGHUP);	// Restore original Hangup signal handler
+	std::signal(SIGINT, previousHandlerSIGINT);	// Restore original Ctrl-C signal handler
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	if (ConsoleVerbosity > 0)
 		std::cout << "[" << getTimeExcelLocal() << "] " << ProgramVersionString << " (exiting)" << std::endl;
