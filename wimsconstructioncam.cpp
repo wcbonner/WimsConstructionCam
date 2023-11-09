@@ -1497,6 +1497,23 @@ int main(int argc, char** argv)
 		for (auto index = 0; index < argc; index++)
 			startupargs << " " << argv[index];
 		std::cout << "[" << getTimeExcelLocal() << "] " << startupargs.str() << std::endl;
+		std::cout << "[                   ]  verbose: " << ConsoleVerbosity << std::endl;
+		std::cout << "[                   ]     time: " << TimeoutMinutes << std::endl;
+		std::cout << "[                   ]      gps: " << std::boolalpha << UseGPSD << std::endl;
+		std::cout << "[                   ]      lat: " << Latitude << std::endl;
+		std::cout << "[                   ]      lon: " << Longitude << std::endl;
+		std::cout << "[                   ]     name: " << VideoOverlayText << std::endl;
+		std::cout << "[                   ]  VideoHD: " << std::boolalpha << VideoHD << std::endl;
+		std::cout << "[                   ]  Video4k: " << std::boolalpha << Video4k << std::endl;
+		std::cout << "[                   ]   rotate: " << std::boolalpha << RotateStills180Degrees << std::endl;
+		std::cout << "[                   ]      hdr: " << std::boolalpha << HDR_Processing << std::endl;
+		std::cout << "[                   ]   24hour: " << std::boolalpha << b24Hour << std::endl;
+		std::cout << "[                   ]  runonce: " << std::boolalpha << bRunOnce << std::endl;
+		for (auto& d : DestinationDirs)
+			std::cout << "[                   ] destination: " << d << std::endl;
+		std::cout << "[                   ] freespace: " << GigabytesFreeSpace << std::endl;
+		std::cout << "[                   ] no-camera: " << std::boolalpha << bRunWithNoCamera << std::endl;
+		std::cout << "[                   ] max-daily-movies: " << MaxDailyMovies << std::endl;
 	}
 	else
 	{
