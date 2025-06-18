@@ -3,13 +3,13 @@
 Description=WimsConstructionCam service
 After=multi-user.target
 # Requires=time-set.target
-StartLimitBurst=10
-StartLimitIntervalSec=33
+StartLimitBurst=5
+StartLimitIntervalSec=15m
 
 [Service]
 Type=simple
 Restart=always
-RestartSec=10
+RestartSec=1m
 Environment=LIBCAMERA_LOG_LEVELS=*:4
 ExecStartPre=/bin/mkdir --parents /media/%H/DCIM/
 ExecStart=/usr/local/bin/wimsconstructioncam \
