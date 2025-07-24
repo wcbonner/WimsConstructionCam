@@ -17,7 +17,7 @@ if (POLICY CMP0141)
 endif()
 
 project (WimsConstructionCam
-    VERSION 1.20250618.0
+    VERSION 1.20250724.0
     DESCRIPTION "Records TimeLapse Pictures at one minute intervals and turns them into a daily video"
     HOMEPAGE_URL https://github.com/wcbonner/WimsConstructionCam
 )

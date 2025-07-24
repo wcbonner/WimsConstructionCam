@@ -825,7 +825,7 @@ bool CreateDailyStills(const std::string DestinationDir, const time_t& CurrentTi
 				(EX_SOFTWARE == WEXITSTATUS(CameraProgram_exit_status)) || 
 				(255 == WEXITSTATUS(CameraProgram_exit_status))) // ERROR: the system should be configured for the legacy camera stack
 			{
-				mycommand.front() = "libcamera-still";
+				mycommand.front() = "rpicam-still";
 				mycommand.push_back("--verbose"); mycommand.push_back("0");
 				if (!TuningFileName.empty())
 				{
